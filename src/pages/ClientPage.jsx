@@ -36,7 +36,7 @@ function ClientPage() {
       const tomorrow = new Date(today)
       tomorrow.setDate(tomorrow.getDate() + 2)
 
-      const executorsWithSlots = await Promise.all(data.map(async (executor) => {
+      const executorsWithData = await Promise.all(data.map(async (executor) => {
         const { data: slots } = await supabase
           .from('slots')
           .select('*')
@@ -46,10 +46,17 @@ function ClientPage() {
           .lte('start_time', tomorrow.toISOString())
           .order('start_time', { ascending: true })
           .limit(3)
-        return { ...executor, slots: slots || [] }
+
+        const { data: executorServices } = await supabase
+          .from('services')
+          .select('*')
+          .eq('executor_id', executor.id)
+          .order('is_main', { ascending: false })
+
+        return { ...executor, slots: slots || [], services: executorServices || [] }
       }))
 
-      setExecutors(executorsWithSlots)
+      setExecutors(executorsWithData)
       setLoading(false)
     }
     loadExecutors()
@@ -129,7 +136,6 @@ function ClientPage() {
             )}
             <p style={{ color: '#666', margin: '8px 0', fontSize: '14px' }}>{executor.bio}</p>
             <div style={{ display: 'flex', gap: '16px', fontSize: '14px', flexWrap: 'wrap' }}>
-              <span>💰 от {executor.price} руб {executor.price_label}</span>
               <span>📦 {executor.orders_count} заказов</span>
               <span>⏱ {executor.service_duration} мин</span>
             </div>
@@ -153,6 +159,22 @@ function ClientPage() {
                 }}>🏠 Приём у себя</span>
               )}
             </div>
+            {executor.services && executor.services.length > 0 && (
+              <div style={{ marginTop: '10px' }}>
+                {executor.services.map(service => (
+                  <div key={service.id} style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    padding: '6px 0',
+                    borderBottom: '1px solid #f0f0f0',
+                    fontSize: '14px'
+                  }}>
+                    <span>{service.is_main ? '⭐ ' : '➕ '}{service.name}</span>
+                    <span style={{ color: '#2481cc', fontWeight: 'bold' }}>{service.price} руб</span>
+                  </div>
+                ))}
+              </div>
+            )}
             {executor.slots && executor.slots.length > 0 && (
               <div style={{ marginTop: '12px' }}>
                 <p style={{ margin: '0 0 6px', fontSize: '13px', color: '#666' }}>📅 Ближайшие слоты:</p>
