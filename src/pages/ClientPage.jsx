@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../supabase'
 import BookingPage from './BookingPage'
+import { generateSlots } from '../utils/slotGenerator'
 
 function ClientPage() {
   const [executors, setExecutors] = useState([])
@@ -37,15 +38,21 @@ function ClientPage() {
       tomorrow.setDate(tomorrow.getDate() + 2)
 
       const executorsWithData = await Promise.all(data.map(async (executor) => {
-        const { data: slots } = await supabase
-          .from('slots')
-          .select('*')
-          .eq('executor_id', executor.id)
-          .eq('is_available', true)
-          .gte('start_time', today.toISOString())
-          .lte('start_time', tomorrow.toISOString())
-          .order('start_time', { ascending: true })
-          .limit(3)
+        // Загружаем существующие заказы исполнителя
+const { data: existingOrders } = await supabase
+.from('orders')
+.select('*')
+.eq('executor_id', executor.id)
+.neq('status', 'cancelled')
+.gte('scheduled_at', today.toISOString())
+
+// Генерируем слоты на сегодня и завтра
+const todaySlots = generateSlots(executor, existingOrders || [], today)
+const tomorrowDate = new Date(today)
+tomorrowDate.setDate(tomorrowDate.getDate() + 1)
+const tomorrowSlots = generateSlots(executor, existingOrders || [], tomorrowDate)
+
+const slots = [...todaySlots, ...tomorrowSlots].slice(0, 3)
 
         const { data: executorServices } = await supabase
           .from('services')
@@ -184,7 +191,7 @@ function ClientPage() {
                 <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
                   {executor.slots.map(slot => (
                     <button
-                      key={slot.id}
+                    key={slot.start.toString()}
                       onClick={() => {
                         setSelectedExecutor(executor)
                         setSelectedSlot(slot)
@@ -200,7 +207,7 @@ function ClientPage() {
                         fontSize: '13px'
                       }}
                     >
-                      {formatSlot(slot.start_time)}
+                      {formatSlot(slot.start)}
                     </button>
                   ))}
                 </div>

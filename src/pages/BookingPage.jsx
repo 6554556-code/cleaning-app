@@ -84,7 +84,7 @@ function BookingPage({ executor, slot, onBack, onSuccess }) {
         cleaning_type: fullServiceName, 
         total_price: calcTotal(),
       total_duration: calcDuration(),
-        scheduled_at: slot.start_time,
+        scheduled_at: slot.start,
         status: 'new',
         service_type: executor.service_type
       }])
@@ -142,7 +142,7 @@ function BookingPage({ executor, slot, onBack, onSuccess }) {
         marginBottom: '20px'
       }}>
         <p style={{ margin: 0, fontWeight: 'bold' }}>{executor.users?.full_name}</p>
-        <p style={{ margin: '4px 0 0', color: '#2481cc' }}>📅 {formatSlot(slot.start_time)}</p>
+        <p style={{ margin: '4px 0 0', color: '#2481cc' }}>📅 {formatSlot(slot.start)}</p>
       </div>
 
       {/* Основная услуга */}

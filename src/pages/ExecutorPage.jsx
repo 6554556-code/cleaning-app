@@ -126,6 +126,25 @@ function ExecutorPage({ executorId }) {
 <div style={{ display: 'flex', gap: '16px', fontSize: '14px', marginTop: '4px' }}>
   {order.total_price && <span>💰 {order.total_price} руб</span>}
   {order.total_duration && <span>⏱ {order.total_duration} мин</span>}
+</div><div style={{ display: 'flex', gap: '8px', marginTop: '6px' }}>
+  {executor?.outcall && order.location_type !== 'incall' && (
+    <span style={{
+      background: '#e8f4fd',
+      color: '#2481cc',
+      padding: '3px 8px',
+      borderRadius: '10px',
+      fontSize: '12px'
+    }}>🚗 Выезд</span>
+  )}
+  {executor?.travel_time && (
+    <span style={{
+      background: '#fff8ed',
+      color: '#f5a623',
+      padding: '3px 8px',
+      borderRadius: '10px',
+      fontSize: '12px'
+    }}>🚦 ~{executor.travel_time} мин на дорогу</span>
+  )}
 </div>
 <div style={{ display: 'flex', gap: '8px', marginTop: '8px' }}>
   <a href={`tel:${order.client?.phone}`} style={{
