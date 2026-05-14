@@ -81,7 +81,9 @@ function BookingPage({ executor, slot, onBack, onSuccess }) {
         executor_id: executor.id,
         address: address,
         comment: comment,
-        cleaning_type: fullServiceName,
+        cleaning_type: fullServiceName, 
+        total_price: calcTotal(),
+      total_duration: calcDuration(),
         scheduled_at: slot.start_time,
         status: 'new',
         service_type: executor.service_type

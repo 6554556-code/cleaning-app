@@ -23,7 +23,7 @@ function ExecutorPage({ executorId }) {
         .from('orders')
         .select('*, client:client_id(full_name, phone)')
         .eq('executor_id', executorId)
-        .order('scheduled_at', { ascending: true })
+        .order('created_at', { ascending: false })
 
       setOrders(ordersData || [])
       setLoading(false)
@@ -122,6 +122,11 @@ function ExecutorPage({ executorId }) {
                   <p style={{ margin: '4px 0', fontSize: '14px' }}>📅 {formatDate(order.scheduled_at)}</p>
                   <p style={{ margin: '4px 0', fontSize: '14px' }}>📞 {order.client?.phone}</p>
 <p style={{ margin: '4px 0', fontSize: '14px' }}>💬 {order.comment || 'Без комментария'}</p>
+<p style={{ margin: '4px 0', fontSize: '14px' }}>🛠 {order.cleaning_type}</p>
+<div style={{ display: 'flex', gap: '16px', fontSize: '14px', marginTop: '4px' }}>
+  {order.total_price && <span>💰 {order.total_price} руб</span>}
+  {order.total_duration && <span>⏱ {order.total_duration} мин</span>}
+</div>
 <div style={{ display: 'flex', gap: '8px', marginTop: '8px' }}>
   <a href={`tel:${order.client?.phone}`} style={{
     flex: 1,
