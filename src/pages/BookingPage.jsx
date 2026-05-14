@@ -1,22 +1,51 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { supabase } from '../supabase'
 
 function BookingPage({ executor, slot, onBack, onSuccess }) {
   const [name, setName] = useState('')
   const [phone, setPhone] = useState('')
   const [address, setAddress] = useState('')
-  const [area, setArea] = useState('')
-  const [budget, setBudget] = useState('')
-  const [cleaningType, setCleaningType] = useState('standard')
+  const [comment, setComment] = useState('')
   const [loading, setLoading] = useState(false)
+  const [services, setServices] = useState([])
+  const [selectedService, setSelectedService] = useState(null)
+  const [selectedExtras, setSelectedExtras] = useState([])
 
-  const cleaningTypes = [
-    { id: 'standard', label: '🧹 Стандартная' },
-    { id: 'general', label: '🏠 Генеральная' },
-    { id: 'after_repair', label: '🔨 После ремонта' },
-  ]
+  useEffect(() => {
+    async function loadServices() {
+      const { data } = await supabase
+        .from('services')
+        .select('*')
+        .eq('executor_id', executor.id)
+        .order('is_main', { ascending: false })
+      setServices(data || [])
+      const main = data?.find(s => s.is_main)
+      if (main) setSelectedService(main)
+    }
+    loadServices()
+  }, [executor.id])
+
+  function toggleExtra(service) {
+    setSelectedExtras(prev =>
+      prev.find(s => s.id === service.id)
+        ? prev.filter(s => s.id !== service.id)
+        : [...prev, service]
+    )
+  }
+
+  function calcTotal() {
+    const base = selectedService?.price || 0
+    const extras = selectedExtras.reduce((sum, s) => sum + s.price, 0)
+    return base + extras
+  }
+
+  function calcDuration() {
+    const base = selectedService?.duration || 0
+    const extras = selectedExtras.reduce((sum, s) => sum + (s.duration || 0), 0)
+    return base + extras
+  }
   async function handleSubmit() {
-    if (!name || !phone || !address) {
+    if (!name || !phone || !address || !selectedService) {
       alert('Пожалуйста заполните все обязательные поля')
       return
     }
@@ -40,18 +69,22 @@ function BookingPage({ executor, slot, onBack, onSuccess }) {
       return
     }
 
+    const extrasNames = selectedExtras.map(s => s.name).join(', ')
+    const fullServiceName = extrasNames
+      ? `${selectedService.name} + ${extrasNames}`
+      : selectedService.name
+
     const { error: orderError } = await supabase
       .from('orders')
       .insert([{
         client_id: user.id,
         executor_id: executor.id,
-        budget: budget,
         address: address,
-        area: area,
-        cleaning_type: cleaningType,
+        comment: comment,
+        cleaning_type: fullServiceName,
         scheduled_at: slot.start_time,
         status: 'new',
-        service_type: 'cleaning'
+        service_type: executor.service_type
       }])
 
     if (orderError) {
@@ -67,7 +100,9 @@ function BookingPage({ executor, slot, onBack, onSuccess }) {
 
     setLoading(false)
     onSuccess()
-  }function formatSlot(start) {
+  }
+
+  function formatSlot(start) {
     const date = new Date(start)
     const today = new Date()
     const tomorrow = new Date()
@@ -79,7 +114,6 @@ function BookingPage({ executor, slot, onBack, onSuccess }) {
     if (isTomorrow) return `Завтра ${time}`
     return time
   }
-
   return (
     <div style={{ padding: '16px', maxWidth: '600px', margin: '0 auto' }}>
 
@@ -107,31 +141,76 @@ function BookingPage({ executor, slot, onBack, onSuccess }) {
       }}>
         <p style={{ margin: 0, fontWeight: 'bold' }}>{executor.users?.full_name}</p>
         <p style={{ margin: '4px 0 0', color: '#2481cc' }}>📅 {formatSlot(slot.start_time)}</p>
-      </div><p style={{ fontWeight: 'bold', marginBottom: '8px' }}>Тип уборки</p>
-      <div style={{ display: 'flex', gap: '8px', marginBottom: '16px', flexWrap: 'wrap' }}>
-        {cleaningTypes.map(t => (
-          <button
-            key={t.id}
-            onClick={() => setCleaningType(t.id)}
+      </div>
+
+      {/* Основная услуга */}
+      <p style={{ fontWeight: 'bold', marginBottom: '8px' }}>Основная услуга</p>
+      <div style={{ marginBottom: '16px' }}>
+        {services.filter(s => s.is_main).map(service => (
+          <div
+            key={service.id}
+            onClick={() => setSelectedService(service)}
             style={{
-              padding: '8px 16px',
-              borderRadius: '20px',
-              border: 'none',
-              background: cleaningType === t.id ? '#2481cc' : '#f0f0f0',
-              color: cleaningType === t.id ? 'white' : 'black',
-              cursor: 'pointer',
-              fontSize: '14px'
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              padding: '12px',
+              borderRadius: '8px',
+              marginBottom: '8px',
+              border: selectedService?.id === service.id ? '2px solid #2481cc' : '2px solid #f0f0f0',
+              background: selectedService?.id === service.id ? '#f0f7ff' : 'white',
+              cursor: 'pointer'
             }}
           >
-            {t.label}
-          </button>
+            <div>
+              <span>⭐ {service.name}</span>
+              {service.duration && (
+                <span style={{ color: '#999', fontSize: '12px', marginLeft: '8px' }}>
+                  ⏱ {service.duration} мин
+                </span>
+              )}
+            </div>
+            <span style={{ color: '#2481cc', fontWeight: 'bold' }}>{service.price} руб</span>
+          </div>
         ))}
       </div>
 
+      {/* Доп услуги */}
+      {services.filter(s => !s.is_main).length > 0 && (
+        <div style={{ marginBottom: '16px' }}>
+          <p style={{ fontWeight: 'bold', marginBottom: '8px' }}>Дополнительно</p>
+          {services.filter(s => !s.is_main).map(service => (
+            <div
+              key={service.id}
+              onClick={() => toggleExtra(service)}
+              style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                padding: '12px',
+                borderRadius: '8px',
+                marginBottom: '8px',
+                border: selectedExtras.find(s => s.id === service.id) ? '2px solid #16a34a' : '2px solid #f0f0f0',
+                background: selectedExtras.find(s => s.id === service.id) ? '#f0fdf4' : 'white',
+                cursor: 'pointer'
+              }}
+            >
+              <div>
+                <span>➕ {service.name}</span>
+                {service.duration && (
+                  <span style={{ color: '#999', fontSize: '12px', marginLeft: '8px' }}>
+                    ⏱ {service.duration} мин
+                  </span>
+                )}
+              </div>
+              <span style={{ color: '#16a34a', fontWeight: 'bold' }}>+{service.price} руб</span>
+            </div>
+          ))}
+        </div>
+      )}
       {[
-        { label: 'Бюджет', value: budget, setter: setBudget, placeholder: 'Например: 5000 руб' },
         { label: 'Адрес *', value: address, setter: setAddress, placeholder: 'Улица, дом, квартира' },
-        { label: 'Площадь', value: area, setter: setArea, placeholder: 'Например: 45 кв.м' },
+        { label: 'Комментарий', value: comment, setter: setComment, placeholder: 'Укажите важные детали: площадь, порода собаки, возраст ребёнка...' },
         { label: 'Ваше имя *', value: name, setter: setName, placeholder: 'Как вас зовут' },
         { label: 'Телефон *', value: phone, setter: setPhone, placeholder: '+7 999 123 45 67' },
       ].map(field => (
@@ -153,6 +232,23 @@ function BookingPage({ executor, slot, onBack, onSuccess }) {
         </div>
       ))}
 
+      {/* Итого */}
+      <div style={{
+        background: '#f0f7ff',
+        borderRadius: '8px',
+        padding: '12px',
+        marginBottom: '12px',
+      }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
+          <span style={{ color: '#666' }}>⏱ Длительность:</span>
+          <span>{calcDuration()} мин</span>
+        </div>
+        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+          <span style={{ fontWeight: 'bold' }}>💰 Итого:</span>
+          <span style={{ fontWeight: 'bold', color: '#2481cc' }}>{calcTotal()} руб</span>
+        </div>
+      </div>
+
       <button
         onClick={handleSubmit}
         disabled={loading}
@@ -168,7 +264,7 @@ function BookingPage({ executor, slot, onBack, onSuccess }) {
           marginTop: '8px'
         }}
       >
-        {loading ? 'Отправляем...' : 'Подтвердить заявку'}
+        {loading ? 'Отправляем...' : `Подтвердить заявку · ${calcTotal()} руб`}
       </button>
     </div>
   )

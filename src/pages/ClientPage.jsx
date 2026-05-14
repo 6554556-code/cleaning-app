@@ -137,7 +137,7 @@ function ClientPage() {
             <p style={{ color: '#666', margin: '8px 0', fontSize: '14px' }}>{executor.bio}</p>
             <div style={{ display: 'flex', gap: '16px', fontSize: '14px', flexWrap: 'wrap' }}>
               <span>📦 {executor.orders_count} заказов</span>
-              <span>⏱ {executor.service_duration} мин</span>
+              
             </div>
             <div style={{ display: 'flex', gap: '8px', marginTop: '8px' }}>
               {executor.outcall && (
@@ -170,7 +170,10 @@ function ClientPage() {
                     fontSize: '14px'
                   }}>
                     <span>{service.is_main ? '⭐ ' : '➕ '}{service.name}</span>
-                    <span style={{ color: '#2481cc', fontWeight: 'bold' }}>{service.price} руб</span>
+<span style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+  {service.duration && <span style={{ color: '#999', fontSize: '12px' }}>⏱ {service.duration} мин</span>}
+  <span style={{ color: '#2481cc', fontWeight: 'bold' }}>{service.price} руб</span>
+</span>
                   </div>
                 ))}
               </div>
