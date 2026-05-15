@@ -57,7 +57,11 @@ function BlockDetailsModal({ block, onClose, onSaved }) {
           <button onClick={onClose} style={{ background: 'none', border: 'none', fontSize: '20px', cursor: 'pointer' }}>✕</button>
         </div>
 
-        <p style={{ margin: '4px 0', fontSize: '14px' }}><b>Начало:</b> {new Date(block.start_at).toLocaleString('ru-RU')}</p>
+        <p style={{ margin: '4px 0', fontSize: '14px', textAlign: 'center', color: '#555' }}>
+          {new Date(block.start_at).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}
+          {' — '}
+          {new Date(new Date(block.start_at).getTime() + duration * 60000).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}
+        </p>
 
         <p style={{ marginTop: '12px', marginBottom: '4px', fontWeight: 'bold', fontSize: '14px' }}>Длительность (мин)</p>
         <input type="number" value={duration} onChange={e => setDuration(Number(e.target.value))} style={{ width: '100%', padding: '8px', borderRadius: '8px', border: '1px solid #ddd', fontSize: '14px', boxSizing: 'border-box' }} />
