@@ -135,6 +135,8 @@ function OrderDetailsModal({ order, onClose, onSaved }) {
 function ScheduleView({ executor, orders, blocks, onReload }) {
   const [selectedOrder, setSelectedOrder] = useState(null)
   const [selectedBlock, setSelectedBlock] = useState(null)
+  const [expandedBefore, setExpandedBefore] = useState(false)
+  const [expandedAfter, setExpandedAfter] = useState(false)
   const [weekOffset, setWeekOffset] = useState(0)
 
   if (!executor) return null
@@ -144,7 +146,9 @@ function ScheduleView({ executor, orders, blocks, onReload }) {
   const [workEndH, workEndM] = executor.work_end.split(':').map(Number)
   const workStartMin = workStartH * 60 + workStartM
   const workEndMin = workEndH * 60 + workEndM
-  const totalMinutes = workEndMin - workStartMin
+  const viewStartMin = expandedBefore ? 0 : workStartMin
+  const viewEndMin = expandedAfter ? 24 * 60 : workEndMin
+  const totalMinutes = viewEndMin - viewStartMin
 
   // Высота 1 минуты в пикселях
   const PX_PER_MIN = 1.2
@@ -195,13 +199,23 @@ function ScheduleView({ executor, orders, blocks, onReload }) {
         <button onClick={() => setWeekOffset(weekOffset + 1)} style={{ padding: '6px 12px', borderRadius: '8px', border: '1px solid #ddd', background: 'white', cursor: 'pointer' }}>Вперёд →</button>
       </div>
 
+      {/* Стрелка "раньше" */}
+      {workStartMin > 0 && (
+        <button
+          onClick={() => setExpandedBefore(!expandedBefore)}
+          style={{ width: '100%', padding: '4px', background: '#f9fafb', border: '1px solid #eee', borderRadius: '4px', cursor: 'pointer', fontSize: '11px', color: '#888', marginBottom: '4px' }}
+        >
+          {expandedBefore ? '▼ Скрыть ранние часы' : '▲ Показать ранние часы'}
+        </button>
+      )}
+
       {/* Сетка */}
       <div style={{ display: 'flex', gap: '4px' }}>
         {/* Колонка времени */}
         <div style={{ width: '40px', flexShrink: 0 }}>
           <div style={{ height: '28px' }}></div>
           {Array.from({ length: Math.ceil(totalMinutes / 60) + 1 }).map((_, i) => {
-            const hour = Math.floor((workStartMin + i * 60) / 60)
+            const hour = Math.floor((viewStartMin + i * 60) / 60) % 24
             return (
               <div key={i} style={{ height: `${60 * PX_PER_MIN}px`, fontSize: '11px', color: '#888', textAlign: 'right', paddingRight: '4px' }}>
                 {String(hour).padStart(2, '0')}:00
@@ -217,7 +231,7 @@ function ScheduleView({ executor, orders, blocks, onReload }) {
           const now = new Date()
           const isToday = day.toDateString() === now.toDateString()
           const nowMin = now.getHours() * 60 + now.getMinutes()
-          const nowTop = (nowMin - workStartMin) * PX_PER_MIN
+          const nowTop = (nowMin - viewStartMin) * PX_PER_MIN
           const showNow = isToday && nowMin >= workStartMin && nowMin <= workEndMin
           return (
             <div key={i} style={{ flex: 1, position: 'relative' }}>
@@ -239,7 +253,7 @@ function ScheduleView({ executor, orders, blocks, onReload }) {
 {dayBlocks.map(block => {
                   const blockDate = new Date(block.start_at)
                   const blockMin = blockDate.getHours() * 60 + blockDate.getMinutes()
-                  const blockTop = (blockMin - workStartMin) * PX_PER_MIN
+                  const blockTop = (blockMin - viewStartMin) * PX_PER_MIN
                   return (
                     <div
                       key={`block-${block.id}`}
@@ -271,7 +285,7 @@ function ScheduleView({ executor, orders, blocks, onReload }) {
                 {dayOrders.map(order => {
                   const orderDate = new Date(order.scheduled_at)
                   const orderMin = orderDate.getHours() * 60 + orderDate.getMinutes()
-                  const top = (orderMin - workStartMin) * PX_PER_MIN
+                  const top = (orderMin - viewStartMin) * PX_PER_MIN
                   const duration = order.total_duration || 60
                   const isOutcall = order.location_type === 'outcall'
                   const travelBefore = isOutcall ? travelTime : 0
@@ -314,6 +328,15 @@ function ScheduleView({ executor, orders, blocks, onReload }) {
           onClose={() => setSelectedBlock(null)}
           onSaved={() => { setSelectedBlock(null); onReload() }}
         />
+      )}
+      {/* Стрелка "позже" */}
+      {workEndMin < 24 * 60 && (
+        <button
+          onClick={() => setExpandedAfter(!expandedAfter)}
+          style={{ width: '100%', padding: '4px', background: '#f9fafb', border: '1px solid #eee', borderRadius: '4px', cursor: 'pointer', fontSize: '11px', color: '#888', marginTop: '4px' }}
+        >
+          {expandedAfter ? '▲ Скрыть поздние часы' : '▼ Показать поздние часы'}
+        </button>
       )}
       {/* Легенда */}
       <div style={{ marginTop: '16px', display: 'flex', flexWrap: 'wrap', gap: '8px', fontSize: '11px' }}>
