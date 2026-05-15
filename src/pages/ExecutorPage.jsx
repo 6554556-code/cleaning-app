@@ -214,6 +214,11 @@ function ScheduleView({ executor, orders, blocks, onReload }) {
         {days.map((day, i) => {
           const dayOrders = getOrdersForDay(day)
           const dayBlocks = getBlocksForDay(day)
+          const now = new Date()
+          const isToday = day.toDateString() === now.toDateString()
+          const nowMin = now.getHours() * 60 + now.getMinutes()
+          const nowTop = (nowMin - workStartMin) * PX_PER_MIN
+          const showNow = isToday && nowMin >= workStartMin && nowMin <= workEndMin
           return (
             <div key={i} style={{ flex: 1, position: 'relative' }}>
               <div style={{ height: '28px', textAlign: 'center', fontSize: '12px', fontWeight: 'bold', borderBottom: '1px solid #eee' }}>
@@ -224,6 +229,12 @@ function ScheduleView({ executor, orders, blocks, onReload }) {
                 {Array.from({ length: Math.ceil(totalMinutes / 60) }).map((_, h) => (
                   <div key={h} style={{ position: 'absolute', top: `${h * 60 * PX_PER_MIN}px`, left: 0, right: 0, height: '1px', background: '#eee' }}></div>
                 ))}
+                {/* Линия "сейчас" */}
+                {showNow && (
+                  <div style={{ position: 'absolute', top: `${nowTop}px`, left: 0, right: 0, height: '2px', background: '#ef4444', zIndex: 5 }}>
+                    <div style={{ position: 'absolute', left: '-4px', top: '-4px', width: '10px', height: '10px', borderRadius: '50%', background: '#ef4444' }}></div>
+                  </div>
+                )}
 {/* Блоки (перерывы, дорога) */}
 {dayBlocks.map(block => {
                   const blockDate = new Date(block.start_at)
