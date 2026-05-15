@@ -81,21 +81,23 @@ function BookingPage({ executor, slot, onBack, onSuccess }) {
       ? `${selectedService.name} + ${extrasNames}`
       : selectedService.name
 
-    const { error: orderError } = await supabase
+      const { data: orderData, error: orderError } = await supabase
       .from('orders')
       .insert([{
         client_id: user.id,
         executor_id: executor.id,
         address: address,
         comment: comment,
-        cleaning_type: fullServiceName, 
+        cleaning_type: fullServiceName,
         total_price: calcTotal(),
-      total_duration: calcDuration(),
-      scheduled_at: selectedSlot?.start,
+        total_duration: calcDuration(),
+        scheduled_at: selectedSlot?.start,
         status: 'new',
         service_type: executor.service_type,
         location_type: locationType,
       }])
+      .select()
+      .single()
 
     if (orderError) {
       alert('Ошибка при создании заказа')
@@ -108,10 +110,59 @@ function BookingPage({ executor, slot, onBack, onSuccess }) {
       .update({ is_available: false })
       .eq('id', selectedSlot?.id)
 
+    // Создаём блоки: дорога, буфер
+    const scheduledAt = new Date(selectedSlot?.start)
+    const travelTime = executor.travel_time || 0
+    const bufferTime = executor.buffer_time || 0
+    const isOutcall = locationType === 'outcall'
+    const duration = calcDuration()
+
+    const blocksToCreate = []
+
+    if (isOutcall && travelTime > 0) {
+      const travelBefore = new Date(scheduledAt.getTime() - travelTime * 60000)
+      blocksToCreate.push({
+        executor_id: executor.id,
+        start_at: travelBefore.toISOString(),
+        duration: travelTime,
+        reason: 'Дорога к клиенту',
+        type: 'auto_travel',
+        order_id: orderData.id
+      })
+    }
+
+    const endTime = new Date(scheduledAt.getTime() + duration * 60000)
+
+    if (isOutcall && travelTime > 0) {
+      blocksToCreate.push({
+        executor_id: executor.id,
+        start_at: endTime.toISOString(),
+        duration: travelTime,
+        reason: 'Дорога обратно',
+        type: 'auto_travel',
+        order_id: orderData.id
+      })
+    }
+
+    if (bufferTime > 0) {
+      const bufferStart = isOutcall ? new Date(endTime.getTime() + travelTime * 60000) : endTime
+      blocksToCreate.push({
+        executor_id: executor.id,
+        start_at: bufferStart.toISOString(),
+        duration: bufferTime,
+        reason: 'Перерыв',
+        type: 'auto_buffer',
+        order_id: orderData.id
+      })
+    }
+
+    if (blocksToCreate.length > 0) {
+      await supabase.from('blocks').insert(blocksToCreate)
+    }
+
     setLoading(false)
     onSuccess()
   }
-
   function formatSlot(start) {
     const date = new Date(start)
     const today = new Date()

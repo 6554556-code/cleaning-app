@@ -21,6 +21,60 @@ const STATUS_LABELS = {
   done: 'Выполнено',
   cancelled: 'Отменено',
 }
+function BlockDetailsModal({ block, onClose, onSaved }) {
+  const [reason, setReason] = useState(block.reason || '')
+  const [duration, setDuration] = useState(block.duration)
+  const [saving, setSaving] = useState(false)
+
+  async function save() {
+    setSaving(true)
+    const { error } = await supabase
+      .from('blocks')
+      .update({ reason, duration })
+      .eq('id', block.id)
+    setSaving(false)
+    if (error) {
+      alert('Ошибка сохранения')
+      return
+    }
+    onSaved()
+  }
+
+  async function deleteBlock() {
+    if (!confirm('Удалить эту блокировку?')) return
+    setSaving(true)
+    await supabase.from('blocks').delete().eq('id', block.id)
+    onSaved()
+  }
+
+  return (
+    <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '16px' }}>
+      <div onClick={e => e.stopPropagation()} style={{ background: 'white', borderRadius: '12px', padding: '20px', maxWidth: '400px', width: '100%' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+          <h3 style={{ margin: 0 }}>
+            {block.type === 'auto_travel' ? '🚗 Дорога' : block.type === 'auto_buffer' ? '☕ Авто-буфер' : '☕ Блокировка'}
+          </h3>
+          <button onClick={onClose} style={{ background: 'none', border: 'none', fontSize: '20px', cursor: 'pointer' }}>✕</button>
+        </div>
+
+        <p style={{ margin: '4px 0', fontSize: '14px' }}><b>Начало:</b> {new Date(block.start_at).toLocaleString('ru-RU')}</p>
+
+        <p style={{ marginTop: '12px', marginBottom: '4px', fontWeight: 'bold', fontSize: '14px' }}>Длительность (мин)</p>
+        <input type="number" value={duration} onChange={e => setDuration(Number(e.target.value))} style={{ width: '100%', padding: '8px', borderRadius: '8px', border: '1px solid #ddd', fontSize: '14px', boxSizing: 'border-box' }} />
+
+        <p style={{ marginTop: '12px', marginBottom: '4px', fontWeight: 'bold', fontSize: '14px' }}>Причина / комментарий</p>
+        <textarea value={reason} onChange={e => setReason(e.target.value)} placeholder="Например: обед, прием у врача" style={{ width: '100%', padding: '8px', borderRadius: '8px', border: '1px solid #ddd', fontSize: '14px', minHeight: '60px', boxSizing: 'border-box', resize: 'vertical' }} />
+
+        <div style={{ display: 'flex', gap: '8px', marginTop: '12px' }}>
+          <button onClick={deleteBlock} disabled={saving} style={{ flex: 1, padding: '12px', background: '#ef4444', color: 'white', border: 'none', borderRadius: '8px', fontSize: '14px', cursor: 'pointer' }}>Удалить</button>
+          <button onClick={save} disabled={saving} style={{ flex: 2, padding: '12px', background: '#2481cc', color: 'white', border: 'none', borderRadius: '8px', fontSize: '15px', fontWeight: 'bold', cursor: 'pointer' }}>
+            {saving ? 'Сохранение...' : 'Сохранить'}
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
 function OrderDetailsModal({ order, onClose, onSaved }) {
   const [status, setStatus] = useState(order.status)
   const [comment, setComment] = useState(order.executor_comment || '')
@@ -74,8 +128,9 @@ function OrderDetailsModal({ order, onClose, onSaved }) {
     </div>
   )
 }
-function ScheduleView({ executor, orders, onReload }) {
+function ScheduleView({ executor, orders, blocks, onReload }) {
   const [selectedOrder, setSelectedOrder] = useState(null)
+  const [selectedBlock, setSelectedBlock] = useState(null)
   const [weekOffset, setWeekOffset] = useState(0)
 
   if (!executor) return null
@@ -114,7 +169,13 @@ function ScheduleView({ executor, orders, onReload }) {
       return d.toDateString() === date.toDateString()
     })
   }
-
+  function getBlocksForDay(date) {
+    return blocks.filter(b => {
+      if (!b.start_at) return false
+      const d = new Date(b.start_at)
+      return d.toDateString() === date.toDateString()
+    })
+  }
   // Время на дороге и буфер
   const travelTime = executor.travel_time || 0
   const bufferTime = executor.buffer_time || 0
@@ -148,6 +209,7 @@ function ScheduleView({ executor, orders, onReload }) {
         {/* Колонки дней */}
         {days.map((day, i) => {
           const dayOrders = getOrdersForDay(day)
+          const dayBlocks = getBlocksForDay(day)
           return (
             <div key={i} style={{ flex: 1, position: 'relative' }}>
               <div style={{ height: '28px', textAlign: 'center', fontSize: '12px', fontWeight: 'bold', borderBottom: '1px solid #eee' }}>
@@ -158,7 +220,38 @@ function ScheduleView({ executor, orders, onReload }) {
                 {Array.from({ length: Math.ceil(totalMinutes / 60) }).map((_, h) => (
                   <div key={h} style={{ position: 'absolute', top: `${h * 60 * PX_PER_MIN}px`, left: 0, right: 0, height: '1px', background: '#eee' }}></div>
                 ))}
-
+{/* Блоки (перерывы, дорога) */}
+{dayBlocks.map(block => {
+                  const blockDate = new Date(block.start_at)
+                  const blockMin = blockDate.getHours() * 60 + blockDate.getMinutes()
+                  const blockTop = (blockMin - workStartMin) * PX_PER_MIN
+                  return (
+                    <div
+                      key={`block-${block.id}`}
+                      onClick={() => setSelectedBlock(block)}
+                      style={{
+                        position: 'absolute',
+                        top: `${blockTop}px`,
+                        left: '2px',
+                        right: '2px',
+                        height: `${block.duration * PX_PER_MIN}px`,
+                        background: 'repeating-linear-gradient(45deg, #ddd, #ddd 4px, #eee 4px, #eee 8px)',
+                        borderRadius: '4px',
+                        fontSize: '9px',
+                        color: '#666',
+                        textAlign: 'center',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        padding: '2px'
+                      }}
+                      title={block.reason}
+                    >
+                      {block.type === 'auto_travel' ? '🚗' : '☕'} {block.reason && <span style={{ marginLeft: 4 }}>{block.reason.slice(0, 12)}</span>}
+                    </div>
+                  )
+                })}
                 {/* Заказы */}
                 {dayOrders.map(order => {
                   const orderDate = new Date(order.scheduled_at)
@@ -167,15 +260,10 @@ function ScheduleView({ executor, orders, onReload }) {
                   const duration = order.total_duration || 60
                   const isOutcall = order.location_type === 'outcall'
                   const travelBefore = isOutcall ? travelTime : 0
-                  const travelAfter = isOutcall ? travelTime : 0
                   const color = STATUS_COLORS[order.status] || '#888'
 
                   return (
                     <div key={order.id}>
-                      {/* Дорога до */}
-                      {travelBefore > 0 && (
-                        <div style={{ position: 'absolute', top: `${top - travelBefore * PX_PER_MIN}px`, left: '2px', right: '2px', height: `${travelBefore * PX_PER_MIN}px`, background: 'repeating-linear-gradient(45deg, #ddd, #ddd 4px, #eee 4px, #eee 8px)', borderRadius: '4px 4px 0 0', fontSize: '9px', color: '#666', textAlign: 'center' }}>🚗</div>
-                      )}
                       {/* Заказ */}
                       <div onClick={() => setSelectedOrder(order)} style={{ position: 'absolute', top: `${top}px`, left: '2px', right: '2px', height: `${duration * PX_PER_MIN}px`, background: order.status === 'cancelled' ? 'transparent' : color, border: order.status === 'cancelled' ? '2px dashed #ef4444' : 'none', borderRadius: '4px', padding: '2px 4px', fontSize: '10px', color: order.status === 'cancelled' ? '#ef4444' : 'white', overflow: 'hidden', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }} title={STATUS_LABELS[order.status]}>
                       {order.status === 'cancelled' ? (
@@ -187,10 +275,7 @@ function ScheduleView({ executor, orders, onReload }) {
                           </div>
                         )}
                       </div>
-                      {/* Дорога после + буфер */}
-                      {(travelAfter + bufferTime) > 0 && (
-                        <div style={{ position: 'absolute', top: `${top + duration * PX_PER_MIN}px`, left: '2px', right: '2px', height: `${(travelAfter + bufferTime) * PX_PER_MIN}px`, background: 'repeating-linear-gradient(45deg, #ddd, #ddd 4px, #eee 4px, #eee 8px)', borderRadius: '0 0 4px 4px', fontSize: '9px', color: '#666', textAlign: 'center' }}>{travelAfter > 0 ? '🚗' : '☕'}</div>
-                      )}
+                      
                     </div>
                   )
                 })}
@@ -207,6 +292,14 @@ function ScheduleView({ executor, orders, onReload }) {
           onSaved={() => { setSelectedOrder(null); onReload() }}
         />
       )}
+      {/* Модалка с деталями блока */}
+      {selectedBlock && (
+        <BlockDetailsModal
+          block={selectedBlock}
+          onClose={() => setSelectedBlock(null)}
+          onSaved={() => { setSelectedBlock(null); onReload() }}
+        />
+      )}
       {/* Легенда */}
       <div style={{ marginTop: '16px', display: 'flex', flexWrap: 'wrap', gap: '8px', fontSize: '11px' }}>
         {Object.entries(STATUS_LABELS).map(([key, label]) => (
@@ -221,6 +314,7 @@ function ScheduleView({ executor, orders, onReload }) {
 }
 function ExecutorPage({ executorId }) {
   const [orders, setOrders] = useState([])
+  const [blocks, setBlocks] = useState([])
   const [executor, setExecutor] = useState(null)
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState('orders')
@@ -241,8 +335,15 @@ function ExecutorPage({ executorId }) {
       .eq('executor_id', executorId)
       .order('created_at', { ascending: false })
 
-    setOrders(ordersData || [])
-    setLoading(false)
+      setOrders(ordersData || [])
+
+      const { data: blocksData } = await supabase
+        .from('blocks')
+        .select('*')
+        .eq('executor_id', executorId)
+      setBlocks(blocksData || [])
+  
+      setLoading(false)
   }
 
   useEffect(() => {
@@ -459,7 +560,7 @@ function ExecutorPage({ executorId }) {
 
       {/* Расписание */}
       {activeTab === 'schedule' && (
-        <ScheduleView executor={executor} orders={orders} onReload={loadData} />
+        <ScheduleView executor={executor} orders={orders} blocks={blocks} onReload={loadData} />
       )}
 
       {/* Заработок */}

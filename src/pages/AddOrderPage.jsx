@@ -83,31 +83,82 @@ function AddOrderPage({ executor, onBack, onSuccess }) {
 
     const scheduledAt = new Date(`${selectedDate}T${selectedTime}:00`)
 
-    const { error: orderError } = await supabase
-      .from('orders')
-      .insert([{
-        client_id: user.id,
-        executor_id: executor.id,
-        address: address || 'Не указан',
-        comment: comment,
-        cleaning_type: fullServiceName,
-        scheduled_at: scheduledAt.toISOString(),
-        status: 'new',
-        service_type: executor.service_type,
-        total_price: calcTotal(),
-        total_duration: calcDuration(),
-        location_type: locationType
-      }])
+    const { data: orderData, error: orderError } = await supabase
+    .from('orders')
+    .insert([{
+      client_id: user.id,
+      executor_id: executor.id,
+      address: address || 'Не указан',
+      comment: comment,
+      cleaning_type: fullServiceName,
+      scheduled_at: scheduledAt.toISOString(),
+      status: 'new',
+      service_type: executor.service_type,
+      total_price: calcTotal(),
+      total_duration: calcDuration(),
+      location_type: locationType
+    }])
+    .select()
+    .single()
 
-    if (orderError) {
-      alert('Ошибка при создании заявки')
-      setLoading(false)
-      return
-    }
-
+  if (orderError) {
+    alert('Ошибка при создании заявки')
     setLoading(false)
-    onSuccess()
+    return
   }
+
+  // Создаём блоки: дорога до (если outcall), буфер после, дорога после (если outcall)
+  const travelTime = executor.travel_time || 0
+  const bufferTime = executor.buffer_time || 0
+  const isOutcall = locationType === 'outcall'
+  const duration = calcDuration()
+
+  const blocksToCreate = []
+
+  if (isOutcall && travelTime > 0) {
+    const travelBefore = new Date(scheduledAt.getTime() - travelTime * 60000)
+    blocksToCreate.push({
+      executor_id: executor.id,
+      start_at: travelBefore.toISOString(),
+      duration: travelTime,
+      reason: 'Дорога к клиенту',
+      type: 'auto_travel',
+      order_id: orderData.id
+    })
+  }
+
+  const endTime = new Date(scheduledAt.getTime() + duration * 60000)
+
+  if (isOutcall && travelTime > 0) {
+    blocksToCreate.push({
+      executor_id: executor.id,
+      start_at: endTime.toISOString(),
+      duration: travelTime,
+      reason: 'Дорога обратно',
+      type: 'auto_travel',
+      order_id: orderData.id
+    })
+  }
+
+  if (bufferTime > 0) {
+    const bufferStart = isOutcall ? new Date(endTime.getTime() + travelTime * 60000) : endTime
+    blocksToCreate.push({
+      executor_id: executor.id,
+      start_at: bufferStart.toISOString(),
+      duration: bufferTime,
+      reason: 'Перерыв',
+      type: 'auto_buffer',
+      order_id: orderData.id
+    })
+  }
+
+  if (blocksToCreate.length > 0) {
+    await supabase.from('blocks').insert(blocksToCreate)
+  }
+
+  setLoading(false)
+  onSuccess()
+}
   return (
     <div style={{ padding: '16px', maxWidth: '600px', margin: '0 auto' }}>
 
