@@ -82,7 +82,8 @@ const slots = [...todaySlots, ...tomorrowSlots].slice(0, 3)
     return time
   }
 
-  if (showBooking && selectedExecutor && selectedSlot) {
+  if (showBooking && selectedExecutor) {
+
     return (
       <BookingPage
         executor={selectedExecutor}
@@ -209,7 +210,7 @@ const slots = [...todaySlots, ...tomorrowSlots].slice(0, 3)
             <button
               onClick={() => {
                 setSelectedExecutor(executor)
-                setSelectedSlot(executor.slots[0] || null)
+                setSelectedSlot(null)
                 setShowBooking(true)
               }}
               style={{

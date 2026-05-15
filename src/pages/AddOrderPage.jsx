@@ -242,7 +242,7 @@ function AddOrderPage({ executor, onBack, onSuccess }) {
       {[
         { label: 'Имя клиента *', value: name, setter: setName, placeholder: 'Как зовут клиента' },
         { label: 'Телефон *', value: phone, setter: setPhone, placeholder: '+7 999 123 45 67' },
-        { label: 'Адрес', value: address, setter: setAddress, placeholder: 'Улица, дом, квартира' },
+        ...(locationType !== 'incall' ? [{ label: 'Адрес', value: address, setter: setAddress, placeholder: 'Улица, дом, квартира' }] : []),
         { label: 'Комментарий', value: comment, setter: setComment, placeholder: 'Важные детали...' },
       ].map(field => (
         <div key={field.label} style={{ marginBottom: '12px' }}>
