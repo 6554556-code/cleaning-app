@@ -130,79 +130,86 @@ function AddOrderPage({ executor, onBack, onSuccess }) {
       {/* Тип визита */}
       <p style={{ fontWeight: 'bold', marginBottom: '8px' }}>Тип визита</p>
       <div style={{ display: 'flex', gap: '8px', marginBottom: '16px' }}>
-        {[
+      {[
           { id: 'outcall', label: '🚗 Выезд' },
           { id: 'incall', label: '🏠 Приём у себя' },
-        ].map(t => (
-          <button
-            key={t.id}
-            onClick={() => setLocationType(t.id)}
-            style={{
-              padding: '8px 16px',
-              borderRadius: '20px',
-              border: 'none',
-              background: locationType === t.id ? '#2481cc' : '#f0f0f0',
-              color: locationType === t.id ? 'white' : 'black',
-              cursor: 'pointer',
-              fontSize: '14px'
-            }}
-          >
-            {t.label}
-          </button>
-        ))}
+        ].map(t => {
+          const disabled =
+            t.id === 'outcall' && selectedService?.location_type === 'incall' ||
+            t.id === 'incall' && selectedService?.location_type === 'outcall'
+          return (
+            <button
+              key={t.id}
+              onClick={() => !disabled && setLocationType(t.id)}
+              style={{
+                padding: '8px 16px',
+                borderRadius: '20px',
+                border: 'none',
+                background: locationType === t.id ? '#2481cc' : '#f0f0f0',
+                color: locationType === t.id ? 'white' : disabled ? '#aaa' : 'black',
+                cursor: disabled ? 'not-allowed' : 'pointer',
+                fontSize: '14px',
+                opacity: disabled ? 0.5 : 1
+              }}
+            >
+              {t.label}
+            </button>
+          )
+        })}
       </div>
 
       {/* Основная услуга */}
       <p style={{ fontWeight: 'bold', marginBottom: '8px' }}>Основная услуга</p>
       <div style={{ marginBottom: '16px' }}>
         {services.filter(s => s.is_main).map(service => (
-          <div
-            key={service.id}
-            onClick={() => handleServiceSelect(service)}
-            style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              padding: '12px',
-              borderRadius: '8px',
-              marginBottom: '8px',
-              border: selectedService?.id === service.id ? '2px solid #2481cc' : '2px solid #f0f0f0',
-              background: selectedService?.id === service.id ? '#f0f7ff' : 'white',
-              cursor: 'pointer'
-            }}
-          >
-            <span>⭐ {service.name}</span>
-            <span style={{ color: '#2481cc', fontWeight: 'bold' }}>{service.price} руб</span>
-          </div>
-        ))}
-      </div>
-
-      {/* Доп услуги */}
-      {services.filter(s => !s.is_main).length > 0 && (
-        <div style={{ marginBottom: '16px' }}>
-          <p style={{ fontWeight: 'bold', marginBottom: '8px' }}>Дополнительно</p>
-          {services.filter(s => !s.is_main && s.parent_service_id === selectedService?.id).map(service => (
+          <div key={service.id}>
             <div
-              key={service.id}
-              onClick={() => toggleExtra(service)}
+              onClick={() => handleServiceSelect(service)}
               style={{
                 display: 'flex',
                 justifyContent: 'space-between',
                 alignItems: 'center',
                 padding: '12px',
                 borderRadius: '8px',
-                marginBottom: '8px',
-                border: selectedExtras.find(s => s.id === service.id) ? '2px solid #16a34a' : '2px solid #f0f0f0',
-                background: selectedExtras.find(s => s.id === service.id) ? '#f0fdf4' : 'white',
+                marginBottom: '4px',
+                border: selectedService?.id === service.id ? '2px solid #2481cc' : '2px solid #f0f0f0',
+                background: selectedService?.id === service.id ? '#f0f7ff' : 'white',
                 cursor: 'pointer'
               }}
             >
-              <span>➕ {service.name}</span>
-              <span style={{ color: '#16a34a', fontWeight: 'bold' }}>+{service.price} руб</span>
+              <span>⭐ {service.name} {service.location_type === 'outcall' ? '🚗' : service.location_type === 'incall' ? '🏠' : '🚗🏠'} · {service.duration} мин</span>
+              <span style={{ color: '#2481cc', fontWeight: 'bold' }}>{service.price} руб</span>
             </div>
-          ))}
-        </div>
-      )}
+
+            {/* Допы под своей основной */}
+            {selectedService?.id === service.id &&
+              services.filter(s => !s.is_main && s.parent_service_id === service.id).map(extra => (
+                <div
+                  key={extra.id}
+                  onClick={() => toggleExtra(extra)}
+                  style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    padding: '8px 12px 8px 24px',
+                    borderRadius: '8px',
+                    marginBottom: '4px',
+                    border: selectedExtras.find(s => s.id === extra.id) ? '2px solid #16a34a' : '2px solid #f0f0f0',
+                    background: selectedExtras.find(s => s.id === extra.id) ? '#f0fdf4' : 'white',
+                    cursor: 'pointer',
+                    fontSize: '13px'
+                  }}
+                >
+                  <span>➕ {extra.name} {extra.duration ? `· ${extra.duration} мин` : ''}</span>
+                  <span style={{ color: '#16a34a', fontWeight: 'bold' }}>+{extra.price} руб</span>
+                </div>
+              ))
+            }
+          </div>
+        ))}
+      </div>
+
+      
       {/* Дата и время */}
       <p style={{ fontWeight: 'bold', marginBottom: '8px' }}>Дата и время</p>
       <div style={{ display: 'flex', gap: '8px', marginBottom: '16px' }}>
