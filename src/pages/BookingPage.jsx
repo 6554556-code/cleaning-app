@@ -265,7 +265,8 @@ function BookingPage({ executor, slot, onBack, onSuccess }) {
       </div>
      
       {[
-        { label: 'Адрес *', value: address, setter: setAddress, placeholder: 'Улица, дом, квартира' },
+        ...(locationType === 'outcall' ? [{ label: 'Адрес *', value: address, setter: setAddress, placeholder: 'Улица, дом, квартира' }] : []),
+        ...(locationType === 'incall' ? [{ label: 'Адрес исполнителя', value: executor.address || '—', setter: () => {}, placeholder: '' }] : []),
         { label: 'Комментарий', value: comment, setter: setComment, placeholder: 'Укажите важные детали: площадь, порода собаки, возраст ребёнка...' },
         { label: 'Ваше имя *', value: name, setter: setName, placeholder: 'Как вас зовут' },
         { label: 'Телефон *', value: phone, setter: setPhone, placeholder: '+7 999 123 45 67' },

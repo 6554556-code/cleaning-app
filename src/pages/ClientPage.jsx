@@ -23,7 +23,7 @@ function ClientPage() {
       setLoading(true)
       const { data, error } = await supabase
         .from('executors')
-        .select('*, users(full_name)')
+        .select('*, users(full_name), address')
         .eq('service_type', selectedService)
         .order('rating', { ascending: false })
 
