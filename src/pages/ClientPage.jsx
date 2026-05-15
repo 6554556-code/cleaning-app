@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { supabase } from '../supabase'
 import BookingPage from './BookingPage'
 import { generateSlots } from '../utils/slotGenerator'
+import { getLocationIcon } from '../utils/locationIcon'
 
 function ClientPage() {
   const [executors, setExecutors] = useState([])
@@ -57,7 +58,7 @@ const slots = [...todaySlots, ...tomorrowSlots].slice(0, 3)
         const { data: executorServices } = await supabase
           .from('services')
           .select('*')
-          .eq('executor_id', executor.id)
+                    .eq('executor_id', executor.id)
           .order('is_main', { ascending: false })
 
         return { ...executor, slots: slots || [], services: executorServices || [] }
@@ -146,45 +147,37 @@ const slots = [...todaySlots, ...tomorrowSlots].slice(0, 3)
               <span>📦 {executor.orders_count} заказов</span>
               
             </div>
-            <div style={{ display: 'flex', gap: '8px', marginTop: '8px' }}>
-              {executor.outcall && (
-                <span style={{
-                  background: '#e8f4fd',
-                  color: '#2481cc',
-                  padding: '4px 10px',
-                  borderRadius: '12px',
-                  fontSize: '13px'
-                }}>🚗 Выезд</span>
-              )}
-              {executor.incall && (
-                <span style={{
-                  background: '#f0fdf4',
-                  color: '#16a34a',
-                  padding: '4px 10px',
-                  borderRadius: '12px',
-                  fontSize: '13px'
-                }}>🏠 Приём у себя</span>
-              )}
-            </div>
             {executor.services && executor.services.length > 0 && (
-              <div style={{ marginTop: '10px' }}>
-                {executor.services.map(service => (
-                  <div key={service.id} style={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    padding: '6px 0',
-                    borderBottom: '1px solid #f0f0f0',
-                    fontSize: '14px'
-                  }}>
-                    <span>{service.is_main ? '⭐ ' : '➕ '}{service.name}</span>
-<span style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-  {service.duration && <span style={{ color: '#999', fontSize: '12px' }}>⏱ {service.duration} мин</span>}
-  <span style={{ color: '#2481cc', fontWeight: 'bold' }}>{service.price} руб</span>
-</span>
-                  </div>
-                ))}
-              </div>
-            )}
+  <div style={{ marginTop: '10px' }}>
+    {executor.services.filter(s => s.is_main).map(mainService => (
+      <div key={mainService.id}>
+        <div style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          padding: '6px 0',
+          borderBottom: '1px solid #f0f0f0',
+          fontSize: '14px'
+        }}>
+          <span>⭐ {mainService.name} {getLocationIcon(mainService.location_type)} {mainService.duration ? `· ${mainService.duration} мин` : ''}</span>
+          <span style={{ color: '#2481cc', fontWeight: 'bold' }}>{mainService.price} руб</span>
+        </div>
+        {executor.services.filter(s => !s.is_main && s.parent_service_id === mainService.id).map(extra => (
+          <div key={extra.id} style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            padding: '4px 0 4px 12px',
+            fontSize: '12px',
+            color: '#888'
+          }}>
+            <span>➕ {extra.name} {getLocationIcon(extra.location_type)} {extra.duration ? `· ${extra.duration} мин` : ''}</span>
+            <span>+{extra.price} руб</span>
+          </div>
+        ))}
+      </div>
+    ))}
+  </div>
+)}
+            
             {executor.slots && executor.slots.length > 0 && (
               <div style={{ marginTop: '12px' }}>
                 <p style={{ margin: '0 0 6px', fontSize: '13px', color: '#666' }}>📅 Ближайшие слоты:</p>

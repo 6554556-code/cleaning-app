@@ -1,11 +1,13 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../supabase'
+import AddOrderPage from './AddOrderPage'
 
 function ExecutorPage({ executorId }) {
   const [orders, setOrders] = useState([])
   const [executor, setExecutor] = useState(null)
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState('orders')
+  const [showAddOrder, setShowAddOrder] = useState(false)
 
   useEffect(() => {
     async function loadData() {
@@ -51,7 +53,18 @@ function ExecutorPage({ executorId }) {
   }
 
   if (loading) return <p style={{ padding: '20px' }}>Загружаем данные...</p>
-
+  if (showAddOrder) {
+    return (
+      <AddOrderPage
+        executor={executor}
+        onBack={() => setShowAddOrder(false)}
+        onSuccess={() => {
+          setShowAddOrder(false)
+          window.location.reload()
+        }}
+      />
+    )
+  }
   return (
     <div style={{ padding: '16px', maxWidth: '600px', margin: '0 auto' }}>
 
@@ -93,6 +106,25 @@ function ExecutorPage({ executorId }) {
         ))}
       </div>
       {/* Заявки */}
+      {/* Кнопка добавить заявку */}
+{activeTab === 'orders' && (
+  <button
+    onClick={() => setShowAddOrder(true)}
+    style={{
+      width: '100%',
+      padding: '12px',
+      background: 'white',
+      color: '#2481cc',
+      border: '2px dashed #2481cc',
+      borderRadius: '12px',
+      cursor: 'pointer',
+      fontSize: '16px',
+      marginBottom: '12px'
+    }}
+  >
+    + Добавить заявку вручную
+  </button>
+)}
       {activeTab === 'orders' && (
         <div>
           {orders.length === 0 ? (
