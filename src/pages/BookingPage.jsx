@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../supabase'
+import { generateSlots } from '../utils/slotGenerator'
 
 function BookingPage({ executor, slot, onBack, onSuccess }) {
   
@@ -14,6 +15,10 @@ function BookingPage({ executor, slot, onBack, onSuccess }) {
   const [locationType, setLocationType] = useState('outcall')
   const [selectedSlot, setSelectedSlot] = useState(slot || null)
   const fromSlot = !!slot
+  const [todaySlots, setTodaySlots] = useState([])
+  const [tomorrowSlots, setTomorrowSlots] = useState([])
+  const [showAllToday, setShowAllToday] = useState(false)
+  const [showAllTomorrow, setShowAllTomorrow] = useState(false)
   useEffect(() => {
     async function loadServices() {
       const { data } = await supabase
@@ -27,7 +32,35 @@ function BookingPage({ executor, slot, onBack, onSuccess }) {
     }
     loadServices()
   }, [executor.id])
+// Загружаем заказы исполнителя и генерируем слоты
+useEffect(() => {
+  async function loadSlots() {
+    const { data: existingOrders } = await supabase
+      .from('orders')
+      .select('scheduled_at, total_duration, location_type')
+      .eq('executor_id', executor.id)
+      .neq('status', 'cancelled')
 
+    const today = new Date()
+    const tomorrow = new Date()
+    tomorrow.setDate(tomorrow.getDate() + 1)
+
+    // Параметры нового заказа для расчёта слотов
+    const newOrder = {
+      duration: calcDuration(),
+      locationType: locationType
+    }
+
+    const now = new Date()
+    const todayGen = generateSlots(executor, existingOrders || [], today, newOrder)
+      .filter(s => new Date(s.start) > now)
+    const tomorrowGen = generateSlots(executor, existingOrders || [], tomorrow, newOrder)
+
+    setTodaySlots(todayGen)
+    setTomorrowSlots(tomorrowGen)
+  }
+  loadSlots()
+}, [executor.id, selectedService, selectedExtras, locationType])
   function toggleExtra(service) {
     setSelectedExtras(prev =>
       prev.find(s => s.id === service.id)
@@ -211,28 +244,77 @@ function BookingPage({ executor, slot, onBack, onSuccess }) {
 {!fromSlot && (
         <div style={{ marginBottom: '16px' }}>
           <p style={{ fontWeight: 'bold', marginBottom: '8px' }}>Дата и время</p>
-          {executor.slots?.length > 0 ? (
-            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-              {executor.slots.map(s => (
+
+          {/* Сегодня */}
+          <p style={{ margin: '8px 0 6px', fontSize: '13px', color: '#666' }}>Сегодня</p>
+          {todaySlots.length > 0 ? (
+            <>
+              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                {(showAllToday ? todaySlots : todaySlots.slice(0, 3)).map(s => (
+                  <button
+                    key={s.start.toString()}
+                    onClick={() => setSelectedSlot(s)}
+                    style={{
+                      padding: '8px 12px',
+                      borderRadius: '8px',
+                      border: selectedSlot?.label === s.label ? '2px solid #2481cc' : '2px solid #f0f0f0',
+                      background: selectedSlot?.label === s.label ? '#f0f7ff' : 'white',
+                      color: selectedSlot?.label === s.label ? '#2481cc' : 'black',
+                      cursor: 'pointer',
+                      fontSize: '13px'
+                    }}
+                  >
+                    {s.label}
+                  </button>
+                ))}
+              </div>
+              {todaySlots.length > 3 && (
                 <button
-                  key={s.id}
-                  onClick={() => setSelectedSlot(s)}
-                  style={{
-                    padding: '8px 12px',
-                    borderRadius: '8px',
-                    border: selectedSlot?.label === s.label ? '2px solid #2481cc' : '2px solid #f0f0f0',
-                    background: selectedSlot?.label === s.label ? '#f0f7ff' : 'white',
-                    color: selectedSlot?.label === s.label ? '#2481cc' : 'black',
-                    cursor: 'pointer',
-                    fontSize: '13px'
-                  }}
+                  onClick={() => setShowAllToday(!showAllToday)}
+                  style={{ marginTop: '6px', background: 'none', border: 'none', color: '#2481cc', cursor: 'pointer', fontSize: '13px', padding: 0 }}
                 >
-                  {s.start ? formatSlot(s.start) : s.label}
+                  {showAllToday ? '▲ Свернуть' : `▼ Показать все (${todaySlots.length})`}
                 </button>
-              ))}
-            </div>
+              )}
+            </>
           ) : (
-            <p style={{ color: '#888', fontSize: '13px' }}>Нет доступных слотов</p>
+            <p style={{ color: '#888', fontSize: '13px' }}>Нет слотов</p>
+          )}
+
+          {/* Завтра */}
+          <p style={{ margin: '12px 0 6px', fontSize: '13px', color: '#666' }}>Завтра</p>
+          {tomorrowSlots.length > 0 ? (
+            <>
+              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                {(showAllTomorrow ? tomorrowSlots : tomorrowSlots.slice(0, 3)).map(s => (
+                  <button
+                    key={s.start.toString()}
+                    onClick={() => setSelectedSlot(s)}
+                    style={{
+                      padding: '8px 12px',
+                      borderRadius: '8px',
+                      border: selectedSlot?.label === s.label ? '2px solid #2481cc' : '2px solid #f0f0f0',
+                      background: selectedSlot?.label === s.label ? '#f0f7ff' : 'white',
+                      color: selectedSlot?.label === s.label ? '#2481cc' : 'black',
+                      cursor: 'pointer',
+                      fontSize: '13px'
+                    }}
+                  >
+                    {s.label}
+                  </button>
+                ))}
+              </div>
+              {tomorrowSlots.length > 3 && (
+                <button
+                  onClick={() => setShowAllTomorrow(!showAllTomorrow)}
+                  style={{ marginTop: '6px', background: 'none', border: 'none', color: '#2481cc', cursor: 'pointer', fontSize: '13px', padding: 0 }}
+                >
+                  {showAllTomorrow ? '▲ Свернуть' : `▼ Показать все (${tomorrowSlots.length})`}
+                </button>
+              )}
+            </>
+          ) : (
+            <p style={{ color: '#888', fontSize: '13px' }}>Нет слотов</p>
           )}
         </div>
       )}
