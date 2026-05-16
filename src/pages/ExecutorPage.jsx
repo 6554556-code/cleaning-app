@@ -132,13 +132,101 @@ function OrderDetailsModal({ order, onClose, onSaved }) {
     </div>
   )
 }
-function ScheduleView({ executor, orders, blocks, onReload }) {
+// Модалка создания перерыва
+function BreakModal({ executor, day, onClose, onSaved }) {
+  const [time, setTime] = useState('13:00')
+  const [duration, setDuration] = useState(60)
+  const [reason, setReason] = useState('Перерыв')
+  const [saving, setSaving] = useState(false)
+
+  async function handleSave() {
+    setSaving(true)
+    // Собираем дату + время в один момент
+    const [h, m] = time.split(':').map(Number)
+    const startAt = new Date(day)
+    startAt.setHours(h, m, 0, 0)
+
+    const { error } = await supabase.from('blocks').insert({
+      executor_id: executor.id,
+      start_at: startAt.toISOString(),
+      duration: Number(duration),
+      reason: reason,
+      type: 'manual'
+    })
+
+    setSaving(false)
+    if (error) {
+      alert('Ошибка: ' + error.message)
+    } else {
+      onSaved()
+    }
+  }
+
+  const dateLabel = day.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' })
+
+  return (
+    <div
+      onClick={onClose}
+      style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px' }}
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        style={{ background: 'white', borderRadius: '12px', padding: '20px', width: '100%', maxWidth: '320px' }}
+      >
+        <h3 style={{ margin: '0 0 4px' }}>☕ Новый перерыв</h3>
+        <p style={{ margin: '0 0 16px', color: '#666', fontSize: '13px' }}>{dateLabel}</p>
+
+        <label style={{ display: 'block', fontSize: '13px', marginBottom: '4px' }}>Время начала</label>
+        <input
+          type="time"
+          value={time}
+          onChange={(e) => setTime(e.target.value)}
+          style={{ width: '100%', padding: '8px', marginBottom: '12px', border: '1px solid #ddd', borderRadius: '6px', fontSize: '14px', boxSizing: 'border-box' }}
+        />
+
+        <label style={{ display: 'block', fontSize: '13px', marginBottom: '4px' }}>Длительность (минут)</label>
+        <input
+          type="number"
+          value={duration}
+          onChange={(e) => setDuration(e.target.value)}
+          style={{ width: '100%', padding: '8px', marginBottom: '12px', border: '1px solid #ddd', borderRadius: '6px', fontSize: '14px', boxSizing: 'border-box' }}
+        />
+
+        <label style={{ display: 'block', fontSize: '13px', marginBottom: '4px' }}>Причина</label>
+        <input
+          type="text"
+          value={reason}
+          onChange={(e) => setReason(e.target.value)}
+          style={{ width: '100%', padding: '8px', marginBottom: '16px', border: '1px solid #ddd', borderRadius: '6px', fontSize: '14px', boxSizing: 'border-box' }}
+        />
+
+        <div style={{ display: 'flex', gap: '8px' }}>
+          <button
+            onClick={onClose}
+            style={{ flex: 1, padding: '10px', border: '1px solid #ddd', background: 'white', borderRadius: '6px', cursor: 'pointer' }}
+          >
+            Отмена
+          </button>
+          <button
+            onClick={handleSave}
+            disabled={saving}
+            style={{ flex: 1, padding: '10px', border: 'none', background: '#3b82f6', color: 'white', borderRadius: '6px', cursor: 'pointer' }}
+          >
+            {saving ? 'Сохраняю...' : 'Сохранить'}
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+function ScheduleView({ executor, orders, blocks, onReload, onCreateOrder }) {
   const [selectedOrder, setSelectedOrder] = useState(null)
   const [selectedBlock, setSelectedBlock] = useState(null)
   const [expandedBefore, setExpandedBefore] = useState(false)
   const [expandedAfter, setExpandedAfter] = useState(false)
   const [weekOffset, setWeekOffset] = useState(0)
-
+  const [clickMenu, setClickMenu] = useState(null)
+  const [breakDay, setBreakDay] = useState(null)
   if (!executor) return null
 
   // Парсим время работы
@@ -238,7 +326,13 @@ function ScheduleView({ executor, orders, blocks, onReload }) {
               <div style={{ height: '28px', textAlign: 'center', fontSize: '12px', fontWeight: 'bold', borderBottom: '1px solid #eee' }}>
                 {formatDay(day)}
               </div>
-              <div style={{ position: 'relative', height: `${totalMinutes * PX_PER_MIN}px`, background: '#fafafa', borderRadius: '4px' }}>
+              <div 
+  onClick={(e) => {
+    if (e.target !== e.currentTarget) return
+    setClickMenu({ x: e.clientX, y: e.clientY, day })
+  }}
+  style={{ position: 'relative', height: `${totalMinutes * PX_PER_MIN}px`, background: '#fafafa', borderRadius: '4px', cursor: 'pointer' }}
+>
                 {/* Линии часов */}
                 {Array.from({ length: Math.ceil(totalMinutes / 60) }).map((_, h) => (
                   <div key={h} style={{ position: 'absolute', top: `${h * 60 * PX_PER_MIN}px`, left: 0, right: 0, height: '1px', background: '#eee' }}></div>
@@ -313,6 +407,47 @@ function ScheduleView({ executor, orders, blocks, onReload }) {
           )
         })}
       </div>
+      {/* Модалка создания перерыва */}
+      {breakDay && (
+        <BreakModal
+          executor={executor}
+          day={breakDay}
+          onClose={() => setBreakDay(null)}
+          onSaved={() => { setBreakDay(null); onReload() }}
+        />
+      )}
+       {/* Меню выбора при клике на пустую клетку */}
+       {clickMenu && (
+        <>
+          <div
+            onClick={() => setClickMenu(null)}
+            style={{ position: 'fixed', inset: 0, zIndex: 100 }}
+          />
+          <div style={{
+            position: 'fixed',
+            top: `${clickMenu.y}px`,
+            left: `${clickMenu.x}px`,
+            zIndex: 101,
+            background: 'white',
+            borderRadius: '8px',
+            boxShadow: '0 4px 16px rgba(0,0,0,0.2)',
+            overflow: 'hidden'
+          }}>
+            <button
+              onClick={() => { setBreakDay(clickMenu.day); setClickMenu(null) }}
+              style={{ display: 'block', width: '100%', padding: '12px 20px', border: 'none', background: 'white', cursor: 'pointer', fontSize: '14px', textAlign: 'left', whiteSpace: 'nowrap' }}
+            >
+              📝 Создать заказ
+            </button>
+            <button
+              onClick={() => { setBreakDay(clickMenu.day); setClickMenu(null) }}
+              style={{ display: 'block', width: '100%', padding: '12px 20px', border: 'none', borderTop: '1px solid #eee', background: 'white', cursor: 'pointer', fontSize: '14px', textAlign: 'left', whiteSpace: 'nowrap' }}
+            >
+              ☕ Перерыв
+            </button>
+          </div>
+        </>
+      )}
 {/* Модалка с деталями заказа */}
 {selectedOrder && (
         <OrderDetailsModal
@@ -357,7 +492,7 @@ function ExecutorPage({ executorId }) {
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState('orders')
   const [showAddOrder, setShowAddOrder] = useState(false)
-
+  
   async function loadData() {
     setLoading(true)
     const { data: executorData } = await supabase
@@ -598,7 +733,7 @@ function ExecutorPage({ executorId }) {
 
       {/* Расписание */}
       {activeTab === 'schedule' && (
-        <ScheduleView executor={executor} orders={orders} blocks={blocks} onReload={loadData} />
+        <ScheduleView executor={executor} orders={orders} blocks={blocks} onReload={loadData} onCreateOrder={() => setShowAddOrder(true)} />
       )}
 
       {/* Заработок */}
