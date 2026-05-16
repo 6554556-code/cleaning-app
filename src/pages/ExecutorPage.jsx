@@ -434,7 +434,7 @@ function ScheduleView({ executor, orders, blocks, onReload, onCreateOrder }) {
             overflow: 'hidden'
           }}>
             <button
-              onClick={() => { setBreakDay(clickMenu.day); setClickMenu(null) }}
+              onClick={() => { setClickMenu(null); onCreateOrder() }}
               style={{ display: 'block', width: '100%', padding: '12px 20px', border: 'none', background: 'white', cursor: 'pointer', fontSize: '14px', textAlign: 'left', whiteSpace: 'nowrap' }}
             >
               📝 Создать заказ
