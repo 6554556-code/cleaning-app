@@ -53,7 +53,10 @@ const tomorrowDate = new Date(today)
 tomorrowDate.setDate(tomorrowDate.getDate() + 1)
 const tomorrowSlots = generateSlots(executor, existingOrders || [], tomorrowDate)
 
-const slots = [...todaySlots, ...tomorrowSlots].slice(0, 3)
+const now = new Date()
+const slots = [...todaySlots, ...tomorrowSlots]
+  .filter(s => new Date(s.start) > now)
+  .slice(0, 3)
 
         const { data: executorServices } = await supabase
           .from('services')
@@ -183,26 +186,20 @@ const slots = [...todaySlots, ...tomorrowSlots].slice(0, 3)
               <div style={{ marginTop: '12px' }}>
                 <p style={{ margin: '0 0 6px', fontSize: '13px', color: '#666' }}>📅 Ближайшие слоты:</p>
                 <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                  {executor.slots.map(slot => (
-                    <button
-                    key={slot.start.toString()}
-                      onClick={() => {
-                        setSelectedExecutor(executor)
-                        setSelectedSlot(slot)
-                        setShowBooking(true)
-                      }}
+                {executor.slots.map(slot => (
+                    <span
+                      key={slot.start.toString()}
                       style={{
                         padding: '6px 12px',
                         borderRadius: '8px',
                         border: '1px solid #2481cc',
-                        background: 'white',
+                        background: '#f0f7ff',
                         color: '#2481cc',
-                        cursor: 'pointer',
                         fontSize: '13px'
                       }}
                     >
                       {formatSlot(slot.start)}
-                    </button>
+                    </span>
                   ))}
                 </div>
               </div>
