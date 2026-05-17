@@ -91,18 +91,13 @@ function OrderDetailsModal({ order, onClose, onSaved }) {
 
   async function save() {
     setSaving(true)
-    // Собираем новую дату: берём день старого блока, ставим новое время
-    const [h, m] = startTime.split(':').map(Number)
-    const newStart = new Date(block.start_at)
-    newStart.setHours(h, m, 0, 0)
-
     const { error } = await supabase
-      .from('blocks')
-      .update({ reason, duration, start_at: newStart.toISOString() })
-      .eq('id', block.id)
+      .from('orders')
+      .update({ status, executor_comment: comment })
+      .eq('id', order.id)
     setSaving(false)
     if (error) {
-      alert('Ошибка сохранения')
+      alert('Ошибка сохранения: ' + error.message)
       return
     }
     onSaved()
@@ -394,20 +389,39 @@ function ScheduleView({ executor, orders, blocks, onReload, onCreateOrder }) {
                   const travelBefore = isOutcall ? travelTime : 0
                   const color = STATUS_COLORS[order.status] || '#888'
 
-                  return (
+                  const isCancelled = order.status === 'cancelled'
+                  // Считаем сдвиг для отменённых на одно время, чтобы не наслаивались
+                  let cancelOffset = 0
+                  if (isCancelled) {
+                    cancelOffset = dayOrders.filter(o =>
+                      o.status === 'cancelled' &&
+                      o.id < order.id &&
+                      new Date(o.scheduled_at).getTime() === orderDate.getTime()
+                    ).length
+                  }                  return (
                     <div key={order.id}>
-                      {/* Заказ */}
-                      <div onClick={() => setSelectedOrder(order)} style={{ position: 'absolute', top: `${top}px`, left: '2px', right: '2px', height: `${duration * PX_PER_MIN}px`, background: order.status === 'cancelled' ? 'transparent' : color, border: order.status === 'cancelled' ? '2px dashed #ef4444' : 'none', borderRadius: '4px', padding: '2px 4px', fontSize: '10px', color: order.status === 'cancelled' ? '#ef4444' : 'white', overflow: 'hidden', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }} title={STATUS_LABELS[order.status]}>
-                      {order.status === 'cancelled' ? (
-                          <div style={{ fontSize: '18px', fontWeight: 'bold' }}>✕</div>
-                        ) : (
+                      {isCancelled ? (
+                        /* Отменённый — маленький значок в уголке */
+                        <div
+                          onClick={() => setSelectedOrder(order)}
+                          style={{ position: 'absolute', top: `${top}px`, left: '2px', width: '20px', height: '20px', background: 'white', border: '1.5px solid #ef4444', borderRadius: '4px', color: '#ef4444', fontSize: '12px', fontWeight: 'bold', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 3 }}
+                          title="Отменённый заказ"
+                        >
+                          ✕
+                        </div>
+                      ) : (
+                        /* Обычный заказ */
+                        <div
+                          onClick={() => setSelectedOrder(order)}
+                          style={{ position: 'absolute', top: `${top}px`, left: '2px', right: '2px', height: `${duration * PX_PER_MIN}px`, background: color, borderRadius: '4px', padding: '2px 4px', fontSize: '10px', color: 'white', overflow: 'hidden', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                          title={STATUS_LABELS[order.status]}
+                        >
                           <div style={{ width: '100%' }}>
                             <div style={{ fontWeight: 'bold' }}>{order.client?.full_name || order.name || 'Клиент'}</div>
                             <div style={{ fontSize: '9px', opacity: 0.9 }}>{orderDate.getHours()}:{String(orderDate.getMinutes()).padStart(2, '0')}{order.total_price ? ` · ${order.total_price}₽` : ''}</div>
                           </div>
-                        )}
-                      </div>
-                      
+                        </div>
+                      )}
                     </div>
                   )
                 })}
