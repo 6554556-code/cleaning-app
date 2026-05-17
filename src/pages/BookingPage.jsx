@@ -19,6 +19,9 @@ function BookingPage({ executor, slot, onBack, onSuccess }) {
   const [tomorrowSlots, setTomorrowSlots] = useState([])
   const [showAllToday, setShowAllToday] = useState(false)
   const [showAllTomorrow, setShowAllTomorrow] = useState(false)
+  const [pickedDate, setPickedDate] = useState('')
+  const [pickedSlots, setPickedSlots] = useState([])
+  const [showAllPicked, setShowAllPicked] = useState(false)
   useEffect(() => {
     async function loadServices() {
       const { data } = await supabase
@@ -67,6 +70,41 @@ useEffect(() => {
   }
   loadSlots()
 }, [executor.id, selectedService, selectedExtras, locationType])
+// Генерируем слоты для даты, выбранной в календарике
+async function loadPickedDateSlots(dateStr) {
+  if (!dateStr) {
+    setPickedSlots([])
+    return
+  }
+  const { data: existingOrders } = await supabase
+    .from('orders')
+    .select('scheduled_at, total_duration, location_type')
+    .eq('executor_id', executor.id)
+    .neq('status', 'cancelled')
+    .neq('is_deleted', true)
+
+  const { data: existingBlocks } = await supabase
+    .from('blocks')
+    .select('start_at, duration')
+    .eq('executor_id', executor.id)
+
+  const newOrder = {
+    duration: calcDuration(),
+    locationType: locationType
+  }
+
+  const pickedDay = new Date(dateStr)
+  let gen = generateSlots(executor, existingOrders || [], pickedDay, newOrder, existingBlocks || [])
+
+  // Если выбран сегодняшний день — убираем прошедшие слоты
+  const now = new Date()
+  if (pickedDay.toDateString() === now.toDateString()) {
+    gen = gen.filter(s => new Date(s.start) > now)
+  }
+
+  setPickedSlots(gen)
+  setShowAllPicked(false)
+}
   function toggleExtra(service) {
     setSelectedExtras(prev =>
       prev.find(s => s.id === service.id)
@@ -91,6 +129,10 @@ useEffect(() => {
     return base + extras
   }
   async function handleSubmit() {
+    if (!selectedSlot) {
+      alert('Пожалуйста выберите время визита')
+      return
+    }
     if (!name || !phone || !address || !selectedService) {
       alert('Пожалуйста заполните все обязательные поля')
       return
@@ -321,6 +363,56 @@ useEffect(() => {
             </>
           ) : (
             <p style={{ color: '#888', fontSize: '13px' }}>Нет слотов</p>
+          )}
+
+          {/* Выбор другой даты */}
+          <p style={{ margin: '12px 0 6px', fontSize: '13px', color: '#666' }}>Другая дата</p>
+          <input
+            type="date"
+            value={pickedDate}
+            min={new Date().toISOString().split('T')[0]}
+            onChange={(e) => {
+              setPickedDate(e.target.value)
+              loadPickedDateSlots(e.target.value)
+            }}
+            style={{ padding: '8px', borderRadius: '8px', border: '1px solid #ddd', fontSize: '14px' }}
+          />
+
+          {/* Слоты выбранной даты */}
+          {pickedDate && (
+            pickedSlots.length > 0 ? (
+              <>
+                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginTop: '8px' }}>
+                  {(showAllPicked ? pickedSlots : pickedSlots.slice(0, 3)).map(s => (
+                    <button
+                      key={s.start.toString()}
+                      onClick={() => setSelectedSlot(s)}
+                      style={{
+                        padding: '8px 12px',
+                        borderRadius: '8px',
+                        border: selectedSlot?.label === s.label ? '2px solid #2481cc' : '2px solid #f0f0f0',
+                        background: selectedSlot?.label === s.label ? '#f0f7ff' : 'white',
+                        color: selectedSlot?.label === s.label ? '#2481cc' : 'black',
+                        cursor: 'pointer',
+                        fontSize: '13px'
+                      }}
+                    >
+                      {s.label}
+                    </button>
+                  ))}
+                </div>
+                {pickedSlots.length > 3 && (
+                  <button
+                    onClick={() => setShowAllPicked(!showAllPicked)}
+                    style={{ marginTop: '6px', background: 'none', border: 'none', color: '#2481cc', cursor: 'pointer', fontSize: '13px', padding: 0 }}
+                  >
+                    {showAllPicked ? '▲ Свернуть' : `▼ Показать все (${pickedSlots.length})`}
+                  </button>
+                )}
+              </>
+            ) : (
+              <p style={{ color: '#888', fontSize: '13px', marginTop: '8px' }}>Нет слотов на этот день</p>
+            )
           )}
         </div>
       )}
