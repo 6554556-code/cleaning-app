@@ -19,7 +19,15 @@ function getOrderBusyRange(order, executor) {
   return { busyStart, busyEnd }
 }
 
-export function generateSlots(executor, existingOrders, date, newOrder = {}) {
+// Считает занятый интервал одного блока (перерыв, дорога, буфер)
+function getBlockBusyRange(block) {
+  const busyStart = new Date(block.start_at)
+  const busyEnd = new Date(busyStart)
+  busyEnd.setMinutes(busyEnd.getMinutes() + (block.duration || 0))
+  return { busyStart, busyEnd }
+}
+
+export function generateSlots(executor, existingOrders, date, newOrder = {}, existingBlocks = []) {
   const slots = []
 
   // Рабочее время исполнителя
@@ -41,6 +49,11 @@ export function generateSlots(executor, existingOrders, date, newOrder = {}) {
   const end = new Date(date)
   end.setHours(endHour, endMin, 0, 0)
 
+  // Заранее считаем занятые интервалы заказов и блоков
+  const orderRanges = existingOrders.map(o => getOrderBusyRange(o, executor))
+  const blockRanges = existingBlocks.map(b => getBlockBusyRange(b))
+  const allBusyRanges = [...orderRanges, ...blockRanges]
+
   while (current < end) {
     const slotStart = new Date(current)
 
@@ -53,9 +66,8 @@ export function generateSlots(executor, existingOrders, date, newOrder = {}) {
     // Заказ должен целиком влезать в рабочий день
     const fitsInWorkday = newBusyEnd <= end
 
-    // Проверяем пересечение с каждым существующим заказом
-    const overlaps = existingOrders.some(order => {
-      const { busyStart, busyEnd } = getOrderBusyRange(order, executor)
+    // Проверяем пересечение с заказами И блоками
+    const overlaps = allBusyRanges.some(({ busyStart, busyEnd }) => {
       // Два отрезка пересекаются, если начало одного раньше конца другого и наоборот
       return newBusyStart < busyEnd && busyStart < newBusyEnd
     })

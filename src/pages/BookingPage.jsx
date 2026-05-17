@@ -40,6 +40,12 @@ useEffect(() => {
       .select('scheduled_at, total_duration, location_type')
       .eq('executor_id', executor.id)
       .neq('status', 'cancelled')
+      .neq('is_deleted', true)
+
+    const { data: existingBlocks } = await supabase
+      .from('blocks')
+      .select('start_at, duration')
+      .eq('executor_id', executor.id)
 
     const today = new Date()
     const tomorrow = new Date()
@@ -52,9 +58,9 @@ useEffect(() => {
     }
 
     const now = new Date()
-    const todayGen = generateSlots(executor, existingOrders || [], today, newOrder)
+    const todayGen = generateSlots(executor, existingOrders || [], today, newOrder, existingBlocks || [])
       .filter(s => new Date(s.start) > now)
-    const tomorrowGen = generateSlots(executor, existingOrders || [], tomorrow, newOrder)
+    const tomorrowGen = generateSlots(executor, existingOrders || [], tomorrow, newOrder, existingBlocks || [])
 
     setTodaySlots(todayGen)
     setTomorrowSlots(tomorrowGen)

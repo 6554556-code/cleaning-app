@@ -102,6 +102,23 @@ function OrderDetailsModal({ order, onClose, onSaved }) {
     }
     onSaved()
   }
+  async function fullDelete() {
+    if (!confirm('Удалить заказ полностью? Он исчезнет из расписания.')) return
+    setSaving(true)
+    // Удаляем связанные блоки (дорога, буфер)
+    await supabase.from('blocks').delete().eq('order_id', order.id)
+    // Помечаем заказ удалённым
+    const { error } = await supabase
+      .from('orders')
+      .update({ is_deleted: true })
+      .eq('id', order.id)
+    setSaving(false)
+    if (error) {
+      alert('Ошибка удаления: ' + error.message)
+      return
+    }
+    onSaved()
+  }
   return (
     <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '16px' }}>
       <div onClick={e => e.stopPropagation()} style={{ background: 'white', borderRadius: '12px', padding: '20px', maxWidth: '400px', width: '100%', maxHeight: '90vh', overflow: 'auto' }}>
@@ -131,6 +148,9 @@ function OrderDetailsModal({ order, onClose, onSaved }) {
 
         <button onClick={save} disabled={saving} style={{ width: '100%', marginTop: '12px', padding: '12px', background: '#2481cc', color: 'white', border: 'none', borderRadius: '8px', fontSize: '15px', fontWeight: 'bold', cursor: 'pointer' }}>
           {saving ? 'Сохранение...' : 'Сохранить'}
+        </button>
+        <button onClick={fullDelete} disabled={saving} style={{ width: '100%', marginTop: '8px', padding: '10px', background: 'white', color: '#ef4444', border: '1px solid #ef4444', borderRadius: '8px', fontSize: '13px', cursor: 'pointer' }}>
+          🗑 Удалить полностью
         </button>
       </div>
     </div>
@@ -558,10 +578,11 @@ function ExecutorPage({ executorId }) {
     setExecutor(executorData)
 
     const { data: ordersData } = await supabase
-      .from('orders')
-      .select('*, client:client_id(full_name, phone)')
-      .eq('executor_id', executorId)
-      .order('created_at', { ascending: false })
+    .from('orders')
+    .select('*, client:client_id(full_name, phone)')
+    .eq('executor_id', executorId)
+    .neq('is_deleted', true)
+    .order('created_at', { ascending: false })
 
       setOrders(ordersData || [])
 
