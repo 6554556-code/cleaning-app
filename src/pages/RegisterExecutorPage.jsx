@@ -7,7 +7,7 @@ function RegisterExecutorPage() {
   const [phone, setPhone] = useState('')
   const [address, setAddress] = useState('')
   const [serviceType, setServiceType] = useState('cleaning')
-
+  const [timezone, setTimezone] = useState('Europe/Moscow')
   // График
   const [workStart, setWorkStart] = useState('09:00')
   const [workEnd, setWorkEnd] = useState('18:00')
@@ -79,7 +79,8 @@ function RegisterExecutorPage() {
         buffer_time: 15,
         travel_time: 30,
         rating: 0,
-        is_verified: false
+        is_verified: false,
+        timezone: timezone
       }])
       .select()
       .single()
@@ -140,7 +141,20 @@ function RegisterExecutorPage() {
         <option value="manicure">Маникюр</option>
         <option value="nanny">Няня</option>
       </select>
-
+      <label style={labelStyle}>Часовой пояс</label>
+      <select value={timezone} onChange={e => setTimezone(e.target.value)} style={inputStyle}>
+        <option value="Europe/Kaliningrad">Калининград (МСК−1)</option>
+        <option value="Europe/Moscow">Москва (МСК)</option>
+        <option value="Europe/Samara">Самара (МСК+1)</option>
+        <option value="Asia/Yekaterinburg">Екатеринбург (МСК+2)</option>
+        <option value="Asia/Omsk">Омск (МСК+3)</option>
+        <option value="Asia/Krasnoyarsk">Красноярск (МСК+4)</option>
+        <option value="Asia/Irkutsk">Иркутск (МСК+5)</option>
+        <option value="Asia/Yakutsk">Якутск (МСК+6)</option>
+        <option value="Asia/Vladivostok">Владивосток (МСК+7)</option>
+        <option value="Asia/Magadan">Магадан (МСК+8)</option>
+        <option value="Asia/Kamchatka">Камчатка (МСК+9)</option>
+      </select>
       {/* График */}
       <h3>2. График работы</h3>
       <div style={{ display: 'flex', gap: '12px' }}>
