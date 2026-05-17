@@ -238,9 +238,7 @@ function ScheduleView({ executor, orders, blocks, onReload, onCreateOrder }) {
   const [workEndH, workEndM] = executor.work_end.split(':').map(Number)
   const workStartMin = workStartH * 60 + workStartM
   const workEndMin = workEndH * 60 + workEndM
-  const viewStartMin = expandedBefore ? 0 : workStartMin
-  const viewEndMin = expandedAfter ? 24 * 60 : workEndMin
-  const totalMinutes = viewEndMin - viewStartMin
+ 
 
   // Высота 1 минуты в пикселях
   const PX_PER_MIN = 1.2
@@ -256,7 +254,41 @@ function ScheduleView({ executor, orders, blocks, onReload, onCreateOrder }) {
     d.setDate(startDate.getDate() + i)
     return d
   })
+// Ищем самый ранний и поздний край среди заказов и блоков видимых дней
+const visibleDayStrings = days.map(d => d.toDateString())
+const travelTimeForView = executor.travel_time || 0
+const bufferTimeForView = executor.buffer_time || 0
+let earliestMin = workStartMin
+let latestMin = workEndMin
 
+orders.forEach(o => {
+  if (!o.scheduled_at) return
+  const d = new Date(o.scheduled_at)
+  if (!visibleDayStrings.includes(d.toDateString())) return
+  const startM = d.getHours() * 60 + d.getMinutes()
+  const dur = o.total_duration || 60
+  const isOut = o.location_type === 'outcall'
+  const from = startM - (isOut ? travelTimeForView : 0)
+  const to = startM + dur + bufferTimeForView + (isOut ? travelTimeForView : 0)
+  if (from < earliestMin) earliestMin = from
+  if (to > latestMin) latestMin = to
+})
+
+blocks.forEach(b => {
+  if (!b.start_at) return
+  const d = new Date(b.start_at)
+  if (!visibleDayStrings.includes(d.toDateString())) return
+  const startM = d.getHours() * 60 + d.getMinutes()
+  const to = startM + (b.duration || 0)
+  if (startM < earliestMin) earliestMin = startM
+  if (to > latestMin) latestMin = to
+})
+
+earliestMin = Math.max(0, Math.floor(earliestMin / 60) * 60)
+latestMin = Math.min(24 * 60, Math.ceil(latestMin / 60) * 60)
+const viewStartMin = expandedBefore ? 0 : earliestMin
+  const viewEndMin = expandedAfter ? 24 * 60 : latestMin
+  const totalMinutes = viewEndMin - viewStartMin
   function formatDay(d) {
     const labels = ['Вс', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб']
     return `${labels[d.getDay()]} ${d.getDate()}.${String(d.getMonth() + 1).padStart(2, '0')}`
