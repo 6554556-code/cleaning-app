@@ -15,7 +15,7 @@ const MOSCOW_CENTER = [55.7558, 37.6173];
 
 export default function MapPage() {
   const [executors, setExecutors] = useState([]);
-
+  const [mapCenter, setMapCenter] = useState(MOSCOW_CENTER);
   useEffect(() => {
     supabase
       .from("executors")
@@ -25,15 +25,27 @@ export default function MapPage() {
         setExecutors(data || []);
       });
   }, []);
-
+// Запрашиваем геолокацию пользователя
+useEffect(() => {
+    if (!navigator.geolocation) return; // браузер не умеет — остаёмся на Москве
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        // Успех — центрируем на пользователе
+        setMapCenter([position.coords.latitude, position.coords.longitude]);
+      },
+      (error) => {
+        // Отказ или ошибка — остаёмся на Москве
+        console.log("Геолокация недоступна:", error.message);
+      }
+    );
+  }, []);
   return (
     <div style={{ height: "100vh" }}>
-      <MapContainer center={MOSCOW_CENTER} zoom={11} style={{ height: "100%" }}>
-        <TileLayer
+<MapContainer center={mapCenter} zoom={11} style={{ height: "100%" }} key={mapCenter.join(",")}>        <TileLayer
           attribution='&copy; OpenStreetMap'
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
-        {executors.map((ex) => (
+        {executors.filter((ex) => ex.latitude != null && ex.longitude != null).map((ex) => (
           <Marker key={ex.id} position={[ex.latitude, ex.longitude]}>
             <Popup>
               <div style={{ minWidth: 160 }}>
