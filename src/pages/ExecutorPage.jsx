@@ -280,9 +280,10 @@ function ScheduleView({ executor, orders, blocks, onReload, onCreateOrder }) {
     d.setDate(startDate.getDate() + i)
     return d
   })
-// Ищем самый ранний и поздний край среди заказов и блоков видимых дней
-const visibleDayStrings = days.map(d => d.toDateString())
-const travelTimeForView = executor.travel_time || 0
+
+  // Ищем самый ранний и поздний край среди заказов и блоков видимых дней
+  const visibleDayStrings = days.map(d => d.toDateString())
+  const travelTimeForView = executor.travel_time || 0
 const bufferTimeForView = executor.buffer_time || 0
 let earliestMin = workStartMin
 let latestMin = workEndMin
@@ -341,12 +342,39 @@ const viewStartMin = expandedBefore ? 0 : earliestMin
   return (
     <div style={{ background: 'white', borderRadius: '12px', padding: '12px', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
       {/* Переключатель недель */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
         <button onClick={() => setWeekOffset(weekOffset - 1)} style={{ padding: '6px 12px', borderRadius: '8px', border: '1px solid #ddd', background: 'white', cursor: 'pointer' }}>← Назад</button>
         <span style={{ fontWeight: 'bold', fontSize: '14px' }}>
           {formatDay(days[0])} — {formatDay(days[2])}
         </span>
         <button onClick={() => setWeekOffset(weekOffset + 1)} style={{ padding: '6px 12px', borderRadius: '8px', border: '1px solid #ddd', background: 'white', cursor: 'pointer' }}>Вперёд →</button>
+      </div>
+
+      {/* Быстрый переход к дате */}
+      <div style={{ display: 'flex', justifyContent: 'center', gap: '8px', alignItems: 'center', marginBottom: '12px' }}>
+        <input
+          type="date"
+          onChange={(e) => {
+            if (!e.target.value) return
+            const picked = new Date(e.target.value)
+            picked.setHours(0, 0, 0, 0)
+            const todayMidnight = new Date()
+            todayMidnight.setHours(0, 0, 0, 0)
+            // Разница в днях между выбранной датой и сегодня
+            const diffDays = Math.round((picked - todayMidnight) / (1000 * 60 * 60 * 24))
+            // Переводим в "тройки дней"
+            setWeekOffset(Math.floor(diffDays / 3))
+          }}
+          style={{ padding: '5px 8px', borderRadius: '8px', border: '1px solid #ddd', fontSize: '13px' }}
+        />
+        {weekOffset !== 0 && (
+          <button
+            onClick={() => setWeekOffset(0)}
+            style={{ padding: '5px 10px', borderRadius: '8px', border: '1px solid #ddd', background: 'white', cursor: 'pointer', fontSize: '13px' }}
+          >
+            Сегодня
+          </button>
+        )}
       </div>
 
       {/* Стрелка "раньше" */}
