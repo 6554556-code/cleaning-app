@@ -24,13 +24,21 @@ const STATUS_LABELS = {
 function BlockDetailsModal({ block, onClose, onSaved }) {
   const [reason, setReason] = useState(block.reason || '')
   const [duration, setDuration] = useState(block.duration)
+  const [startTime, setStartTime] = useState(
+    new Date(block.start_at).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })
+  )
   const [saving, setSaving] = useState(false)
 
+  
   async function save() {
     setSaving(true)
+    const [h, m] = startTime.split(':').map(Number)
+    const newStart = new Date(block.start_at)
+    newStart.setHours(h, m, 0, 0)
+
     const { error } = await supabase
       .from('blocks')
-      .update({ reason, duration })
+      .update({ reason, duration, start_at: newStart.toISOString() })
       .eq('id', block.id)
     setSaving(false)
     if (error) {
@@ -57,11 +65,8 @@ function BlockDetailsModal({ block, onClose, onSaved }) {
           <button onClick={onClose} style={{ background: 'none', border: 'none', fontSize: '20px', cursor: 'pointer' }}>✕</button>
         </div>
 
-        <p style={{ margin: '4px 0', fontSize: '14px', textAlign: 'center', color: '#555' }}>
-          {new Date(block.start_at).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}
-          {' — '}
-          {new Date(new Date(block.start_at).getTime() + duration * 60000).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}
-        </p>
+        <p style={{ marginTop: '12px', marginBottom: '4px', fontWeight: 'bold', fontSize: '14px' }}>Время начала</p>
+        <input type="time" value={startTime} onChange={e => setStartTime(e.target.value)} style={{ width: '100%', padding: '8px', borderRadius: '8px', border: '1px solid #ddd', fontSize: '14px', boxSizing: 'border-box' }} />
 
         <p style={{ marginTop: '12px', marginBottom: '4px', fontWeight: 'bold', fontSize: '14px' }}>Длительность (мин)</p>
         <input type="number" value={duration} onChange={e => setDuration(Number(e.target.value))} style={{ width: '100%', padding: '8px', borderRadius: '8px', border: '1px solid #ddd', fontSize: '14px', boxSizing: 'border-box' }} />
@@ -86,10 +91,15 @@ function OrderDetailsModal({ order, onClose, onSaved }) {
 
   async function save() {
     setSaving(true)
+    // Собираем новую дату: берём день старого блока, ставим новое время
+    const [h, m] = startTime.split(':').map(Number)
+    const newStart = new Date(block.start_at)
+    newStart.setHours(h, m, 0, 0)
+
     const { error } = await supabase
-      .from('orders')
-      .update({ status, executor_comment: comment })
-      .eq('id', order.id)
+      .from('blocks')
+      .update({ reason, duration, start_at: newStart.toISOString() })
+      .eq('id', block.id)
     setSaving(false)
     if (error) {
       alert('Ошибка сохранения')
@@ -97,7 +107,6 @@ function OrderDetailsModal({ order, onClose, onSaved }) {
     }
     onSaved()
   }
-
   return (
     <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '16px' }}>
       <div onClick={e => e.stopPropagation()} style={{ background: 'white', borderRadius: '12px', padding: '20px', maxWidth: '400px', width: '100%', maxHeight: '90vh', overflow: 'auto' }}>
