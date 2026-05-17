@@ -1,6 +1,40 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../supabase'
 import AddOrderPage from './AddOrderPage'
+// Считает статистику заказов клиента по списку всех заказов
+function getClientStats(allOrders, clientId) {
+  const clientOrders = allOrders.filter(o => o.client_id === clientId)
+  let done = 0, active = 0, cancelled = 0
+  clientOrders.forEach(o => {
+    if (o.status === 'done') done++
+    else if (o.status === 'cancelled') cancelled++
+    else active++
+  })
+  return { done, active, cancelled }
+}
+
+// Маленький блок с тремя цветными счётчиками
+function ClientStatsBadges({ stats }) {
+  const badge = (count, color) => (
+    <span style={{
+      background: color,
+      color: 'white',
+      borderRadius: '10px',
+      padding: '1px 7px',
+      fontSize: '11px',
+      fontWeight: 'bold'
+    }}>
+      {count}
+    </span>
+  )
+  return (
+    <span style={{ display: 'inline-flex', gap: '4px', alignItems: 'center' }}>
+      {badge(stats.done, '#16a34a')}
+      {badge(stats.active, '#3b82f6')}
+      {badge(stats.cancelled, '#ef4444')}
+    </span>
+  )
+}
 // Цвета статусов
 const STATUS_COLORS = {
   new: '#fbbf24',
@@ -84,7 +118,7 @@ function BlockDetailsModal({ block, onClose, onSaved }) {
     </div>
   )
 }
-function OrderDetailsModal({ order, onClose, onSaved }) {
+function OrderDetailsModal({ order, clientStats, onClose, onSaved }) {
   const [status, setStatus] = useState(order.status)
   const [comment, setComment] = useState(order.executor_comment || '')
   const [saving, setSaving] = useState(false)
@@ -133,7 +167,10 @@ function OrderDetailsModal({ order, onClose, onSaved }) {
           <button onClick={onClose} style={{ background: 'none', border: 'none', fontSize: '20px', cursor: 'pointer' }}>✕</button>
         </div>
 
-        <p style={{ margin: '4px 0', fontSize: '14px' }}><b>Клиент:</b> {order.client?.full_name || order.name || '—'}</p>
+        <p style={{ margin: '4px 0', fontSize: '14px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <span><b>Клиент:</b> {order.client?.full_name || order.name || '—'}</span>
+          {clientStats && <ClientStatsBadges stats={clientStats} />}
+        </p>
         <p style={{ margin: '4px 0', fontSize: '14px' }}><b>Телефон:</b> {order.client?.phone || order.phone || '—'}</p>
         <p style={{ margin: '4px 0', fontSize: '14px' }}><b>Услуга:</b> {order.cleaning_type || '—'}</p>
         <p style={{ margin: '4px 0', fontSize: '14px' }}><b>Время:</b> {new Date(order.scheduled_at).toLocaleString('ru-RU')}</p>
@@ -560,10 +597,11 @@ const viewStartMin = expandedBefore ? 0 : earliestMin
 {/* Модалка с деталями заказа */}
 {selectedOrder && (
         <OrderDetailsModal
-          order={selectedOrder}
-          onClose={() => setSelectedOrder(null)}
-          onSaved={() => { setSelectedOrder(null); onReload() }}
-        />
+        order={selectedOrder}
+        clientStats={getClientStats(orders, selectedOrder.client_id)}
+        onClose={() => setSelectedOrder(null)}
+        onSaved={() => { setSelectedOrder(null); onReload() }}
+      />
       )}
       {/* Модалка с деталями блока */}
       {selectedBlock && (
@@ -741,7 +779,10 @@ function ExecutorPage({ executorId }) {
                   boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
                 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <h4 style={{ margin: 0 }}>{order.client?.full_name}</h4>
+                  <h4 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      {order.client?.full_name}
+                      <ClientStatsBadges stats={getClientStats(orders, order.client_id)} />
+                    </h4>
                     <span style={{
                       background: status.bg,
                       color: status.color,
