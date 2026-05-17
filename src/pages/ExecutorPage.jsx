@@ -123,7 +123,13 @@ function OrderDetailsModal({ order, onClose, onSaved }) {
     <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '16px' }}>
       <div onClick={e => e.stopPropagation()} style={{ background: 'white', borderRadius: '12px', padding: '20px', maxWidth: '400px', width: '100%', maxHeight: '90vh', overflow: 'auto' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-          <h3 style={{ margin: 0 }}>Заказ #{order.id}</h3>
+        <div>
+            <h3 style={{ margin: 0 }}>Заказ #{order.id}</h3>
+            <p style={{ margin: '2px 0 0', fontSize: '11px', color: '#999' }}>
+              {order.source === 'manual' ? '✋ Создан вручную' : '📱 Со страницы брони'}
+              {order.created_at ? ` · ${new Date(order.created_at).toLocaleString('ru-RU', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}` : ''}
+            </p>
+          </div>
           <button onClick={onClose} style={{ background: 'none', border: 'none', fontSize: '20px', cursor: 'pointer' }}>✕</button>
         </div>
 

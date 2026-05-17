@@ -96,7 +96,8 @@ function AddOrderPage({ executor, onBack, onSuccess }) {
       service_type: executor.service_type,
       total_price: calcTotal(),
       total_duration: calcDuration(),
-      location_type: locationType
+      location_type: locationType,
+      source: 'manual'
     }])
     .select()
     .single()

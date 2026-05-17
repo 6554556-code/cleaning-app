@@ -176,6 +176,7 @@ async function loadPickedDateSlots(dateStr) {
         status: 'new',
         service_type: executor.service_type,
         location_type: locationType,
+        source: 'booking',
       }])
       .select()
       .single()
