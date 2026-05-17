@@ -11,6 +11,7 @@ function ClientPage() {
   const [selectedExecutor, setSelectedExecutor] = useState(null)
   const [selectedSlot, setSelectedSlot] = useState(null)
   const [showBooking, setShowBooking] = useState(false)
+  const [expandedServices, setExpandedServices] = useState([])
 
   const services = [
     { id: 'cleaning', label: '🧹 Клининг' },
@@ -58,12 +59,12 @@ const slots = [...todaySlots, ...tomorrowSlots]
   .filter(s => new Date(s.start) > now)
   .slice(0, 3)
 
-        const { data: executorServices } = await supabase
-          .from('services')
-          .select('*')
-                    .eq('executor_id', executor.id)
-          .order('is_main', { ascending: false })
-
+  const { data: executorServices } = await supabase
+  .from('services')
+  .select('*')
+  .eq('executor_id', executor.id)
+  .order('is_main', { ascending: false })
+  .order('name', { ascending: true })
         return { ...executor, slots: slots || [], services: executorServices || [] }
       }))
 
@@ -151,9 +152,16 @@ const slots = [...todaySlots, ...tomorrowSlots]
               <span>📦 {executor.orders_count} заказов</span>
               
             </div>
-            {executor.services && executor.services.length > 0 && (
+            {executor.services && executor.services.length > 0 && (() => {
+  const isExpanded = expandedServices.includes(executor.id)
+  const allMain = executor.services.filter(s => s.is_main)
+  const mainToShow = isExpanded ? allMain : allMain.slice(0, 3)
+  return (
   <div style={{ marginTop: '10px' }}>
-    {executor.services.filter(s => s.is_main).map(mainService => (
+    {mainToShow.map(mainService => {
+      const allExtras = executor.services.filter(s => !s.is_main && s.parent_service_id === mainService.id)
+      const extrasToShow = isExpanded ? allExtras : allExtras.slice(0, 2)
+      return (
       <div key={mainService.id}>
         <div style={{
           display: 'flex',
@@ -165,7 +173,7 @@ const slots = [...todaySlots, ...tomorrowSlots]
           <span>⭐ {mainService.name} {getLocationIcon(mainService.location_type)} {mainService.duration ? `· ${mainService.duration} мин` : ''}</span>
           <span style={{ color: '#2481cc', fontWeight: 'bold' }}>{mainService.price} руб</span>
         </div>
-        {executor.services.filter(s => !s.is_main && s.parent_service_id === mainService.id).map(extra => (
+        {extrasToShow.map(extra => (
           <div key={extra.id} style={{
             display: 'flex',
             justifyContent: 'space-between',
@@ -178,9 +186,23 @@ const slots = [...todaySlots, ...tomorrowSlots]
           </div>
         ))}
       </div>
-    ))}
+      )
+    })}
+    {(allMain.length > 3 || allMain.some(m => executor.services.filter(s => !s.is_main && s.parent_service_id === m.id).length > 2)) && (
+      <button
+        onClick={() => setExpandedServices(prev =>
+          prev.includes(executor.id)
+            ? prev.filter(id => id !== executor.id)
+            : [...prev, executor.id]
+        )}
+        style={{ marginTop: '6px', background: 'none', border: 'none', color: '#2481cc', cursor: 'pointer', fontSize: '13px', padding: 0 }}
+      >
+        {isExpanded ? '▲ Свернуть' : '▼ Показать все услуги'}
+      </button>
+    )}
   </div>
-)}
+  )
+})()}
             
             {executor.slots && executor.slots.length > 0 && (
               <div style={{ marginTop: '12px' }}>

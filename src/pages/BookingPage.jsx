@@ -22,6 +22,7 @@ function BookingPage({ executor, slot, onBack, onSuccess }) {
   const [pickedDate, setPickedDate] = useState('')
   const [pickedSlots, setPickedSlots] = useState([])
   const [showAllPicked, setShowAllPicked] = useState(false)
+  const [servicesExpanded, setServicesExpanded] = useState(false)
   useEffect(() => {
     async function loadServices() {
       const { data } = await supabase
@@ -29,6 +30,7 @@ function BookingPage({ executor, slot, onBack, onSuccess }) {
         .select('*')
         .eq('executor_id', executor.id)
         .order('is_main', { ascending: false })
+        .order('name', { ascending: true })
       setServices(data || [])
       const main = data?.find(s => s.is_main)
       if (main) setSelectedService(main)
@@ -448,9 +450,16 @@ async function loadPickedDateSlots(dateStr) {
         })}
       </div>
             {/* Основная услуга */}
-      <p style={{ fontWeight: 'bold', marginBottom: '8px' }}>Основная услуга</p>
+            <p style={{ fontWeight: 'bold', marginBottom: '8px' }}>Основная услуга</p>
       <div style={{ marginBottom: '16px' }}>
-        {services.filter(s => s.is_main).map(service => (
+      {(() => {
+          const allMain = services.filter(s => s.is_main)
+          const mainToShow = servicesExpanded ? allMain : allMain.slice(0, 3)
+         
+          return mainToShow.map(service => {
+          const allExtras = services.filter(s => !s.is_main && s.parent_service_id === service.id)
+          const extrasToShow = servicesExpanded ? allExtras : allExtras.slice(0, 2)
+          return (
           <div key={service.id}>
             <div
               onClick={() => handleServiceSelect(service)}
@@ -469,8 +478,7 @@ async function loadPickedDateSlots(dateStr) {
               <span>⭐ {service.name} {service.location_type === 'outcall' ? '🚗' : service.location_type === 'incall' ? '🏠' : '🚗🏠'} · {service.duration} мин</span>
               <span style={{ color: '#2481cc', fontWeight: 'bold' }}>{service.price} руб</span>
             </div>
-            {selectedService?.id === service.id &&
-              services.filter(s => !s.is_main && s.parent_service_id === service.id).map(extra => (
+            {extrasToShow.map(extra => (
                 <div
                   key={extra.id}
                   onClick={() => toggleExtra(extra)}
@@ -490,11 +498,25 @@ async function loadPickedDateSlots(dateStr) {
                   <span>➕ {extra.name} {extra.duration ? `· ${extra.duration} мин` : ''}</span>
                   <span style={{ color: '#16a34a', fontWeight: 'bold' }}>+{extra.price} руб</span>
                 </div>
-              ))
-            }
+             ))}
+             </div>
+             )
+             })
+            })()}
+            {(() => {
+              const allMain = services.filter(s => s.is_main)
+              const hasMore = allMain.length > 3 || allMain.some(m => services.filter(s => !s.is_main && s.parent_service_id === m.id).length > 2)
+              if (!hasMore) return null
+              return (
+                <button
+                  onClick={() => setServicesExpanded(!servicesExpanded)}
+                  style={{ marginTop: '4px', background: 'none', border: 'none', color: '#2481cc', cursor: 'pointer', fontSize: '13px', padding: 0 }}
+                >
+                  {servicesExpanded ? '▲ Свернуть' : '▼ Показать все услуги'}
+                </button>
+              )
+            })()}
           </div>
-        ))}
-      </div>
      
       {[
         ...(locationType === 'outcall' ? [{ label: 'Адрес *', value: address, setter: setAddress, placeholder: 'Улица, дом, квартира' }] : []),
