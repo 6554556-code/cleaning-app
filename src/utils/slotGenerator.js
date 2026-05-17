@@ -30,6 +30,18 @@ function getBlockBusyRange(block) {
 export function generateSlots(executor, existingOrders, date, newOrder = {}, existingBlocks = []) {
   const slots = []
 
+  // Проверяем, рабочий ли это день недели
+  if (executor.work_days) {
+    // work_days хранит дни по-человечески: 1=Пн ... 7=Вс
+    // JS getDay(): 0=Вс, 1=Пн ... 6=Сб — переводим воскресенье из 0 в 7
+    const jsDay = new Date(date).getDay()
+    const humanDay = jsDay === 0 ? 7 : jsDay
+    const workDays = executor.work_days.split(',').map(d => Number(d.trim()))
+    if (!workDays.includes(humanDay)) {
+      return [] // выходной — слотов нет
+    }
+  }
+
   // Рабочее время исполнителя
   const [startHour, startMin] = (executor.work_start || '09:00').split(':').map(Number)
   const [endHour, endMin] = (executor.work_end || '21:00').split(':').map(Number)
