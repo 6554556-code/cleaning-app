@@ -26,6 +26,7 @@ function ClientPage() {
         .from('executors')
         .select('*, users(full_name), address')
         .eq('service_type', selectedService)
+        .order('is_verified', { ascending: false })
         .order('rating', { ascending: false })
 
       if (error) {
@@ -33,7 +34,7 @@ function ClientPage() {
         setLoading(false)
         return
       }
-
+      
       const today = new Date()
       today.setHours(0, 0, 0, 0)
       const tomorrow = new Date(today)
@@ -137,7 +138,10 @@ const slots = [...todaySlots, ...tomorrowSlots]
             boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
           }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <h3 style={{ margin: 0 }}>{executor.users?.full_name}</h3>
+            <h3 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '4px' }}>
+                {executor.users?.full_name}
+                {executor.is_verified && <span title="Проверенный исполнитель">✅</span>}
+              </h3>
               <span style={{ color: '#f5a623', fontWeight: 'bold', fontSize: '18px' }}>
                 ⭐ {executor.rating}
               </span>
