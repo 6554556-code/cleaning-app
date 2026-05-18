@@ -678,7 +678,7 @@ function ExecutorPage({ executorId }) {
     const { data: ordersData } = await supabase
     .from('orders')
     .select('*, client:client_id(full_name, phone)')
-    .eq('executor_id', executorId)
+    .eq('executor_id', realExecutorId)
     .neq('is_deleted', true)
     .order('created_at', { ascending: false })
 
@@ -687,7 +687,7 @@ function ExecutorPage({ executorId }) {
       const { data: blocksData } = await supabase
         .from('blocks')
         .select('*')
-        .eq('executor_id', executorId)
+        .eq('executor_id', realExecutorId)
       setBlocks(blocksData || [])
   
       setLoading(false)
