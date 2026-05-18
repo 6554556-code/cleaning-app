@@ -276,7 +276,7 @@ const slots = [...todaySlots, ...tomorrowSlots]
             {executor.slots && executor.slots.length > 0 && (
               <div style={{ marginTop: '12px' }}>
                 <p style={{ margin: '0 0 6px', fontSize: '13px', color: '#666' }}>📅 Ближайшие слоты:</p>
-                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px' }}>
                 {executor.slots.map(slot => (
                     <span
                       key={slot.start.toString()}
@@ -286,7 +286,8 @@ const slots = [...todaySlots, ...tomorrowSlots]
                         border: '1px solid #2481cc',
                         background: '#f0f7ff',
                         color: '#2481cc',
-                        fontSize: '13px'
+                        fontSize: '13px',
+                        textAlign: 'center'
                       }}
                     >
                       {formatSlot(slot.start)}
