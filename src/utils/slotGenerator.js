@@ -34,6 +34,35 @@ export function hasOverlap(executor, existingOrders, existingBlocks, newStart, n
 
   return false
 }
+// Ищет ближайший свободный слот к желаемому времени (в любую сторону, но не в прошлом)
+export function findNearestSlot(executor, existingOrders, existingBlocks, desiredStart, newDuration, newLocationType) {
+  const day = new Date(desiredStart)
+  const newOrder = { duration: newDuration, locationType: newLocationType }
+
+  // Получаем все свободные слоты этого дня
+  let slots = generateSlots(executor, existingOrders, day, newOrder, existingBlocks)
+
+  // Убираем прошедшие
+  const now = new Date()
+  slots = slots.filter(s => new Date(s.start) > now)
+
+  if (slots.length === 0) return null
+
+  // Находим слот, ближайший по времени к желаемому
+  const desiredMs = new Date(desiredStart).getTime()
+  let nearest = slots[0]
+  let minDiff = Math.abs(new Date(nearest.start).getTime() - desiredMs)
+
+  for (const s of slots) {
+    const diff = Math.abs(new Date(s.start).getTime() - desiredMs)
+    if (diff < minDiff) {
+      minDiff = diff
+      nearest = s
+    }
+  }
+
+  return nearest
+}
 // Считает занятый интервал одного существующего заказа: { busyStart, busyEnd }
 function getOrderBusyRange(order, executor) {
   const orderStart = new Date(order.scheduled_at)

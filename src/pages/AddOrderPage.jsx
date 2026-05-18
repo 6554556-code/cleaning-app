@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../supabase'
-import { hasOverlap } from '../utils/slotGenerator'
+import { hasOverlap, generateSlots, findNearestSlot } from '../utils/slotGenerator'
 
 function AddOrderPage({ executor, onBack, onSuccess }) {
   const [name, setName] = useState('')
@@ -8,6 +8,7 @@ function AddOrderPage({ executor, onBack, onSuccess }) {
   const [address, setAddress] = useState('')
   const [comment, setComment] = useState('')
   const [loading, setLoading] = useState(false)
+  const [overlapModal, setOverlapModal] = useState(null)
   const [services, setServices] = useState([])
   const [selectedService, setSelectedService] = useState(null)
   const [selectedExtras, setSelectedExtras] = useState([])
@@ -51,6 +52,85 @@ function AddOrderPage({ executor, onBack, onSuccess }) {
     const base = selectedService?.duration || 0
     const extras = selectedExtras.reduce((sum, s) => sum + (s.duration || 0), 0)
     return base + extras
+  }
+  // Создаёт заказ и связанные блоки на заданное время
+  async function createOrder(userId, fullServiceName, scheduledAt) {
+    const { data: orderData, error: orderError } = await supabase
+      .from('orders')
+      .insert([{
+        client_id: userId,
+        executor_id: executor.id,
+        address: address || 'Не указан',
+        comment: comment,
+        cleaning_type: fullServiceName,
+        scheduled_at: scheduledAt.toISOString(),
+        status: 'new',
+        service_type: executor.service_type,
+        total_price: calcTotal(),
+        total_duration: calcDuration(),
+        location_type: locationType,
+        source: 'manual'
+      }])
+      .select()
+      .single()
+
+    if (orderError) {
+      alert('Ошибка при создании заявки')
+      setLoading(false)
+      return
+    }
+
+    // Блоки: дорога до, дорога после, буфер
+    const travelTime = executor.travel_time || 0
+    const bufferTime = executor.buffer_time || 0
+    const isOutcall = locationType === 'outcall'
+    const duration = calcDuration()
+    const blocksToCreate = []
+
+    if (isOutcall && travelTime > 0) {
+      const travelBefore = new Date(scheduledAt.getTime() - travelTime * 60000)
+      blocksToCreate.push({
+        executor_id: executor.id,
+        start_at: travelBefore.toISOString(),
+        duration: travelTime,
+        reason: 'Дорога к клиенту',
+        type: 'auto_travel',
+        order_id: orderData.id
+      })
+    }
+
+    const endTime = new Date(scheduledAt.getTime() + duration * 60000)
+
+    if (isOutcall && travelTime > 0) {
+      blocksToCreate.push({
+        executor_id: executor.id,
+        start_at: endTime.toISOString(),
+        duration: travelTime,
+        reason: 'Дорога обратно',
+        type: 'auto_travel',
+        order_id: orderData.id
+      })
+    }
+
+    if (bufferTime > 0) {
+      const bufferStart = isOutcall ? new Date(endTime.getTime() + travelTime * 60000) : endTime
+      blocksToCreate.push({
+        executor_id: executor.id,
+        start_at: bufferStart.toISOString(),
+        duration: bufferTime,
+        reason: 'Перерыв',
+        type: 'auto_buffer',
+        order_id: orderData.id
+      })
+    }
+
+    if (blocksToCreate.length > 0) {
+      await supabase.from('blocks').insert(blocksToCreate)
+    }
+
+    setLoading(false)
+    setOverlapModal(null)
+    onSuccess()
   }
   async function handleSubmit() {
     if (!name || !phone || !selectedService || !selectedDate || !selectedTime) {
@@ -97,103 +177,86 @@ function AddOrderPage({ executor, onBack, onSuccess }) {
         .select('start_at, duration')
         .eq('executor_id', executor.id)
   
-      const overlap = hasOverlap(
-        executor,
-        existingOrders || [],
-        existingBlocks || [],
-        scheduledAt,
-        calcDuration(),
-        locationType
-      )
-  
-      if (overlap) {
-        const ok = confirm('⚠️ Этот заказ пересекается по времени с другим заказом или перерывом. Всё равно создать?')
-        if (!ok) {
-          setLoading(false)
-          return
+        const overlap = hasOverlap(
+          executor,
+          existingOrders || [],
+          existingBlocks || [],
+          scheduledAt,
+          calcDuration(),
+          locationType
+        )
+    
+        if (overlap) {
+          // Ищем ближайшее свободное время
+          const nearest = findNearestSlot(
+            executor,
+            existingOrders || [],
+            existingBlocks || [],
+            scheduledAt,
+            calcDuration(),
+            locationType
+          )
+          // Показываем модалку выбора
+          setOverlapModal({ nearest, userId: user.id, scheduledAt })
+      setLoading(false)
+      return
         }
-      }
   
-      const { data: orderData, error: orderError } = await supabase
-      .from('orders')
-      .insert([{
-      client_id: user.id,
-      executor_id: executor.id,
-      address: address || 'Не указан',
-      comment: comment,
-      cleaning_type: fullServiceName,
-      scheduled_at: scheduledAt.toISOString(),
-      status: 'new',
-      service_type: executor.service_type,
-      total_price: calcTotal(),
-      total_duration: calcDuration(),
-      location_type: locationType,
-      source: 'manual'
-    }])
-    .select()
-    .single()
-
-  if (orderError) {
-    alert('Ошибка при создании заявки')
-    setLoading(false)
-    return
-  }
-
-  // Создаём блоки: дорога до (если outcall), буфер после, дорога после (если outcall)
-  const travelTime = executor.travel_time || 0
-  const bufferTime = executor.buffer_time || 0
-  const isOutcall = locationType === 'outcall'
-  const duration = calcDuration()
-
-  const blocksToCreate = []
-
-  if (isOutcall && travelTime > 0) {
-    const travelBefore = new Date(scheduledAt.getTime() - travelTime * 60000)
-    blocksToCreate.push({
-      executor_id: executor.id,
-      start_at: travelBefore.toISOString(),
-      duration: travelTime,
-      reason: 'Дорога к клиенту',
-      type: 'auto_travel',
-      order_id: orderData.id
-    })
-  }
-
-  const endTime = new Date(scheduledAt.getTime() + duration * 60000)
-
-  if (isOutcall && travelTime > 0) {
-    blocksToCreate.push({
-      executor_id: executor.id,
-      start_at: endTime.toISOString(),
-      duration: travelTime,
-      reason: 'Дорога обратно',
-      type: 'auto_travel',
-      order_id: orderData.id
-    })
-  }
-
-  if (bufferTime > 0) {
-    const bufferStart = isOutcall ? new Date(endTime.getTime() + travelTime * 60000) : endTime
-    blocksToCreate.push({
-      executor_id: executor.id,
-      start_at: bufferStart.toISOString(),
-      duration: bufferTime,
-      reason: 'Перерыв',
-      type: 'auto_buffer',
-      order_id: orderData.id
-    })
-  }
-
-  if (blocksToCreate.length > 0) {
-    await supabase.from('blocks').insert(blocksToCreate)
-  }
-
-  setLoading(false)
-  onSuccess()
-}
-  return (
-    <div style={{ padding: '16px', maxWidth: '600px', margin: '0 auto' }}>
-
+        await createOrder(user.id, fullServiceName, scheduledAt)
+      }
+      return (
+        <div style={{ padding: '16px', maxWidth: '600px', margin: '0 auto' }}>
+    
+          {/* Модалка пересечения */}
+          {overlapModal && (
+            <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '16px' }}>
+              <div style={{ background: 'white', borderRadius: '12px', padding: '20px', maxWidth: '340px', width: '100%' }}>
+                <h3 style={{ margin: '0 0 8px' }}>⚠️ Время занято</h3>
+                <p style={{ margin: '0 0 16px', fontSize: '14px', color: '#666' }}>
+                  Это время пересекается с другим заказом или перерывом.
+                </p>
+    
+                {overlapModal.nearest ? (
+                  <button
+                    onClick={async () => {
+                      setLoading(true)
+                      const extrasNames = selectedExtras.map(s => s.name).join(', ')
+                      const fullServiceName = extrasNames
+                        ? `${selectedService.name} + ${extrasNames}`
+                        : selectedService.name
+                      await createOrder(overlapModal.userId, fullServiceName, new Date(overlapModal.nearest.start))
+                    }}
+                    style={{ width: '100%', padding: '12px', background: '#16a34a', color: 'white', border: 'none', borderRadius: '8px', fontSize: '14px', cursor: 'pointer', marginBottom: '8px' }}
+                  >
+                    ✅ Забронировать на {overlapModal.nearest.label}
+                  </button>
+                ) : (
+                  <p style={{ fontSize: '13px', color: '#888', marginBottom: '8px' }}>Свободного времени в этот день нет</p>
+                )}
+    
+                <button
+                  onClick={async () => {
+                    setLoading(true)
+                    const extrasNames = selectedExtras.map(s => s.name).join(', ')
+                    const fullServiceName = extrasNames
+                      ? `${selectedService.name} + ${extrasNames}`
+                      : selectedService.name
+                    await createOrder(overlapModal.userId, fullServiceName, overlapModal.scheduledAt)
+                  }}
+                  style={{ width: '100%', padding: '12px', background: 'white', color: '#ef4444', border: '1px solid #ef4444', borderRadius: '8px', fontSize: '14px', cursor: 'pointer', marginBottom: '8px' }}
+                >
+                  Всё равно создать на это время
+                </button>
+    
+                <button
+                  onClick={() => setOverlapModal(null)}
+                  style={{ width: '100%', padding: '12px', background: 'white', color: '#666', border: '1px solid #ddd', borderRadius: '8px', fontSize: '14px', cursor: 'pointer' }}
+                >
+                  Отмена
+                </button>
+              </div>
+            </div>
+          )}
       <button
         onClick={onBack}
         style={{
