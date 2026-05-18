@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../supabase'
+import { getTelegramUser } from '../telegram'
 import BookingPage from './BookingPage'
 import { generateSlots } from '../utils/slotGenerator'
 import { getLocationIcon } from '../utils/locationIcon'
@@ -11,6 +12,7 @@ function ClientPage() {
   const [selectedExecutor, setSelectedExecutor] = useState(null)
   const [selectedSlot, setSelectedSlot] = useState(null)
   const [showBooking, setShowBooking] = useState(false)
+  const [myUserId, setMyUserId] = useState(null)
   const [expandedServices, setExpandedServices] = useState([])
 
   const services = [
@@ -18,7 +20,35 @@ function ClientPage() {
     { id: 'manicure', label: '💅 Маникюр' },
     { id: 'nanny', label: '👶 Няня' },
   ]
+// Определяем текущего пользователя по telegram_id
+useEffect(() => {
+  async function checkUser() {
+    const tgUser = getTelegramUser()
+    if (!tgUser?.telegram_id) return
 
+    // Ищем пользователя в базе
+    const { data: user } = await supabase
+      .from('users')
+      .select('id')
+      .eq('telegram_id', tgUser.telegram_id)
+      .maybeSingle()
+
+    if (!user) return
+
+    // Проверяем, есть ли у него заказы
+    const { data: orders } = await supabase
+      .from('orders')
+      .select('id')
+      .eq('client_id', user.id)
+      .limit(1)
+
+    // Если есть хотя бы один заказ — показываем кнопку кабинета
+    if (orders && orders.length > 0) {
+      setMyUserId(user.id)
+    }
+  }
+  checkUser()
+}, [])
   useEffect(() => {
     async function loadExecutors() {
       setLoading(true)
@@ -118,6 +148,13 @@ const slots = [...todaySlots, ...tomorrowSlots]
         >
           👷 Я исполнитель
         </a>
+        {myUserId && (
+          <a href={`?client=${myUserId}`}
+            style={{ fontSize: '13px', color: 'white', background: '#2481cc', textDecoration: 'none', padding: '6px 10px', borderRadius: '8px' }}
+          >
+            👤 Кабинет
+          </a>
+        )}
       </div>
 
       <h2 style={{ textAlign: 'center', marginTop: 0 }}>Выберите услугу</h2>
