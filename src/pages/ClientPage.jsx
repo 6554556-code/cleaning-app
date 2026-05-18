@@ -104,7 +104,23 @@ const slots = [...todaySlots, ...tomorrowSlots]
 
   return (
     <div style={{ padding: '16px', maxWidth: '600px', margin: '0 auto' }}>
-      <h2 style={{ textAlign: 'center' }}>Выберите услугу</h2>
+      {/* Шапка */}
+      <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginBottom: '8px' }}>
+        
+      <a href="?map=1"
+          style={{ fontSize: '13px', color: '#2481cc', textDecoration: 'none', padding: '6px 10px', borderRadius: '8px', border: '1px solid #e0e0e0' }}
+        >
+          🗺 Карта
+        </a>
+        
+        <a href="?register=executor"
+          style={{ fontSize: '13px', color: '#2481cc', textDecoration: 'none', padding: '6px 10px', borderRadius: '8px', border: '1px solid #e0e0e0' }}
+        >
+          👷 Я исполнитель
+        </a>
+      </div>
+
+      <h2 style={{ textAlign: 'center', marginTop: 0 }}>Выберите услугу</h2>
       <div style={{ display: 'flex', gap: '8px', marginBottom: '20px', flexWrap: 'wrap' }}>
         {services.map(s => (
           <button
