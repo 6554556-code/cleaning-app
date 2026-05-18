@@ -13,6 +13,7 @@ function ClientPage() {
   const [selectedSlot, setSelectedSlot] = useState(null)
   const [showBooking, setShowBooking] = useState(false)
   const [myUserId, setMyUserId] = useState(null)
+  const [myExecutorId, setMyExecutorId] = useState(null)
   const [expandedServices, setExpandedServices] = useState([])
 
   const services = [
@@ -33,19 +34,30 @@ useEffect(() => {
       .eq('telegram_id', tgUser.telegram_id)
       .maybeSingle()
 
-    if (!user) return
+      if (!user) return
 
-    // Проверяем, есть ли у него заказы
-    const { data: orders } = await supabase
-      .from('orders')
-      .select('id')
-      .eq('client_id', user.id)
-      .limit(1)
+      // Проверяем, есть ли у него заказы
+      const { data: orders } = await supabase
+        .from('orders')
+        .select('id')
+        .eq('client_id', user.id)
+        .limit(1)
 
-    // Если есть хотя бы один заказ — показываем кнопку кабинета
-    if (orders && orders.length > 0) {
-      setMyUserId(user.id)
-    }
+      // Если есть хотя бы один заказ — показываем кнопку кабинета
+      if (orders && orders.length > 0) {
+        setMyUserId(user.id)
+      }
+
+      // Проверяем, есть ли у него профиль исполнителя
+      const { data: executor } = await supabase
+        .from('executors')
+        .select('id')
+        .eq('user_id', user.id)
+        .maybeSingle()
+
+      if (executor) {
+        setMyExecutorId(executor.id)
+      }
   }
   checkUser()
 }, [])
@@ -143,10 +155,10 @@ const slots = [...todaySlots, ...tomorrowSlots]
           🗺 Карта
         </a>
         
-        <a href="?register=executor"
+        <a href={myExecutorId ? '?executor=1' : '?register=executor'}
           style={{ fontSize: '13px', color: '#2481cc', textDecoration: 'none', padding: '6px 10px', borderRadius: '8px', border: '1px solid #e0e0e0' }}
         >
-          👷 Я исполнитель
+          {myExecutorId ? '👷 Кабинет исполнителя' : '👷 Стать исполнителем'}
         </a>
         {myUserId && (
           <a href={`?client=${myUserId}`}
