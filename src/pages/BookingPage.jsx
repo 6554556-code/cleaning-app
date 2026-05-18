@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../supabase'
+import { getTelegramUser } from '../telegram'
 import { generateSlots } from '../utils/slotGenerator'
 
 function BookingPage({ executor, slot, onBack, onSuccess }) {
@@ -142,23 +143,48 @@ async function loadPickedDateSlots(dateStr) {
 
     setLoading(true)
 
-    const { data: user, error: userError } = await supabase
-      .from('users')
-      .insert([{
-        full_name: name,
-        phone: phone,
-        role: 'client',
-        telegram_id: 0
-      }])
-      .select()
-      .single()
+    // Берём данные пользователя из Telegram
+    const tgUser = getTelegramUser()
+    const tgId = tgUser?.telegram_id || 0
 
-    if (userError) {
-      alert('Ошибка при создании заявки')
-      setLoading(false)
-      return
+    let user = null
+
+    // Если есть telegram_id — ищем существующего пользователя
+    if (tgId) {
+      const { data: existing } = await supabase
+        .from('users')
+        .select('*')
+        .eq('telegram_id', tgId)
+        .maybeSingle()
+      user = existing
     }
 
+    if (user) {
+      // Пользователь уже есть — обновляем имя и телефон на свежие
+      await supabase
+        .from('users')
+        .update({ full_name: name, phone: phone })
+        .eq('id', user.id)
+    } else {
+      // Пользователя нет — создаём нового
+      const { data: newUser, error: userError } = await supabase
+        .from('users')
+        .insert([{
+          full_name: name,
+          phone: phone,
+          role: 'client',
+          telegram_id: tgId
+        }])
+        .select()
+        .single()
+
+      if (userError) {
+        alert('Ошибка при создании заявки')
+        setLoading(false)
+        return
+      }
+      user = newUser
+    }
     const extrasNames = selectedExtras.map(s => s.name).join(', ')
     const fullServiceName = extrasNames
       ? `${selectedService.name} + ${extrasNames}`
