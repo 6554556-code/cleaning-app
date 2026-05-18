@@ -300,6 +300,7 @@ function BreakModal({ executor, day, onClose, onSaved }) {
 function ScheduleView({ executor, orders, blocks, onReload, onCreateOrder }) {
   const [selectedOrder, setSelectedOrder] = useState(null)
   const [selectedBlock, setSelectedBlock] = useState(null)
+  const [overlapList, setOverlapList] = useState(null)
   const [expandedBefore, setExpandedBefore] = useState(false)
   const [expandedAfter, setExpandedAfter] = useState(false)
   const [weekOffset, setWeekOffset] = useState(0)
@@ -374,6 +375,19 @@ const viewStartMin = expandedBefore ? 0 : earliestMin
       if (!o.scheduled_at) return false
       const d = new Date(o.scheduled_at)
       return d.toDateString() === date.toDateString()
+    })
+  }
+  // Находит все заказы (включая сам order), пересекающиеся с order по времени
+  function getOverlappingOrders(order) {
+    const start = new Date(order.scheduled_at).getTime()
+    const end = start + (order.total_duration || 60) * 60000
+
+    return orders.filter(o => {
+      if (o.is_deleted) return false
+      const oStart = new Date(o.scheduled_at).getTime()
+      const oEnd = oStart + (o.total_duration || 60) * 60000
+      // Интервалы пересекаются
+      return start < oEnd && oStart < end
     })
   }
   function getBlocksForDay(date) {
@@ -546,7 +560,14 @@ const viewStartMin = expandedBefore ? 0 : earliestMin
                       ) : (
                         /* Обычный заказ */
                         <div
-                          onClick={() => setSelectedOrder(order)}
+                        onClick={() => {
+                          const overlapping = getOverlappingOrders(order).filter(o => o.status !== 'cancelled')
+                          if (overlapping.length > 1) {
+                            setOverlapList(overlapping)
+                          } else {
+                            setSelectedOrder(order)
+                          }
+                        }}
                           style={{ position: 'absolute', top: `${top}px`, left: '2px', right: '2px', height: `${duration * PX_PER_MIN}px`, background: color, borderRadius: '4px', padding: '2px 4px', fontSize: '10px', color: 'white', overflow: 'hidden', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                           title={STATUS_LABELS[order.status]}
                         >
@@ -604,6 +625,46 @@ const viewStartMin = expandedBefore ? 0 : earliestMin
             </button>
           </div>
         </>
+      )}
+      {/* Модалка выбора заказа при пересечении */}
+      {overlapList && (
+        <div
+          onClick={() => setOverlapList(null)}
+          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '16px' }}
+        >
+          <div onClick={e => e.stopPropagation()} style={{ background: 'white', borderRadius: '12px', padding: '20px', maxWidth: '360px', width: '100%' }}>
+            <h3 style={{ margin: '0 0 4px' }}>Несколько заказов на это время</h3>
+            <p style={{ margin: '0 0 16px', fontSize: '13px', color: '#666' }}>Выберите заказ</p>
+
+            {overlapList.map(o => {
+              const start = new Date(o.scheduled_at)
+              const end = new Date(start.getTime() + (o.total_duration || 60) * 60000)
+              const fmt = d => `${d.getHours()}:${String(d.getMinutes()).padStart(2, '0')}`
+              return (
+                <button
+                  key={o.id}
+                  onClick={() => {
+                    setSelectedOrder(o)
+                    setOverlapList(null)
+                  }}
+                  style={{ display: 'block', width: '100%', textAlign: 'left', padding: '10px 12px', marginBottom: '8px', border: '1px solid #e0e0e0', borderRadius: '8px', background: 'white', cursor: 'pointer' }}
+                >
+                  <div style={{ fontWeight: 'bold', fontSize: '14px' }}>{o.client?.full_name || o.name || 'Клиент'}</div>
+                  <div style={{ fontSize: '12px', color: '#666' }}>
+                    {fmt(start)}–{fmt(end)} · {o.cleaning_type || '—'}
+                  </div>
+                </button>
+              )
+            })}
+
+            <button
+              onClick={() => setOverlapList(null)}
+              style={{ width: '100%', padding: '10px', marginTop: '4px', background: 'white', color: '#666', border: '1px solid #ddd', borderRadius: '8px', cursor: 'pointer', fontSize: '14px' }}
+            >
+              Отмена
+            </button>
+          </div>
+        </div>
       )}
 {/* Модалка с деталями заказа */}
 {selectedOrder && (
