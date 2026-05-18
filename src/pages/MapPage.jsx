@@ -40,7 +40,18 @@ useEffect(() => {
     );
   }, []);
   return (
-    <div style={{ height: "100vh" }}>
+    <div style={{ height: "100vh", position: "relative" }}>
+      
+      <a href="/"
+        style={{
+          position: "absolute", top: "12px", left: "12px", zIndex: 1000,
+          background: "white", padding: "8px 14px", borderRadius: "8px",
+          textDecoration: "none", color: "#2481cc", fontSize: "14px",
+          fontWeight: "bold", boxShadow: "0 2px 8px rgba(0,0,0,0.2)"
+        }}
+      >
+        🏠 На главную
+      </a>
 <MapContainer center={mapCenter} zoom={11} style={{ height: "100%" }} key={mapCenter.join(",")}>        <TileLayer
           attribution='&copy; OpenStreetMap'
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"

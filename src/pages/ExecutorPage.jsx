@@ -732,6 +732,11 @@ function ExecutorPage({ executorId }) {
   return (
     <div style={{ padding: '16px', maxWidth: '600px', margin: '0 auto' }}>
 
+      {/* Кнопка на главную */}
+      <a href="/" style={{ display: 'inline-block', marginBottom: '12px', fontSize: '14px', color: '#2481cc', textDecoration: 'none' }}>
+        🏠 На главную
+      </a>
+
       {/* Профиль */}
       <div style={{
         background: 'white',
