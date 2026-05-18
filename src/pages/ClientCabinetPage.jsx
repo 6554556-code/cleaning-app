@@ -87,7 +87,10 @@ function ClientCabinetPage({ clientId }) {
 
   return (
     <div style={{ padding: '16px', maxWidth: '600px', margin: '0 auto' }}>
-      <h2 style={{ textAlign: 'center' }}>Мои заказы</h2>
+      <a href="/" style={{ display: 'inline-block', marginBottom: '8px', fontSize: '14px', color: '#2481cc', textDecoration: 'none' }}>
+        🏠 На главную
+      </a>
+      <h2 style={{ textAlign: 'center', marginTop: 0 }}>Мои заказы</h2>
 
       {/* Табы */}
       <div style={{ display: 'flex', gap: '8px', marginBottom: '16px' }}>

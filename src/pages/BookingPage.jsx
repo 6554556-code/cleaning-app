@@ -136,8 +136,13 @@ async function loadPickedDateSlots(dateStr) {
       alert('Пожалуйста выберите время визита')
       return
     }
-    if (!name || !phone || !address || !selectedService) {
+    if (!name || !phone || !selectedService) {
       alert('Пожалуйста заполните все обязательные поля')
+      return
+    }
+    // Адрес нужен только для выезда (outcall)
+    if (locationType === 'outcall' && !address) {
+      alert('Укажите адрес — для выезда он обязателен')
       return
     }
 
@@ -349,9 +354,9 @@ async function loadPickedDateSlots(dateStr) {
                     style={{
                       padding: '8px 12px',
                       borderRadius: '8px',
-                      border: selectedSlot?.label === s.label ? '2px solid #2481cc' : '2px solid #f0f0f0',
-                      background: selectedSlot?.label === s.label ? '#f0f7ff' : 'white',
-                      color: selectedSlot?.label === s.label ? '#2481cc' : 'black',
+                      border: selectedSlot?.start === s.start ? '2px solid #2481cc' : '2px solid #f0f0f0',
+                      background: selectedSlot?.start === s.start ? '#f0f7ff' : 'white',
+                      color: selectedSlot?.start === s.start ? '#2481cc' : 'black',
                       cursor: 'pointer',
                       fontSize: '13px'
                     }}
@@ -385,9 +390,9 @@ async function loadPickedDateSlots(dateStr) {
                     style={{
                       padding: '8px 12px',
                       borderRadius: '8px',
-                      border: selectedSlot?.label === s.label ? '2px solid #2481cc' : '2px solid #f0f0f0',
-                      background: selectedSlot?.label === s.label ? '#f0f7ff' : 'white',
-                      color: selectedSlot?.label === s.label ? '#2481cc' : 'black',
+                      border: selectedSlot?.start === s.start ? '2px solid #2481cc' : '2px solid #f0f0f0',
+                      background: selectedSlot?.start === s.start ? '#f0f7ff' : 'white',
+                      color: selectedSlot?.start === s.start ? '#2481cc' : 'black',
                       cursor: 'pointer',
                       fontSize: '13px'
                     }}
@@ -434,9 +439,9 @@ async function loadPickedDateSlots(dateStr) {
                       style={{
                         padding: '8px 12px',
                         borderRadius: '8px',
-                        border: selectedSlot?.label === s.label ? '2px solid #2481cc' : '2px solid #f0f0f0',
-                        background: selectedSlot?.label === s.label ? '#f0f7ff' : 'white',
-                        color: selectedSlot?.label === s.label ? '#2481cc' : 'black',
+                        border: selectedSlot?.start === s.start ? '2px solid #2481cc' : '2px solid #f0f0f0',
+                        background: selectedSlot?.start === s.start ? '#f0f7ff' : 'white',
+                        color: selectedSlot?.start === s.start ? '#2481cc' : 'black',
                         cursor: 'pointer',
                         fontSize: '13px'
                       }}
