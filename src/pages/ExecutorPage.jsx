@@ -130,6 +130,16 @@ function OrderDetailsModal({ order, clientStats, onClose, onSaved }) {
       .from('orders')
       .update({ status, executor_comment: comment })
       .eq('id', order.id)
+
+    // Если заказ отменён — удаляем его авто-блоки (дорога, буфер), освобождаем время
+    if (status === 'cancelled') {
+      await supabase
+        .from('blocks')
+        .delete()
+        .eq('order_id', order.id)
+        .in('type', ['auto_travel', 'auto_buffer'])
+    }
+
     setSaving(false)
     if (error) {
       alert('Ошибка сохранения: ' + error.message)
