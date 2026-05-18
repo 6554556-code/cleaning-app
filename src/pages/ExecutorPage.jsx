@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../supabase'
+import { getTelegramUser } from '../telegram'
 import AddOrderPage from './AddOrderPage'
 // Считает статистику заказов клиента по списку всех заказов
 function getClientStats(allOrders, clientId) {
@@ -642,10 +643,35 @@ function ExecutorPage({ executorId }) {
   
   async function loadData() {
     setLoading(true)
+
+    // Определяем, чей это кабинет
+    let realExecutorId = executorId  // запасной вариант (тест через ?executor=1)
+
+    const tgUser = getTelegramUser()
+    if (tgUser?.telegram_id) {
+      // Ищем пользователя по telegram_id
+      const { data: user } = await supabase
+        .from('users')
+        .select('id')
+        .eq('telegram_id', tgUser.telegram_id)
+        .maybeSingle()
+
+      if (user) {
+        // Ищем профиль исполнителя этого пользователя
+        const { data: myExec } = await supabase
+          .from('executors')
+          .select('id')
+          .eq('user_id', user.id)
+          .maybeSingle()
+
+        if (myExec) realExecutorId = myExec.id
+      }
+    }
+
     const { data: executorData } = await supabase
       .from('executors')
       .select('*, users(full_name)')
-      .eq('id', executorId)
+      .eq('id', realExecutorId)
       .single()
     setExecutor(executorData)
 
