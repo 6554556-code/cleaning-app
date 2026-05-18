@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { supabase } from '../supabase'
+import { getTelegramUser } from '../telegram'
 
 function RegisterExecutorPage() {
   // Профиль
@@ -54,9 +55,13 @@ function RegisterExecutorPage() {
     setSaving(true)
 
     // 1. Создаём пользователя
+    // Берём telegram_id из Telegram
+    const tgUser = getTelegramUser()
+    const tgId = tgUser?.telegram_id || 0
+
     const { data: user, error: userError } = await supabase
       .from('users')
-      .insert([{ full_name: fullName, phone: phone, role: 'executor', telegram_id: 0 }])
+      .insert([{ full_name: fullName, phone: phone, role: 'executor', telegram_id: tgId }])
       .select()
       .single()
 
