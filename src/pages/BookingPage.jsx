@@ -185,6 +185,21 @@ async function loadPickedDateSlots(dateStr) {
       }
       user = newUser
     }
+
+    // Проверка лимита: не больше 3 заявок со статусом "Новая"
+    const { count } = await supabase
+      .from('orders')
+      .select('id', { count: 'exact', head: true })
+      .eq('client_id', user.id)
+      .eq('status', 'new')
+      .neq('is_deleted', true)
+
+    if (count >= 3) {
+      alert('У вас уже 3 заявки в ожидании. Дождитесь подтверждения специалистом или отмените одну из них.')
+      setLoading(false)
+      return
+    }
+
     const extrasNames = selectedExtras.map(s => s.name).join(', ')
     const fullServiceName = extrasNames
       ? `${selectedService.name} + ${extrasNames}`
