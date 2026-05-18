@@ -724,7 +724,8 @@ function ExecutorPage({ executorId }) {
         onBack={() => setShowAddOrder(false)}
         onSuccess={() => {
           setShowAddOrder(false)
-          window.location.reload()
+          setActiveTab('schedule')
+          loadData()
         }}
       />
     )
