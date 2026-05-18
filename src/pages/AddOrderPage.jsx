@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../supabase'
+import { hasOverlap } from '../utils/slotGenerator'
 
 function AddOrderPage({ executor, onBack, onSuccess }) {
   const [name, setName] = useState('')
@@ -81,11 +82,41 @@ function AddOrderPage({ executor, onBack, onSuccess }) {
       ? `${selectedService.name} + ${extrasNames}`
       : selectedService.name
 
-    const scheduledAt = new Date(`${selectedDate}T${selectedTime}:00`)
+      const scheduledAt = new Date(`${selectedDate}T${selectedTime}:00`)
 
-    const { data: orderData, error: orderError } = await supabase
-    .from('orders')
-    .insert([{
+      // Проверяем пересечение с существующими заказами и блоками
+      const { data: existingOrders } = await supabase
+        .from('orders')
+        .select('scheduled_at, total_duration, location_type')
+        .eq('executor_id', executor.id)
+        .neq('status', 'cancelled')
+        .neq('is_deleted', true)
+  
+      const { data: existingBlocks } = await supabase
+        .from('blocks')
+        .select('start_at, duration')
+        .eq('executor_id', executor.id)
+  
+      const overlap = hasOverlap(
+        executor,
+        existingOrders || [],
+        existingBlocks || [],
+        scheduledAt,
+        calcDuration(),
+        locationType
+      )
+  
+      if (overlap) {
+        const ok = confirm('⚠️ Этот заказ пересекается по времени с другим заказом или перерывом. Всё равно создать?')
+        if (!ok) {
+          setLoading(false)
+          return
+        }
+      }
+  
+      const { data: orderData, error: orderError } = await supabase
+      .from('orders')
+      .insert([{
       client_id: user.id,
       executor_id: executor.id,
       address: address || 'Не указан',

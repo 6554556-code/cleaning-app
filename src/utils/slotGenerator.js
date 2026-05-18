@@ -1,3 +1,39 @@
+// Проверяет, пересекается ли новый заказ с существующими заказами и блоками.
+// Возвращает true, если есть пересечение.
+export function hasOverlap(executor, existingOrders, existingBlocks, newStart, newDurationTotal, newLocationType) {
+  const travel = newLocationType === 'outcall' ? (executor.travel_time || 0) : 0
+  const buffer = executor.buffer_time || 0
+
+  // Занятый интервал нового заказа: дорога туда → услуга → буфер → дорога обратно
+  const newBusyStart = new Date(newStart)
+  newBusyStart.setMinutes(newBusyStart.getMinutes() - travel)
+  const newBusyEnd = new Date(newStart)
+  newBusyEnd.setMinutes(newBusyEnd.getMinutes() + newDurationTotal + buffer + travel)
+
+  // Проверяем заказы
+  for (const order of existingOrders) {
+    const oStart = new Date(order.scheduled_at)
+    const oEnd = new Date(oStart)
+    oEnd.setMinutes(oEnd.getMinutes() + (order.total_duration || 60) + buffer)
+    let busyStart = new Date(oStart)
+    let busyEnd = new Date(oEnd)
+    if (order.location_type === 'outcall') {
+      busyStart.setMinutes(busyStart.getMinutes() - (executor.travel_time || 0))
+      busyEnd.setMinutes(busyEnd.getMinutes() + (executor.travel_time || 0))
+    }
+    if (newBusyStart < busyEnd && busyStart < newBusyEnd) return true
+  }
+
+  // Проверяем блоки (перерывы, дорога)
+  for (const block of existingBlocks) {
+    const bStart = new Date(block.start_at)
+    const bEnd = new Date(bStart)
+    bEnd.setMinutes(bEnd.getMinutes() + (block.duration || 0))
+    if (newBusyStart < bEnd && bStart < newBusyEnd) return true
+  }
+
+  return false
+}
 // Считает занятый интервал одного существующего заказа: { busyStart, busyEnd }
 function getOrderBusyRange(order, executor) {
   const orderStart = new Date(order.scheduled_at)
