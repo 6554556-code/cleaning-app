@@ -711,7 +711,20 @@ function ExecutorPage({ executorId }) {
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState('orders')
   const [showAddOrder, setShowAddOrder] = useState(false)
-  
+  async function toggleVisible() {
+    const newValue = !executor.is_visible
+        const { error } = await supabase
+      .from('executors')
+      .update({ is_visible: newValue })
+      .eq('id', executor.id)
+
+    if (error) {
+      alert('Не получилось сохранить: ' + error.message)
+      return
+    }
+
+    setExecutor({ ...executor, is_visible: newValue })
+  }
   async function loadData() {
     setLoading(true)
 
@@ -820,6 +833,21 @@ function ExecutorPage({ executorId }) {
       }}>
         <h2 style={{ margin: '0 0 4px' }}>{executor?.users?.full_name}</h2>
         <p style={{ margin: '0', color: '#666' }}>⭐ {executor?.rating} · 📦 {executor?.orders_count} заказов</p>
+        <button
+          onClick={toggleVisible}
+          style={{
+            marginTop: '10px',
+            padding: '8px 16px',
+            borderRadius: '8px',
+            border: 'none',
+            cursor: 'pointer',
+            fontSize: '14px',
+            background: executor?.is_visible ? '#22c55e' : '#9ca3af',
+            color: 'white',
+          }}
+        >
+          {executor?.is_visible ? '👁 Виден на главной' : '🙈 Скрыт с главной'}
+        </button>
       </div>
 
       {/* Табы */}

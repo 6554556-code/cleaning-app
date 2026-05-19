@@ -68,6 +68,7 @@ useEffect(() => {
         .from('executors')
         .select('*, users(full_name), address')
         .eq('service_type', selectedService)
+        .eq('is_visible', true)
         .order('is_verified', { ascending: false })
         .order('rating', { ascending: false })
 
