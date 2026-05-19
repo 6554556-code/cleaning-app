@@ -98,9 +98,12 @@ tomorrowDate.setDate(tomorrowDate.getDate() + 1)
 const tomorrowSlots = generateSlots(executor, existingOrders || [], tomorrowDate)
 
 const now = new Date()
-const slots = [...todaySlots, ...tomorrowSlots]
+// Сегодня — только будущие, первые 4
+const todayFuture = todaySlots
   .filter(s => new Date(s.start) > now)
-  .slice(0, 3)
+  .slice(0, 4)
+// Завтра — первые 4
+const tomorrowFuture = tomorrowSlots.slice(0, 4)
 
   const { data: executorServices } = await supabase
   .from('services')
@@ -108,7 +111,7 @@ const slots = [...todaySlots, ...tomorrowSlots]
   .eq('executor_id', executor.id)
   .order('is_main', { ascending: false })
   .order('name', { ascending: true })
-        return { ...executor, slots: slots || [], services: executorServices || [] }
+  return { ...executor, todaySlots: todayFuture, tomorrowSlots: tomorrowFuture, services: executorServices || [] }
       }))
 
       setExecutors(executorsWithData)
@@ -273,27 +276,35 @@ const slots = [...todaySlots, ...tomorrowSlots]
   )
 })()}
             
-            {executor.slots && executor.slots.length > 0 && (
+            {((executor.todaySlots && executor.todaySlots.length > 0) || (executor.tomorrowSlots && executor.tomorrowSlots.length > 0)) && (
               <div style={{ marginTop: '12px' }}>
                 <p style={{ margin: '0 0 6px', fontSize: '13px', color: '#666' }}>📅 Ближайшие слоты:</p>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px' }}>
-                {executor.slots.map(slot => (
-                    <span
-                      key={slot.start.toString()}
-                      style={{
-                        padding: '6px 12px',
-                        borderRadius: '8px',
-                        border: '1px solid #2481cc',
-                        background: '#f0f7ff',
-                        color: '#2481cc',
-                        fontSize: '13px',
-                        textAlign: 'center'
-                      }}
-                    >
-                      {formatSlot(slot.start)}
-                    </span>
-                  ))}
-                </div>
+
+                {executor.todaySlots && executor.todaySlots.length > 0 && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
+                    <span style={{ fontSize: '12px', color: '#888', minWidth: '52px' }}>Сегодня</span>
+                    <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                      {executor.todaySlots.map(slot => (
+                        <span key={slot.start.toString()} style={{ padding: '5px 10px', borderRadius: '8px', border: '1px solid #2481cc', background: '#f0f7ff', color: '#2481cc', fontSize: '13px' }}>
+                          {slot.label}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {executor.tomorrowSlots && executor.tomorrowSlots.length > 0 && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <span style={{ fontSize: '12px', color: '#888', minWidth: '52px' }}>Завтра</span>
+                    <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                      {executor.tomorrowSlots.map(slot => (
+                        <span key={slot.start.toString()} style={{ padding: '5px 10px', borderRadius: '8px', border: '1px solid #2481cc', background: '#f0f7ff', color: '#2481cc', fontSize: '13px' }}>
+                          {slot.label}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             )}
             <button
