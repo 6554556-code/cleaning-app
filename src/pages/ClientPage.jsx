@@ -83,20 +83,26 @@ useEffect(() => {
       tomorrow.setDate(tomorrow.getDate() + 2)
 
       const executorsWithData = await Promise.all(data.map(async (executor) => {
-        // Загружаем существующие заказы исполнителя
+       // Загружаем существующие заказы исполнителя
 const { data: existingOrders } = await supabase
 .from('orders')
 .select('*')
 .eq('executor_id', executor.id)
 .neq('status', 'cancelled')
+.neq('is_deleted', true)
 .gte('scheduled_at', today.toISOString())
 
+// Загружаем блоки исполнителя (перерывы, дорога)
+const { data: existingBlocks } = await supabase
+.from('blocks')
+.select('start_at, duration')
+.eq('executor_id', executor.id)
+
 // Генерируем слоты на сегодня и завтра
-const todaySlots = generateSlots(executor, existingOrders || [], today)
+const todaySlots = generateSlots(executor, existingOrders || [], today, {}, existingBlocks || [])
 const tomorrowDate = new Date(today)
 tomorrowDate.setDate(tomorrowDate.getDate() + 1)
-const tomorrowSlots = generateSlots(executor, existingOrders || [], tomorrowDate)
-
+const tomorrowSlots = generateSlots(executor, existingOrders || [], tomorrowDate, {}, existingBlocks || [])
 const now = new Date()
 // Сегодня — только будущие, первые 4
 const todayFuture = todaySlots
