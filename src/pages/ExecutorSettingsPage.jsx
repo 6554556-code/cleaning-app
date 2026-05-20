@@ -16,6 +16,11 @@ function ExecutorSettingsPage() {
   const [travelTime, setTravelTime] = useState(0)
   const [services, setServices] = useState([])
   const [archiveOpen, setArchiveOpen] = useState(false)
+  const [advancedOpen, setAdvancedOpen] = useState(false)
+  const [bio, setBio] = useState('')
+  const [latitude, setLatitude] = useState('')
+  const [longitude, setLongitude] = useState('')
+  const [timezone, setTimezone] = useState('Europe/Moscow')
   useEffect(() => {
     async function loadProfile() {
       setLoading(true)
@@ -60,6 +65,10 @@ function ExecutorSettingsPage() {
         setWorkDays(exec.work_days ? exec.work_days.split(',').map(Number) : [])
         setBufferTime(exec.buffer_time || 0)
         setTravelTime(exec.travel_time || 0)
+        setBio(exec.bio || '')
+        setLatitude(exec.latitude ?? '')
+        setLongitude(exec.longitude ?? '')
+        setTimezone(exec.timezone || 'Europe/Moscow')
         // Загружаем услуги этого исполнителя
         const { data: servicesData } = await supabase
           .from('services')
@@ -263,6 +272,10 @@ for (const s of group) {
         work_days: workDays.sort((a, b) => a - b).join(','),
         buffer_time: Number(bufferTime) || 0,
         travel_time: Number(travelTime) || 0,
+        bio: bio,
+        latitude: latitude === '' ? null : Number(latitude),
+        longitude: longitude === '' ? null : Number(longitude),
+        timezone: timezone,
       })
       .eq('id', executor.id)
 
@@ -304,12 +317,90 @@ for (const s of group) {
           style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #ddd', marginBottom: '12px', boxSizing: 'border-box' }}
         />
 
-        <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px', color: '#666' }}>Адрес</label>
+<label style={{ display: 'block', marginBottom: '4px', fontSize: '14px', color: '#666' }}>Адрес</label>
         <input
           value={address}
           onChange={e => setAddress(e.target.value)}
           style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #ddd', boxSizing: 'border-box' }}
         />
+
+        <button
+          onClick={() => setAdvancedOpen(!advancedOpen)}
+          style={{
+            width: '100%',
+            marginTop: '12px',
+            padding: '8px',
+            borderRadius: '8px',
+            border: 'none',
+            background: 'transparent',
+            color: '#2481cc',
+            fontSize: '14px',
+            cursor: 'pointer',
+            textAlign: 'left',
+          }}
+        >
+          {advancedOpen ? '▼' : '▶'} Подробнее
+        </button>
+
+        {advancedOpen && (
+          <div style={{ marginTop: '8px' }}>
+            <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px', color: '#666' }}>О себе</label>
+            <textarea
+              value={bio}
+              onChange={e => setBio(e.target.value)}
+              placeholder="Несколько слов о себе для клиентов"
+              rows={3}
+              style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #ddd', marginBottom: '12px', boxSizing: 'border-box', fontFamily: 'inherit', resize: 'vertical' }}
+            />
+
+            <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px', color: '#666' }}>Часовой пояс</label>
+            <select
+              value={timezone}
+              onChange={e => setTimezone(e.target.value)}
+              style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #ddd', marginBottom: '12px', boxSizing: 'border-box', background: 'white' }}
+            >
+              <option value="Europe/Kaliningrad">Калининград (МСК-1)</option>
+              <option value="Europe/Moscow">Москва (МСК)</option>
+              <option value="Europe/Samara">Самара (МСК+1)</option>
+              <option value="Asia/Yekaterinburg">Екатеринбург (МСК+2)</option>
+              <option value="Asia/Omsk">Омск (МСК+3)</option>
+              <option value="Asia/Krasnoyarsk">Красноярск (МСК+4)</option>
+              <option value="Asia/Irkutsk">Иркутск (МСК+5)</option>
+              <option value="Asia/Yakutsk">Якутск (МСК+6)</option>
+              <option value="Asia/Vladivostok">Владивосток (МСК+7)</option>
+              <option value="Asia/Magadan">Магадан (МСК+8)</option>
+              <option value="Asia/Kamchatka">Камчатка (МСК+9)</option>
+            </select>
+
+            <div style={{ display: 'flex', gap: '12px' }}>
+              <div style={{ flex: 1 }}>
+                <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px', color: '#666' }}>Широта</label>
+                <input
+                  type="number"
+                  step="any"
+                  value={latitude}
+                  onChange={e => setLatitude(e.target.value)}
+                  placeholder="55.7558"
+                  style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #ddd', boxSizing: 'border-box' }}
+                />
+              </div>
+              <div style={{ flex: 1 }}>
+                <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px', color: '#666' }}>Долгота</label>
+                <input
+                  type="number"
+                  step="any"
+                  value={longitude}
+                  onChange={e => setLongitude(e.target.value)}
+                  placeholder="37.6173"
+                  style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #ddd', boxSizing: 'border-box' }}
+                />
+              </div>
+            </div>
+            <div style={{ fontSize: '12px', color: '#888', marginTop: '4px' }}>
+              Позже здесь будет пин на карте
+            </div>
+          </div>
+        )}
       </div>
       <div style={{ background: 'white', borderRadius: '12px', padding: '16px', boxShadow: '0 2px 8px rgba(0,0,0,0.1)', marginTop: '16px' }}>
         <h3 style={{ marginTop: 0 }}>График работы</h3>
