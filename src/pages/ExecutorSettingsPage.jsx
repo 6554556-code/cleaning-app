@@ -31,14 +31,16 @@ function ExecutorSettingsPage() {
           .eq('telegram_id', tgUser.id)
           .maybeSingle()
 
-        if (user) {
-          const { data } = await supabase
-            .from('executors')
-            .select('*, users(full_name, phone)')
-            .eq('user_id', user.id)
-            .maybeSingle()
-          exec = data
-        }
+          alert('DEBUG user = ' + JSON.stringify(user))
+          if (user) {
+            const { data } = await supabase
+              .from('executors')
+              .select('*, users(full_name, phone)')
+              .eq('user_id', user.id)
+              .maybeSingle()
+            alert('DEBUG exec by user_id = ' + JSON.stringify(data))
+            exec = data
+          }
       } else {
         // Запасной вход для localhost — берём исполнителя с id = 1
         const { data } = await supabase
