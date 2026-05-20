@@ -135,7 +135,9 @@ function ExecutorSettingsPage() {
     ))
   }
   async function addMainService() {
+    alert('DEBUG executor.id = ' + (executor?.id) + ' executor.user_id = ' + (executor?.user_id))
     const { data, error } = await supabase
+    console.log('addMainService: executor =', executor)
       .from('services')
       .insert({
         executor_id: executor.id,
