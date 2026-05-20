@@ -134,6 +134,28 @@ function ExecutorSettingsPage() {
       idsToArchive.includes(s.id) ? { ...s, is_archived: true } : s
     ))
   }
+  async function addMainService() {
+    const { data, error } = await supabase
+      .from('services')
+      .insert({
+        executor_id: executor.id,
+        parent_service_id: null,
+        is_main: true,
+        name: '',
+        price: 0,
+        duration: 60,
+        location_type: 'outcall',
+      })
+      .select()
+      .single()
+
+    if (error) {
+      alert('Не получилось добавить: ' + error.message)
+      return
+    }
+
+    setServices([...services, data])
+  }
   async function addSubService(main) {
     const { data, error } = await supabase
       .from('services')
@@ -162,7 +184,39 @@ function ExecutorSettingsPage() {
 
     // Собираем основную услугу и все её допы в один список
     const group = services.filter(s => s.id === main.id || s.parent_service_id === main.id)
+// Проверки перед сохранением
+for (const s of group) {
+    const name = (s.name || '').trim()
+    const price = Number(s.price)
+    const duration = Number(s.duration)
 
+    if (!name) {
+      setSavingServiceId(null)
+      alert(s.is_main
+        ? 'У основной услуги пустое название'
+        : 'У одной из допуслуг пустое название')
+      return
+    }
+
+    if (isNaN(price) || price < 0) {
+      setSavingServiceId(null)
+      alert(`Неверная цена у «${name}»`)
+      return
+    }
+
+    if (isNaN(duration) || duration < 0) {
+      setSavingServiceId(null)
+      alert(`Неверная длительность у «${name}»`)
+      return
+    }
+
+    // Для основной — длительность должна быть больше нуля
+    if (s.is_main && duration === 0) {
+      setSavingServiceId(null)
+      alert(`У основной услуги «${name}» нужна длительность больше 0 минут`)
+      return
+    }
+  }
     // Сохраняем каждую — одна за другой
     for (const s of group) {
       const { error } = await supabase
@@ -336,8 +390,23 @@ function ExecutorSettingsPage() {
 {services.filter(s => s.is_main && !s.is_archived).map((main, mainIndex) => (
           <div key={main.id} style={{ border: '1px solid #e0e0e0', borderRadius: '10px', padding: '12px', marginBottom: '12px', background: '#f7f9fc' }}>
             
-            <div style={{ fontSize: '12px', fontWeight: 'bold', color: '#2481cc', textTransform: 'uppercase', marginBottom: '6px' }}>
-              {mainIndex + 1}. Основная услуга
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+              <div style={{ fontSize: '12px', fontWeight: 'bold', color: '#2481cc', textTransform: 'uppercase' }}>
+                {mainIndex + 1}. Основная услуга
+              </div>
+              <button
+                onClick={() => deleteService(main)}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: '#dc2626',
+                  cursor: 'pointer',
+                  fontSize: '18px',
+                  padding: '0 4px',
+                }}
+              >
+                ✕
+              </button>
             </div>
             <input
               value={main.name}
@@ -483,6 +552,24 @@ function ExecutorSettingsPage() {
             </button>
           </div>
         ))}
+
+        <button
+          onClick={addMainService}
+          style={{
+            width: '100%',
+            marginTop: '12px',
+            padding: '12px',
+            borderRadius: '10px',
+            border: '2px dashed #2481cc',
+            background: 'white',
+            color: '#2481cc',
+            fontSize: '15px',
+            fontWeight: 'bold',
+            cursor: 'pointer',
+          }}
+        >
+          + Добавить основную услугу
+        </button>
       </div>
       {/* Архив */}
       {services.some(s => s.is_archived) && (
