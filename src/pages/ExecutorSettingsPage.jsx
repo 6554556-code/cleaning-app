@@ -18,6 +18,7 @@ function ExecutorSettingsPage() {
     async function loadProfile() {
       setLoading(true)
       const tgUser = getTelegramUser()
+      alert('DEBUG tgUser = ' + JSON.stringify(tgUser))
 
       // Находим профиль исполнителя по telegram_id
       let exec = null
