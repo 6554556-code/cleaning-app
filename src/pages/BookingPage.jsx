@@ -234,12 +234,7 @@ async function loadPickedDateSlots(dateStr) {
       setLoading(false)
       return
     }
-
-    await supabase
-      .from('slots')
-      .update({ is_available: false })
-      .eq('id', selectedSlot?.id)
-
+        
     // Создаём блоки: дорога, буфер
     const scheduledAt = new Date(selectedSlot?.start)
     const travelTime = executor.travel_time || 0
