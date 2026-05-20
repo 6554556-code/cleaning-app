@@ -817,10 +817,15 @@ function ExecutorPage({ executorId }) {
   return (
     <div style={{ padding: '16px', maxWidth: '600px', margin: '0 auto' }}>
 
-      {/* Кнопка на главную */}
-      <a href="/" style={{ display: 'inline-block', marginBottom: '12px', fontSize: '14px', color: '#2481cc', textDecoration: 'none' }}>
-        🏠 На главную
-      </a>
+      {/* Верхняя панель: домик слева, настройки справа */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px' }}>
+        <a href="/" style={{ fontSize: '14px', color: '#2481cc', textDecoration: 'none' }}>
+          🏠 На главную
+        </a>
+        <a href="/?settings=1" style={{ fontSize: '14px', color: '#2481cc', textDecoration: 'none' }}>
+          ⚙️ Настройки
+        </a>
+      </div>
 
       {/* Профиль */}
       <div style={{
