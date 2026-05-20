@@ -99,11 +99,45 @@ const { data: existingBlocks } = await supabase
 .select('start_at, duration')
 .eq('executor_id', executor.id)
 
+// Загружаем услуги исполнителя (нужны до генерации слотов, чтобы выбрать самую короткую)
+const { data: executorServices } = await supabase
+  .from('services')
+  .select('*')
+  .eq('executor_id', executor.id)
+  .order('is_main', { ascending: false })
+  .order('name', { ascending: true })
+
+// Выбираем самую короткую основную услугу для расчёта слотов
+// Сначала ищем incall (или both), если нет — outcall
+const mainActive = (executorServices || []).filter(
+  s => s.is_main && !s.is_archived && s.duration > 0
+)
+const incallServices = mainActive.filter(
+  s => s.location_type === 'incall' || s.location_type === 'both'
+)
+const outcallServices = mainActive.filter(
+  s => s.location_type === 'outcall'
+)
+const pool = incallServices.length > 0 ? incallServices : outcallServices
+const shortestService = pool.length > 0
+  ? pool.reduce((a, b) => (a.duration < b.duration ? a : b))
+  : null
+
+// Параметры для генератора слотов
+const slotParams = shortestService
+  ? {
+      duration: shortestService.duration,
+      locationType: shortestService.location_type === 'both'
+        ? 'incall'
+        : shortestService.location_type
+    }
+  : {}
+
 // Генерируем слоты на сегодня и завтра
-const todaySlots = generateSlots(executor, existingOrders || [], today, {}, existingBlocks || [])
+const todaySlots = generateSlots(executor, existingOrders || [], today, slotParams, existingBlocks || [])
 const tomorrowDate = new Date(today)
 tomorrowDate.setDate(tomorrowDate.getDate() + 1)
-const tomorrowSlots = generateSlots(executor, existingOrders || [], tomorrowDate, {}, existingBlocks || [])
+const tomorrowSlots = generateSlots(executor, existingOrders || [], tomorrowDate, slotParams, existingBlocks || [])
 const now = new Date()
 // Сегодня — только будущие, первые 4
 const todayFuture = todaySlots
@@ -112,12 +146,7 @@ const todayFuture = todaySlots
 // Завтра — первые 4
 const tomorrowFuture = tomorrowSlots.slice(0, 4)
 
-  const { data: executorServices } = await supabase
-  .from('services')
-  .select('*')
-  .eq('executor_id', executor.id)
-  .order('is_main', { ascending: false })
-  .order('name', { ascending: true })
+
   return { ...executor, todaySlots: todayFuture, tomorrowSlots: tomorrowFuture, services: executorServices || [] }
       }))
 
