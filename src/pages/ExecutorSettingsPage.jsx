@@ -18,27 +18,24 @@ function ExecutorSettingsPage() {
     async function loadProfile() {
       setLoading(true)
       const tgUser = getTelegramUser()
-      alert('DEBUG tgUser = ' + JSON.stringify(tgUser))
 
       // Находим профиль исполнителя по telegram_id
       let exec = null
 
-      if (tgUser?.id) {
+      if (tgUser?.telegram_id) {
         // Боевой вход — по telegram_id
         const { data: user } = await supabase
           .from('users')
           .select('id')
-          .eq('telegram_id', tgUser.id)
+          .eq('telegram_id', tgUser.telegram_id)
           .maybeSingle()
 
-          alert('DEBUG user = ' + JSON.stringify(user))
           if (user) {
             const { data } = await supabase
               .from('executors')
               .select('*, users(full_name, phone)')
               .eq('user_id', user.id)
               .maybeSingle()
-            alert('DEBUG exec by user_id = ' + JSON.stringify(data))
             exec = data
           }
       } else {
@@ -138,9 +135,8 @@ function ExecutorSettingsPage() {
     ))
   }
   async function addMainService() {
-    alert('DEBUG executor.id = ' + (executor?.id) + ' executor.user_id = ' + (executor?.user_id))
+    
     const { data, error } = await supabase
-    console.log('addMainService: executor =', executor)
       .from('services')
       .insert({
         executor_id: executor.id,
