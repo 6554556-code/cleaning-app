@@ -211,8 +211,11 @@ function OrderDetailsModal({ order, clientStats, onClose, onSaved }) {
   )
 }
 // Модалка создания перерыва
-function BreakModal({ executor, day, onClose, onSaved }) {
-  const [time, setTime] = useState('13:00')
+function BreakModal({ executor, day, initialHour, initialMinute, onClose, onSaved }) {
+  const initialTime = (initialHour !== undefined && initialMinute !== undefined)
+    ? `${String(initialHour).padStart(2, '0')}:${String(initialMinute).padStart(2, '0')}`
+    : '13:00'
+  const [time, setTime] = useState(initialTime)
   const [duration, setDuration] = useState(60)
   const [reason, setReason] = useState('Перерыв')
   const [saving, setSaving] = useState(false)
@@ -481,7 +484,16 @@ const viewStartMin = expandedBefore ? 0 : earliestMin
               <div 
   onClick={(e) => {
     if (e.target !== e.currentTarget) return
-    setClickMenu({ x: e.clientX, y: e.clientY, day })
+    // Вычисляем время клика по позиции курсора внутри колонки
+    const rect = e.currentTarget.getBoundingClientRect()
+    const offsetY = e.clientY - rect.top
+    const minutesFromTop = offsetY / PX_PER_MIN
+    const absoluteMinutes = viewStartMin + minutesFromTop
+    // Округляем до 15 минут вниз
+    const roundedMinutes = Math.floor(absoluteMinutes / 15) * 15
+    const clickHour = Math.floor(roundedMinutes / 60)
+    const clickMin = roundedMinutes % 60
+    setClickMenu({ x: e.clientX, y: e.clientY, day, hour: clickHour, minute: clickMin })
   }}
   style={{ position: 'relative', height: `${totalMinutes * PX_PER_MIN}px`, background: '#fafafa', borderRadius: '4px', cursor: 'pointer' }}
 >
@@ -589,7 +601,9 @@ const viewStartMin = expandedBefore ? 0 : earliestMin
       {breakDay && (
         <BreakModal
           executor={executor}
-          day={breakDay}
+          day={breakDay.day}
+          initialHour={breakDay.hour}
+          initialMinute={breakDay.minute}
           onClose={() => setBreakDay(null)}
           onSaved={() => { setBreakDay(null); onReload() }}
         />
@@ -612,13 +626,13 @@ const viewStartMin = expandedBefore ? 0 : earliestMin
             overflow: 'hidden'
           }}>
             <button
-              onClick={() => { setClickMenu(null); onCreateOrder() }}
+              onClick={() => { onCreateOrder({ day: clickMenu.day, hour: clickMenu.hour, minute: clickMenu.minute }); setClickMenu(null) }}
               style={{ display: 'block', width: '100%', padding: '12px 20px', border: 'none', background: 'white', cursor: 'pointer', fontSize: '14px', textAlign: 'left', whiteSpace: 'nowrap' }}
             >
               📝 Создать заказ
             </button>
             <button
-              onClick={() => { setBreakDay(clickMenu.day); setClickMenu(null) }}
+              onClick={() => { setBreakDay({ day: clickMenu.day, hour: clickMenu.hour, minute: clickMenu.minute }); setClickMenu(null) }}
               style={{ display: 'block', width: '100%', padding: '12px 20px', border: 'none', borderTop: '1px solid #eee', background: 'white', cursor: 'pointer', fontSize: '14px', textAlign: 'left', whiteSpace: 'nowrap' }}
             >
               ☕ Перерыв
@@ -805,6 +819,9 @@ function ExecutorPage({ executorId }) {
     return (
       <AddOrderPage
         executor={executor}
+        initialDay={typeof showAddOrder === 'object' ? showAddOrder.day : null}
+        initialHour={typeof showAddOrder === 'object' ? showAddOrder.hour : null}
+        initialMinute={typeof showAddOrder === 'object' ? showAddOrder.minute : null}
         onBack={() => setShowAddOrder(false)}
         onSuccess={() => {
           setShowAddOrder(false)
@@ -1020,7 +1037,7 @@ function ExecutorPage({ executorId }) {
 
       {/* Расписание */}
       {activeTab === 'schedule' && (
-        <ScheduleView executor={executor} orders={orders} blocks={blocks} onReload={loadData} onCreateOrder={() => setShowAddOrder(true)} />
+        <ScheduleView executor={executor} orders={orders} blocks={blocks} onReload={loadData} onCreateOrder={(info) => setShowAddOrder(info || true)} />
       )}
 
       {/* Заработок */}

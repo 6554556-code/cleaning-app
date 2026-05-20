@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { supabase } from '../supabase'
 import { hasOverlap, generateSlots, findNearestSlot } from '../utils/slotGenerator'
 
-function AddOrderPage({ executor, onBack, onSuccess }) {
+function AddOrderPage({ executor, initialDay, initialHour, initialMinute, onBack, onSuccess }) {
   const [name, setName] = useState('')
   const [phone, setPhone] = useState('')
   const [address, setAddress] = useState('')
@@ -12,8 +12,16 @@ function AddOrderPage({ executor, onBack, onSuccess }) {
   const [services, setServices] = useState([])
   const [selectedService, setSelectedService] = useState(null)
   const [selectedExtras, setSelectedExtras] = useState([])
-  const [selectedDate, setSelectedDate] = useState('')
-  const [selectedTime, setSelectedTime] = useState('')
+  // Если из расписания пришёл клик с днём — превращаем в строку YYYY-MM-DD
+  const initialDateStr = initialDay
+    ? `${initialDay.getFullYear()}-${String(initialDay.getMonth() + 1).padStart(2, '0')}-${String(initialDay.getDate()).padStart(2, '0')}`
+    : ''
+  // Если пришли час и минута — превращаем в строку HH:MM
+  const initialTimeStr = (initialHour !== null && initialHour !== undefined && initialMinute !== null && initialMinute !== undefined)
+    ? `${String(initialHour).padStart(2, '0')}:${String(initialMinute).padStart(2, '0')}`
+    : ''
+  const [selectedDate, setSelectedDate] = useState(initialDateStr)
+  const [selectedTime, setSelectedTime] = useState(initialTimeStr)
   const [locationType, setLocationType] = useState('outcall')
 
   useEffect(() => {
@@ -273,6 +281,35 @@ function AddOrderPage({ executor, onBack, onSuccess }) {
 
       <h2 style={{ marginTop: 0 }}>Новая заявка</h2>
 
+      {/* Дата и время */}
+      <p style={{ fontWeight: 'bold', marginBottom: '8px' }}>Дата и время</p>
+      <div style={{ display: 'flex', gap: '8px', marginBottom: '16px' }}>
+        <input
+          type="date"
+          value={selectedDate}
+          onChange={e => setSelectedDate(e.target.value)}
+          style={{
+            flex: 1,
+            padding: '10px',
+            borderRadius: '8px',
+            border: '1px solid #ddd',
+            fontSize: '16px'
+          }}
+        />
+        <input
+          type="time"
+          value={selectedTime}
+          onChange={e => setSelectedTime(e.target.value)}
+          style={{
+            flex: 1,
+            padding: '10px',
+            borderRadius: '8px',
+            border: '1px solid #ddd',
+            fontSize: '16px'
+          }}
+        />
+      </div>
+
       {/* Тип визита */}
       <p style={{ fontWeight: 'bold', marginBottom: '8px' }}>Тип визита</p>
       <div style={{ display: 'flex', gap: '8px', marginBottom: '16px' }}>
@@ -356,35 +393,7 @@ function AddOrderPage({ executor, onBack, onSuccess }) {
       </div>
 
       
-      {/* Дата и время */}
-      <p style={{ fontWeight: 'bold', marginBottom: '8px' }}>Дата и время</p>
-      <div style={{ display: 'flex', gap: '8px', marginBottom: '16px' }}>
-        <input
-          type="date"
-          value={selectedDate}
-          onChange={e => setSelectedDate(e.target.value)}
-          style={{
-            flex: 1,
-            padding: '10px',
-            borderRadius: '8px',
-            border: '1px solid #ddd',
-            fontSize: '16px'
-          }}
-        />
-        <input
-          type="time"
-          value={selectedTime}
-          onChange={e => setSelectedTime(e.target.value)}
-          style={{
-            flex: 1,
-            padding: '10px',
-            borderRadius: '8px',
-            border: '1px solid #ddd',
-            fontSize: '16px'
-          }}
-        />
-      </div>
-
+      
       {[
         { label: 'Имя клиента *', value: name, setter: setName, placeholder: 'Как зовут клиента' },
         { label: 'Телефон *', value: phone, setter: setPhone, placeholder: '+7 999 123 45 67' },
