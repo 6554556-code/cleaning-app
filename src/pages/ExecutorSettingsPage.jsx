@@ -12,6 +12,8 @@ function ExecutorSettingsPage() {
   const [workStart, setWorkStart] = useState('09:00')
   const [workEnd, setWorkEnd] = useState('18:00')
   const [workDays, setWorkDays] = useState([])
+  const [bufferTime, setBufferTime] = useState(0)
+  const [travelTime, setTravelTime] = useState(0)
   const [services, setServices] = useState([])
   const [archiveOpen, setArchiveOpen] = useState(false)
   useEffect(() => {
@@ -56,7 +58,8 @@ function ExecutorSettingsPage() {
         setWorkStart(exec.work_start || '09:00')
         setWorkEnd(exec.work_end || '18:00')
         setWorkDays(exec.work_days ? exec.work_days.split(',').map(Number) : [])
-
+        setBufferTime(exec.buffer_time || 0)
+        setTravelTime(exec.travel_time || 0)
         // Загружаем услуги этого исполнителя
         const { data: servicesData } = await supabase
           .from('services')
@@ -258,6 +261,8 @@ for (const s of group) {
         work_start: workStart,
         work_end: workEnd,
         work_days: workDays.sort((a, b) => a - b).join(','),
+        buffer_time: Number(bufferTime) || 0,
+        travel_time: Number(travelTime) || 0,
       })
       .eq('id', executor.id)
 
@@ -360,10 +365,48 @@ for (const s of group) {
               }}
             >
               {day.label}
-            </button>
+              </button>
           ))}
         </div>
       </div>
+
+      <div style={{ background: 'white', borderRadius: '12px', padding: '16px', boxShadow: '0 2px 8px rgba(0,0,0,0.1)', marginTop: '16px' }}>
+        <h3 style={{ marginTop: 0 }}>Перерывы и дорога</h3>
+
+        <div style={{ display: 'flex', gap: '12px' }}>
+          <div style={{ flex: 1 }}>
+            <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px', color: '#666' }}>
+              Буфер после заказа, мин
+            </label>
+            <input
+              type="number"
+              min="0"
+              value={bufferTime}
+              onChange={e => setBufferTime(e.target.value)}
+              style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #ddd', boxSizing: 'border-box' }}
+            />
+            <div style={{ fontSize: '12px', color: '#888', marginTop: '4px' }}>
+              Передышка между заказами
+            </div>
+          </div>
+          <div style={{ flex: 1 }}>
+            <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px', color: '#666' }}>
+              Время на дорогу, мин
+            </label>
+            <input
+              type="number"
+              min="0"
+              value={travelTime}
+              onChange={e => setTravelTime(e.target.value)}
+              style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #ddd', boxSizing: 'border-box' }}
+            />
+            <div style={{ fontSize: '12px', color: '#888', marginTop: '4px' }}>
+              Учитывается только для выездных заказов
+            </div>
+          </div>
+        </div>
+      </div>
+
       <button
         onClick={handleSave}
         disabled={saving}
