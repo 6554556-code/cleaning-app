@@ -183,11 +183,20 @@ function OrderDetailsModal({ order, clientStats, onClose, onSaved }) {
           {clientStats && <ClientStatsBadges stats={clientStats} />}
         </p>
         <p style={{ margin: '4px 0', fontSize: '14px' }}><b>Телефон:</b> {order.client_phone || order.client?.phone || order.phone || '—'}</p>
-        <p style={{ margin: '4px 0', fontSize: '14px' }}><b>Услуга:</b> {order.cleaning_type || '—'}</p>
+        <p style={{ margin: '4px 0', fontSize: '14px' }}>
+          <b>Услуга:</b> {order.location_type === 'incall' ? '🏠 ' : order.location_type === 'outcall' ? '🚗 ' : ''}{order.cleaning_type || '—'}
+        </p>
         <p style={{ margin: '4px 0', fontSize: '14px' }}><b>Время:</b> {new Date(order.scheduled_at).toLocaleString('ru-RU')}</p>
         <p style={{ margin: '4px 0', fontSize: '14px' }}><b>Длительность:</b> {order.total_duration || '—'} мин</p>
         <p style={{ margin: '4px 0', fontSize: '14px' }}><b>Цена:</b> {order.total_price || '—'} ₽</p>
-        {order.address && <p style={{ margin: '4px 0', fontSize: '14px' }}><b>Адрес:</b> {order.address}</p>}
+        {order.location_type === 'outcall' && order.address && (
+          <p style={{ margin: '4px 0', fontSize: '14px' }}><b>Адрес:</b> {order.address}</p>
+        )}
+        {order.location_type === 'incall' && order.incall_address && (
+          <p style={{ margin: '6px 0 2px', fontSize: '11px', color: '#999' }}>
+            Адрес приёма (на момент брони): {order.incall_address}
+          </p>
+        )}
         {order.comment && <p style={{ margin: '4px 0', fontSize: '14px', color: '#666' }}><b>От клиента:</b> {order.comment}</p>}
 
         <p style={{ marginTop: '16px', marginBottom: '4px', fontWeight: 'bold', fontSize: '14px' }}>Статус</p>
@@ -944,7 +953,14 @@ function ExecutorPage({ executorId }) {
                       fontSize: '13px'
                     }}>{status.label}</span>
                   </div>
-                  <p style={{ margin: '8px 0 4px', fontSize: '14px' }}>📍 {order.address}</p>
+                  {order.location_type === 'outcall' && order.address && (
+                    <p style={{ margin: '8px 0 4px', fontSize: '14px' }}>🚗 {order.address}</p>
+                  )}
+                  {order.location_type === 'incall' && order.incall_address && (
+                    <p style={{ margin: '8px 0 4px', fontSize: '11px', color: '#999' }}>
+                      🏠 Адрес приёма: {order.incall_address}
+                    </p>
+                  )}
                   <p style={{ margin: '4px 0', fontSize: '14px' }}>📅 {formatDate(order.scheduled_at)}</p>
                   <p style={{ margin: '4px 0', fontSize: '14px' }}>📞 {order.client_phone || order.client?.phone || '—'}</p>
 <p style={{ margin: '4px 0', fontSize: '14px' }}>💬 {order.comment || 'Без комментария'}</p>
@@ -952,26 +968,7 @@ function ExecutorPage({ executorId }) {
 <div style={{ display: 'flex', gap: '16px', fontSize: '14px', marginTop: '4px' }}>
   {order.total_price && <span>💰 {order.total_price} руб</span>}
   {order.total_duration && <span>⏱ {order.total_duration} мин</span>}
-</div><div style={{ display: 'flex', gap: '8px', marginTop: '6px' }}>
-  {executor?.outcall && order.location_type !== 'incall' && (
-    <span style={{
-      background: '#e8f4fd',
-      color: '#2481cc',
-      padding: '3px 8px',
-      borderRadius: '10px',
-      fontSize: '12px'
-    }}>🚗 Выезд</span>
-  )}
-  {executor?.travel_time && (
-    <span style={{
-      background: '#fff8ed',
-      color: '#f5a623',
-      padding: '3px 8px',
-      borderRadius: '10px',
-      fontSize: '12px'
-    }}>🚦 ~{executor.travel_time} мин на дорогу</span>
-  )}
-</div>
+  </div>
 <div style={{ display: 'flex', gap: '8px', marginTop: '8px' }}>
 <a href={`tel:${order.client_phone || order.client?.phone || ''}`} style={{
     flex: 1,
