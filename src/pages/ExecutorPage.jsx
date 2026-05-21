@@ -179,10 +179,10 @@ function OrderDetailsModal({ order, clientStats, onClose, onSaved }) {
         </div>
 
         <p style={{ margin: '4px 0', fontSize: '14px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <span><b>Клиент:</b> {order.client?.full_name || order.name || '—'}</span>
+          <span><b>Клиент:</b> {order.client_name || order.client?.full_name || order.name || '—'}</span>
           {clientStats && <ClientStatsBadges stats={clientStats} />}
         </p>
-        <p style={{ margin: '4px 0', fontSize: '14px' }}><b>Телефон:</b> {order.client?.phone || order.phone || '—'}</p>
+        <p style={{ margin: '4px 0', fontSize: '14px' }}><b>Телефон:</b> {order.client_phone || order.client?.phone || order.phone || '—'}</p>
         <p style={{ margin: '4px 0', fontSize: '14px' }}><b>Услуга:</b> {order.cleaning_type || '—'}</p>
         <p style={{ margin: '4px 0', fontSize: '14px' }}><b>Время:</b> {new Date(order.scheduled_at).toLocaleString('ru-RU')}</p>
         <p style={{ margin: '4px 0', fontSize: '14px' }}><b>Длительность:</b> {order.total_duration || '—'} мин</p>
@@ -584,7 +584,7 @@ const viewStartMin = expandedBefore ? 0 : earliestMin
                           title={STATUS_LABELS[order.status]}
                         >
                           <div style={{ width: '100%' }}>
-                            <div style={{ fontWeight: 'bold' }}>{order.client?.full_name || order.name || 'Клиент'}</div>
+                          <div style={{ fontWeight: 'bold' }}>{order.client_name || order.client?.full_name || order.name || 'Клиент'}</div>
                             <div style={{ fontSize: '9px', opacity: 0.9 }}>{orderDate.getHours()}:{String(orderDate.getMinutes()).padStart(2, '0')}{order.total_price ? ` · ${order.total_price}₽` : ''}</div>
                           </div>
                         </div>
@@ -663,7 +663,7 @@ const viewStartMin = expandedBefore ? 0 : earliestMin
                   }}
                   style={{ display: 'block', width: '100%', textAlign: 'left', padding: '10px 12px', marginBottom: '8px', border: '1px solid #e0e0e0', borderRadius: '8px', background: 'white', cursor: 'pointer' }}
                 >
-                  <div style={{ fontWeight: 'bold', fontSize: '14px' }}>{o.client?.full_name || o.name || 'Клиент'}</div>
+                  <div style={{ fontWeight: 'bold', fontSize: '14px' }}>{o.client_name || o.client?.full_name || o.name || 'Клиент'}</div>
                   <div style={{ fontSize: '12px', color: '#666' }}>
                     {fmt(start)}–{fmt(end)} · {o.cleaning_type || '—'}
                   </div>
@@ -933,7 +933,7 @@ function ExecutorPage({ executorId }) {
                 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <h4 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      {order.client?.full_name}
+                  {order.client_name || order.client?.full_name || 'Клиент'}
                       <ClientStatsBadges stats={getClientStats(orders, order.client_id)} />
                     </h4>
                     <span style={{
@@ -946,7 +946,7 @@ function ExecutorPage({ executorId }) {
                   </div>
                   <p style={{ margin: '8px 0 4px', fontSize: '14px' }}>📍 {order.address}</p>
                   <p style={{ margin: '4px 0', fontSize: '14px' }}>📅 {formatDate(order.scheduled_at)}</p>
-                  <p style={{ margin: '4px 0', fontSize: '14px' }}>📞 {order.client?.phone}</p>
+                  <p style={{ margin: '4px 0', fontSize: '14px' }}>📞 {order.client_phone || order.client?.phone || '—'}</p>
 <p style={{ margin: '4px 0', fontSize: '14px' }}>💬 {order.comment || 'Без комментария'}</p>
 <p style={{ margin: '4px 0', fontSize: '14px' }}>🛠 {order.cleaning_type}</p>
 <div style={{ display: 'flex', gap: '16px', fontSize: '14px', marginTop: '4px' }}>
@@ -973,7 +973,7 @@ function ExecutorPage({ executorId }) {
   )}
 </div>
 <div style={{ display: 'flex', gap: '8px', marginTop: '8px' }}>
-  <a href={`tel:${order.client?.phone}`} style={{
+<a href={`tel:${order.client_phone || order.client?.phone || ''}`} style={{
     flex: 1,
     padding: '8px',
     background: '#f0f0f0',

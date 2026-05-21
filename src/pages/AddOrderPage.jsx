@@ -62,11 +62,13 @@ function AddOrderPage({ executor, initialDay, initialHour, initialMinute, onBack
     return base + extras
   }
   // Создаёт заказ и связанные блоки на заданное время
-  async function createOrder(userId, fullServiceName, scheduledAt) {
+  async function createOrder(clientName, clientPhone, fullServiceName, scheduledAt) {
     const { data: orderData, error: orderError } = await supabase
       .from('orders')
       .insert([{
-        client_id: userId,
+        client_id: null,
+        client_name: clientName,
+        client_phone: clientPhone,
         executor_id: executor.id,
         address: address || 'Не указан',
         comment: comment,
@@ -147,23 +149,8 @@ function AddOrderPage({ executor, initialDay, initialHour, initialMinute, onBack
     }
 
     setLoading(true)
-
-    const { data: user, error: userError } = await supabase
-      .from('users')
-      .insert([{
-        full_name: name,
-        phone: phone,
-        role: 'client',
-        telegram_id: 0
-      }])
-      .select()
-      .single()
-
-    if (userError) {
-      alert('Ошибка при создании клиента')
-      setLoading(false)
-      return
-    }
+    // НЕ создаём фейкового юзера в users.
+    // Имя и телефон клиента живут на самом заказе (orders.client_name / client_phone).
 
     const extrasNames = selectedExtras.map(s => s.name).join(', ')
     const fullServiceName = extrasNames
@@ -205,12 +192,12 @@ function AddOrderPage({ executor, initialDay, initialHour, initialMinute, onBack
             locationType
           )
           // Показываем модалку выбора
-          setOverlapModal({ nearest, userId: user.id, scheduledAt })
+          setOverlapModal({ nearest, scheduledAt })
       setLoading(false)
       return
         }
   
-        await createOrder(user.id, fullServiceName, scheduledAt)
+        await createOrder(name, phone, fullServiceName, scheduledAt)
       }
       return (
         <div style={{ padding: '16px', maxWidth: '600px', margin: '0 auto' }}>
@@ -232,7 +219,7 @@ function AddOrderPage({ executor, initialDay, initialHour, initialMinute, onBack
                       const fullServiceName = extrasNames
                         ? `${selectedService.name} + ${extrasNames}`
                         : selectedService.name
-                      await createOrder(overlapModal.userId, fullServiceName, new Date(overlapModal.nearest.start))
+                        await createOrder(name, phone, fullServiceName, new Date(overlapModal.nearest.start))
                     }}
                     style={{ width: '100%', padding: '12px', background: '#16a34a', color: 'white', border: 'none', borderRadius: '8px', fontSize: '14px', cursor: 'pointer', marginBottom: '8px' }}
                   >
@@ -249,7 +236,7 @@ function AddOrderPage({ executor, initialDay, initialHour, initialMinute, onBack
                     const fullServiceName = extrasNames
                       ? `${selectedService.name} + ${extrasNames}`
                       : selectedService.name
-                    await createOrder(overlapModal.userId, fullServiceName, overlapModal.scheduledAt)
+                      await createOrder(name, phone, fullServiceName, overlapModal.scheduledAt)
                   }}
                   style={{ width: '100%', padding: '12px', background: 'white', color: '#ef4444', border: '1px solid #ef4444', borderRadius: '8px', fontSize: '14px', cursor: 'pointer', marginBottom: '8px' }}
                 >

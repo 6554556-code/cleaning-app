@@ -139,6 +139,16 @@ function ClientCabinetPage({ clientId }) {
             </p>
             <p style={{ margin: '4px 0', fontSize: '14px' }}>💰 {order.total_price || '—'} ₽</p>
 
+            {/* Для кого этот заказ — данные из самого заказа */}
+            {(order.client_name || order.client_phone || order.address) && (
+              <div style={{ marginTop: '8px', fontSize: '11px', color: '#999', lineHeight: '1.4' }}>
+                <div>Заказ оформлен на:</div>
+                {order.client_name && <div>👤 {order.client_name}</div>}
+                {order.client_phone && <div>📞 {order.client_phone}</div>}
+                {order.address && <div>📍 {order.address}</div>}
+              </div>
+            )}
+
             {/* Кнопка отмены — только для активных */}
             {tab === 'active' && (
               <button
