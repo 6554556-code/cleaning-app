@@ -165,11 +165,9 @@ async function loadPickedDateSlots(dateStr) {
     }
 
     if (user) {
-      // Пользователь уже есть — обновляем имя и телефон на свежие
-      await supabase
-        .from('users')
-        .update({ full_name: name, phone: phone })
-        .eq('id', user.id)
+      // Пользователь уже есть — НЕ трогаем его имя/телефон.
+      // Эти данные принадлежат самому юзеру, а имя/телефон из формы — это данные заявки,
+      // они пойдут в orders.client_name / orders.client_phone ниже.
     } else {
       // Пользователя нет — создаём нового
       const { data: newUser, error: userError } = await supabase
@@ -214,6 +212,8 @@ async function loadPickedDateSlots(dateStr) {
       .from('orders')
       .insert([{
         client_id: user.id,
+        client_name: name,
+        client_phone: phone,
         executor_id: executor.id,
         address: address,
         comment: comment,
