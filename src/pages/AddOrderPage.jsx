@@ -71,6 +71,7 @@ function AddOrderPage({ executor, initialDay, initialHour, initialMinute, onBack
         client_phone: clientPhone,
         executor_id: executor.id,
         address: address || 'Не указан',
+        incall_address: locationType === 'incall' ? (executor.address || '') : null,
         comment: comment,
         cleaning_type: fullServiceName,
         scheduled_at: scheduledAt.toISOString(),

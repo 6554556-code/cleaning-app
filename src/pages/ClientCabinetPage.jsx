@@ -40,17 +40,21 @@ function ClientCabinetPage({ clientId }) {
     if (executorIds.length > 0) {
       const { data: execData } = await supabase
         .from('executors')
-        .select('id, users(full_name)')
+        .select('id, address, users(full_name)')
         .in('id', executorIds)
       ;(execData || []).forEach(e => {
-        executorsMap[e.id] = e.users?.full_name || 'Исполнитель'
+        executorsMap[e.id] = {
+          name: e.users?.full_name || 'Исполнитель',
+          address: e.address || ''
+        }
       })
     }
 
-    // 3. Прикрепляем имя исполнителя к каждому заказу
+    // 3. Прикрепляем данные исполнителя к каждому заказу
     const ordersWithNames = (ordersData || []).map(o => ({
       ...o,
-      executorName: executorsMap[o.executor_id] || 'Исполнитель'
+      executorName: executorsMap[o.executor_id]?.name || 'Исполнитель',
+      executorAddress: executorsMap[o.executor_id]?.address || ''
     }))
 
     setOrders(ordersWithNames)
@@ -130,9 +134,19 @@ function ClientCabinetPage({ clientId }) {
             marginBottom: '12px', boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
           }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-            <h4 style={{ margin: 0 }}>{order.executorName}</h4>
+            <h4 style={{ margin: 0 }}>
+              {order.location_type === 'incall' ? '🏠 ' : order.location_type === 'outcall' ? '🚗 ' : ''}
+              {order.executorName}
+            </h4>
               <span style={{ fontSize: '12px' }}>{STATUS_LABELS[order.status] || order.status}</span>
             </div>
+            {/* Адрес поездки — крупно, если incall. Берём снимок с момента брони,
+                а если его нет (старый заказ до миграции) — fallback на текущий адрес исполнителя. */}
+            {order.location_type === 'incall' && (order.incall_address || order.executorAddress) && (
+              <p style={{ margin: '4px 0 8px', fontSize: '15px', fontWeight: 'bold', color: '#2481cc' }}>
+                📍 {order.incall_address || order.executorAddress}
+              </p>
+            )}
             <p style={{ margin: '4px 0', fontSize: '14px' }}>🧹 {order.cleaning_type || '—'}</p>
             <p style={{ margin: '4px 0', fontSize: '14px' }}>
               📅 {order.scheduled_at ? new Date(order.scheduled_at).toLocaleString('ru-RU') : '—'}

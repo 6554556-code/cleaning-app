@@ -216,6 +216,7 @@ async function loadPickedDateSlots(dateStr) {
         client_phone: phone,
         executor_id: executor.id,
         address: address,
+        incall_address: locationType === 'incall' ? (executor.address || '') : null,
         comment: comment,
         cleaning_type: fullServiceName,
         total_price: calcTotal(),
