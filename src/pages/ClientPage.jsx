@@ -234,7 +234,7 @@ const tomorrowFuture = tomorrowSlots.slice(0, 4)
         <p>Исполнители не найдены</p>
       ) : (
         executors.map(executor => (
-          <div key={executor.id} style={{
+          <div key={executor.id} id={`executor-card-${executor.id}`} style={{
             background: 'white',
             borderRadius: '12px',
             padding: '16px',
@@ -298,11 +298,21 @@ const tomorrowFuture = tomorrowSlots.slice(0, 4)
     })}
     {(allMain.length > 3 || allMain.some(m => executor.services.filter(s => !s.is_main && s.parent_service_id === m.id).length > 2)) && (
       <button
-        onClick={() => setExpandedServices(prev =>
-          prev.includes(executor.id)
+      onClick={() => {
+        const wasExpanded = expandedServices.includes(executor.id)
+        setExpandedServices(prev =>
+          wasExpanded
             ? prev.filter(id => id !== executor.id)
             : [...prev, executor.id]
-        )}
+        )
+        // Если сворачиваем — возвращаем карточку в поле зрения
+        if (wasExpanded) {
+          setTimeout(() => {
+            const card = document.getElementById(`executor-card-${executor.id}`)
+            if (card) card.scrollIntoView({ behavior: 'smooth', block: 'start' })
+          }, 50)
+        }
+      }}
         style={{ marginTop: '6px', background: 'none', border: 'none', color: '#2481cc', cursor: 'pointer', fontSize: '13px', padding: 0 }}
       >
         {isExpanded ? '▲ Свернуть' : '▼ Показать все услуги'}
