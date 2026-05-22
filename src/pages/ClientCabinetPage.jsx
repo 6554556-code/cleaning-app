@@ -40,12 +40,14 @@ function ClientCabinetPage({ clientId }) {
     if (executorIds.length > 0) {
       const { data: execData } = await supabase
         .from('executors')
-        .select('id, address, users(full_name)')
+        .select('id, address, users(full_name, phone, telegram_username)')
         .in('id', executorIds)
       ;(execData || []).forEach(e => {
         executorsMap[e.id] = {
           name: e.users?.full_name || 'Исполнитель',
-          address: e.address || ''
+          address: e.address || '',
+          phone: e.users?.phone || '',
+          telegram_username: e.users?.telegram_username || ''
         }
       })
     }
@@ -54,7 +56,9 @@ function ClientCabinetPage({ clientId }) {
     const ordersWithNames = (ordersData || []).map(o => ({
       ...o,
       executorName: executorsMap[o.executor_id]?.name || 'Исполнитель',
-      executorAddress: executorsMap[o.executor_id]?.address || ''
+      executorAddress: executorsMap[o.executor_id]?.address || '',
+      executorPhone: executorsMap[o.executor_id]?.phone || '',
+      executorTelegram: executorsMap[o.executor_id]?.telegram_username || ''
     }))
 
     setOrders(ordersWithNames)
@@ -169,6 +173,38 @@ function ClientCabinetPage({ clientId }) {
                 </div>
               )}
             </div>
+
+            {/* Кнопки связи с исполнителем — только для активных заказов */}
+            {tab === 'active' && (order.executorTelegram || order.executorPhone) && (
+              <div style={{ display: 'flex', gap: '8px', marginTop: '8px' }}>
+                {order.executorTelegram && (
+                    <a 
+                    href={`https://t.me/${order.executorTelegram}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    style={{
+                      flex: 1, padding: '8px', textAlign: 'center',
+                      background: '#2481cc', color: 'white',
+                      borderRadius: '8px', textDecoration: 'none', fontSize: '13px'
+                    }}
+                  >
+                    💬 Написать
+                  </a>
+                )}
+                {order.executorPhone && (
+                  <a
+                    href={`tel:${order.executorPhone}`}
+                    style={{
+                      flex: 1, padding: '8px', textAlign: 'center',
+                      background: '#f0f0f0', color: 'black',
+                      borderRadius: '8px', textDecoration: 'none', fontSize: '13px'
+                    }}
+                  >
+                    📞 Позвонить
+                  </a>
+                )}
+              </div>
+            )}
 
             {/* Кнопка отмены — только для активных */}
             {tab === 'active' && (

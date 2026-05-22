@@ -61,7 +61,13 @@ function RegisterExecutorPage() {
 
     const { data: user, error: userError } = await supabase
       .from('users')
-      .insert([{ full_name: fullName, phone: phone, role: 'executor', telegram_id: tgId }])
+      .insert([{ 
+        full_name: fullName, 
+        phone: phone, 
+        role: 'executor', 
+        telegram_id: tgId,
+        telegram_username: tgUser?.username || ''
+      }])
       .select()
       .single()
 
