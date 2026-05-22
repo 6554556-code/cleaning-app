@@ -5,10 +5,12 @@ import RegisterExecutorPage from './pages/RegisterExecutorPage'
 import ClientCabinetPage from './pages/ClientCabinetPage'
 import ExecutorSettingsPage from './pages/ExecutorSettingsPage'
 import { useEffect } from 'react'
-import { initTelegram, getTelegramUser } from './telegram'
+import { initTelegram, getTelegramUser, syncTelegramUsername } from './telegram'
 function App() {
   useEffect(() => {
     initTelegram()
+    // Синхронизируем username Telegram с базой (автоматически, если юзер из Telegram)
+    syncTelegramUsername()
   }, [])
   const isExecutor = window.location.search.includes('executor=1')
   const isMap = window.location.search.includes('map=1')

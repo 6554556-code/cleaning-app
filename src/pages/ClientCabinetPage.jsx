@@ -149,19 +149,26 @@ function ClientCabinetPage({ clientId }) {
             )}
             <p style={{ margin: '4px 0', fontSize: '14px' }}>🧹 {order.cleaning_type || '—'}</p>
             <p style={{ margin: '4px 0', fontSize: '14px' }}>
-              📅 {order.scheduled_at ? new Date(order.scheduled_at).toLocaleString('ru-RU') : '—'}
+              📅 {order.scheduled_at ? new Date(order.scheduled_at).toLocaleString('ru-RU', { day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' }) : '—'} · ⏱ {order.total_duration || '—'} мин
             </p>
             <p style={{ margin: '4px 0', fontSize: '14px' }}>💰 {order.total_price || '—'} ₽</p>
 
-            {/* Для кого этот заказ — данные из самого заказа */}
-            {(order.client_name || order.client_phone || order.address) && (
-              <div style={{ marginTop: '8px', fontSize: '11px', color: '#999', lineHeight: '1.4' }}>
-                <div>Заказ оформлен на:</div>
-                {order.client_name && <div>👤 {order.client_name}</div>}
-                {order.client_phone && <div>📞 {order.client_phone}</div>}
-                {order.address && <div>📍 {order.address}</div>}
-              </div>
-            )}
+            {/* Служебная инфа: для кого + когда оформлен */}
+            <div style={{ marginTop: '8px', fontSize: '11px', color: '#999', lineHeight: '1.4' }}>
+              {(order.client_name || order.client_phone || order.address) && (
+                <>
+                  <div>Заказ оформлен на:</div>
+                  {order.client_name && <div>👤 {order.client_name}</div>}
+                  {order.client_phone && <div>📞 {order.client_phone}</div>}
+                  {order.address && <div>📍 {order.address}</div>}
+                </>
+              )}
+              {order.created_at && (
+                <div style={{ marginTop: '4px' }}>
+                  🕐 Создан: {new Date(order.created_at).toLocaleString('ru-RU', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                </div>
+              )}
+            </div>
 
             {/* Кнопка отмены — только для активных */}
             {tab === 'active' && (

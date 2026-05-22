@@ -21,3 +21,18 @@ export function getTelegramUser() {
     username: user.username || ''
   }
 }
+// Синхронизирует username Telegram с базой данных.
+// Вызывается один раз при старте приложения, если юзер открыл его в Telegram.
+import { supabase } from './supabase'
+
+export async function syncTelegramUsername() {
+  const user = getTelegramUser()
+  if (!user || !user.telegram_id || !user.username) return
+  
+  // Обновляем username для существующего пользователя
+  // (если его нет в БД — ничего не произойдёт, это нормально)
+  await supabase
+    .from('users')
+    .update({ telegram_username: user.username })
+    .eq('telegram_id', user.telegram_id)
+}
