@@ -173,6 +173,12 @@ function ClientCabinetPage({ clientId }) {
                 </div>
               )}
             </div>
+         
+
+            {/* Кнопка "Опаздываю" — только в окне (за 2 часа до — +15 мин после начала) */}
+            {tab === 'active' && (
+              <DelayWidget order={order} onSaved={loadOrders} />
+            )}
 
             {/* Личная заметка клиента к заказу (видит только сам клиент) */}
             {tab === 'active' && (
@@ -338,5 +344,152 @@ function ClientNoteField({ order, onSaved }) {
     </div>
   )
 }
+// Считает контекст опоздания для исполнителя:
+// — следующий заказ исполнителя после текущего
+// — буфер, который можно сократить
+// Возвращает готовый текст вида "Следующий заказ через 45 мин, есть 15 мин буфера — успеете"
+async function buildDelayContext(order, delayMinutes) {
+  const scheduledMs = new Date(order.scheduled_at).getTime()
+  const durationMin = order.total_duration || 60
+  // Конец текущего заказа БЕЗ учёта опоздания (буфер/дорога после)
+  const currentEndMs = scheduledMs + durationMin * 60 * 1000
+  // Конец текущего заказа С учётом опоздания клиента
+  const delayedEndMs = currentEndMs + delayMinutes * 60 * 1000
+  // Конец сегодняшнего дня (для проверки "до конца дня свободно")
+  const endOfDayMs = new Date(order.scheduled_at)
+  endOfDayMs.setHours(23, 59, 59, 999)
 
+  // Ищем ближайший следующий заказ исполнителя
+  const { data: nextOrders } = await supabase
+    .from('orders')
+    .select('id, scheduled_at, total_duration')
+    .eq('executor_id', order.executor_id)
+    .neq('status', 'cancelled')
+    .neq('is_deleted', true)
+    .neq('id', order.id)
+    .gte('scheduled_at', new Date(currentEndMs).toISOString())
+    .order('scheduled_at', { ascending: true })
+    .limit(1)
+
+  const nextOrder = nextOrders && nextOrders[0]
+
+  // Ищем буферный блок (auto_buffer) после текущего заказа
+  const { data: bufferBlocks } = await supabase
+    .from('blocks')
+    .select('start_at, duration')
+    .eq('executor_id', order.executor_id)
+    .eq('order_id', order.id)
+    .eq('type', 'auto_buffer')
+    .limit(1)
+
+  const buffer = bufferBlocks && bufferBlocks[0]
+  const bufferMin = buffer ? (buffer.duration || 0) : 0
+
+  // Если нет следующего заказа — до конца дня свободно
+  if (!nextOrder) {
+    return `🟢 До конца дня других заказов нет — успеете без спешки.`
+  }
+
+  // Проверяем, в этот же день ли следующий заказ
+  const currentDay = new Date(order.scheduled_at).toDateString()
+  const nextDay = new Date(nextOrder.scheduled_at).toDateString()
+  if (currentDay !== nextDay) {
+    return `🟢 Сегодня других заказов нет — успеете без спешки.`
+  }
+
+  // Есть следующий в этот же день — считаем "запас"
+  const nextStartMs = new Date(nextOrder.scheduled_at).getTime()
+  const gapMin = Math.floor((nextStartMs - delayedEndMs) / 60000)
+
+  // Сценарии:
+  if (gapMin >= 30) {
+    return `✅ После заказа ещё ${gapMin} мин до следующего — успеете без спешки.`
+  }
+  if (gapMin >= 0 && bufferMin > 0) {
+    return `⚠️ Следующий заказ через ${gapMin} мин — впритык. Можно сократить буфер (сейчас ${bufferMin} мин), чтобы не торопиться.`
+  }
+  if (gapMin >= 0) {
+    return `⚠️ Следующий заказ через ${gapMin} мин — впритык, надо поторопиться.`
+  }
+  // Опоздание перекрывает начало следующего заказа
+  return `🚨 С опозданием заказ перекрывает следующий на ${Math.abs(gapMin)} мин. Срочно свяжитесь со следующим клиентом.`
+}
+// Кнопка "Опаздываю" — для клиента, чтобы предупредить исполнителя
+function DelayWidget({ order, onSaved }) {
+  const [saving, setSaving] = useState(false)
+
+  // Определяем, в окне ли мы (за 2 часа до начала — до scheduled_at +15 мин)
+  const scheduledMs = new Date(order.scheduled_at).getTime()
+  const nowMs = Date.now()
+  const inWindow = nowMs >= scheduledMs - 2 * 60 * 60 * 1000 && nowMs <= scheduledMs + 15 * 60 * 1000
+
+  // Если статус терминальный — не показываем
+  if (order.status === 'done' || order.status === 'cancelled') return null
+
+  // Если уже нажимали — показываем уведомление о выбранном опоздании
+  if (order.client_delay_minutes) {
+    const newTimeMs = scheduledMs + order.client_delay_minutes * 60 * 1000
+    const newTimeStr = new Date(newTimeMs).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })
+    return (
+      <div style={{
+        marginTop: '8px', padding: '10px',
+        background: '#fff8ed', borderLeft: '3px solid #f5a623',
+        borderRadius: '4px', fontSize: '13px', color: '#666',
+        lineHeight: '1.4'
+      }}>
+        ✅ Специалист оповещён об опоздании на {order.client_delay_minutes} мин.
+        <br />
+        Примерное время встречи: <b>{newTimeStr}</b>
+      </div>
+    )
+  }
+
+  // Если не в окне — ничего не показываем
+  if (!inWindow) return null
+
+  // В окне и ещё не нажимали — три кнопки опоздания
+  async function setDelay(mins) {
+    setSaving(true)
+    
+    // Считаем "контекст опоздания" — что будет с следующим заказом
+    const contextText = await buildDelayContext(order, mins)
+    
+    const { error } = await supabase
+      .from('orders')
+      .update({ 
+        client_delay_minutes: mins,
+        delay_context_text: contextText
+      })
+      .eq('id', order.id)
+    setSaving(false)
+    if (error) {
+      alert('Ошибка: ' + error.message)
+      return
+    }
+    onSaved()
+  }
+
+  return (
+    <div style={{ marginTop: '8px' }}>
+      <div style={{ fontSize: '12px', color: '#999', marginBottom: '4px' }}>Опаздываете?</div>
+      <div style={{ display: 'flex', gap: '6px' }}>
+        {[5, 10, 15, 30].map(m => (
+          <button
+            key={m}
+            onClick={() => setDelay(m)}
+            disabled={saving}
+            style={{
+              flex: 1, padding: '8px 4px',
+              background: 'white', color: '#f5a623',
+              border: '1px solid #f5a623', borderRadius: '6px',
+              cursor: saving ? 'wait' : 'pointer', fontSize: '13px'
+            }}
+          >
+            +{m} мин
+          </button>
+        ))}
+      </div>
+    </div>
+  )
+}
 export default ClientCabinetPage
