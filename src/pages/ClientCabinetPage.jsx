@@ -174,6 +174,11 @@ function ClientCabinetPage({ clientId }) {
               )}
             </div>
 
+            {/* Личная заметка клиента к заказу (видит только сам клиент) */}
+            {tab === 'active' && (
+              <ClientNoteField order={order} onSaved={loadOrders} />
+            )}
+
             {/* Кнопки связи с исполнителем — только для активных заказов */}
             {tab === 'active' && (order.executorTelegram || order.executorPhone) && (
               <div style={{ display: 'flex', gap: '8px', marginTop: '8px' }}>
@@ -222,6 +227,114 @@ function ClientCabinetPage({ clientId }) {
           </div>
         ))
       )}
+    </div>
+  )
+}
+
+// Личная заметка клиента к заказу (видит только сам клиент)
+function ClientNoteField({ order, onSaved }) {
+  const [note, setNote] = useState(order.client_note || '')
+  const [saving, setSaving] = useState(false)
+  const [expanded, setExpanded] = useState(false)
+  const hasNote = !!order.client_note
+
+  async function save() {
+    setSaving(true)
+    const { error } = await supabase
+      .from('orders')
+      .update({ client_note: note.trim() || null })
+      .eq('id', order.id)
+    setSaving(false)
+    if (error) {
+      alert('Ошибка сохранения заметки: ' + error.message)
+      return
+    }
+    setExpanded(false)
+    onSaved()
+  }
+
+  // Если заметка свёрнута — показываем либо саму заметку курсивом, либо кнопку "Добавить"
+  if (!expanded) {
+    return (
+      <div style={{ marginTop: '8px' }}>
+        {hasNote ? (
+          <div
+            onClick={() => setExpanded(true)}
+            style={{
+              padding: '8px 10px',
+              background: '#fffbe6',
+              borderLeft: '3px solid #f5a623',
+              borderRadius: '4px',
+              fontSize: '13px',
+              color: '#666',
+              cursor: 'pointer',
+              fontStyle: 'italic',
+              lineHeight: '1.4'
+            }}
+          >
+            📝 {order.client_note}
+          </div>
+        ) : (
+          <button
+            onClick={() => setExpanded(true)}
+            style={{
+              background: 'none',
+              border: 'none',
+              color: '#999',
+              cursor: 'pointer',
+              fontSize: '12px',
+              padding: '4px 0'
+            }}
+          >
+            + Добавить заметку
+          </button>
+        )}
+      </div>
+    )
+  }
+
+  // Развёрнутый режим — textarea + кнопки
+  return (
+    <div style={{ marginTop: '8px' }}>
+      <textarea
+        value={note}
+        onChange={e => setNote(e.target.value)}
+        placeholder="Заметка для себя: что купить, что напомнить..."
+        style={{
+          width: '100%',
+          minHeight: '60px',
+          padding: '8px',
+          borderRadius: '6px',
+          border: '1px solid #ddd',
+          fontSize: '13px',
+          fontFamily: 'inherit',
+          resize: 'vertical',
+          boxSizing: 'border-box'
+        }}
+      />
+      <div style={{ display: 'flex', gap: '6px', marginTop: '4px' }}>
+        <button
+          onClick={save}
+          disabled={saving}
+          style={{
+            flex: 1, padding: '6px', fontSize: '12px',
+            background: '#2481cc', color: 'white', border: 'none',
+            borderRadius: '6px', cursor: saving ? 'wait' : 'pointer'
+          }}
+        >
+          {saving ? 'Сохраняю...' : '💾 Сохранить'}
+        </button>
+        <button
+          onClick={() => { setNote(order.client_note || ''); setExpanded(false) }}
+          style={{
+            flex: 1, padding: '6px', fontSize: '12px',
+            background: 'white', color: '#666', border: '1px solid #ddd',
+            borderRadius: '6px', cursor: 'pointer'
+          }}
+        >
+          Отмена
+        </button>
+      </div>
     </div>
   )
 }
