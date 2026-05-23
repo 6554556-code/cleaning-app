@@ -13,6 +13,25 @@ L.Icon.Default.mergeOptions({
 });
 
 const MOSCOW_CENTER = [55.7558, 37.6173];
+// Возвращает иконку типа визита по списку услуг исполнителя.
+// 🏠 — принимает у себя, 🚗 — выезжает, 🏠🚗 — и то и то.
+function visitIcon(services) {
+  const active = (services || []).filter((s) => !s.is_archived);
+  const hasIncall = active.some((s) => s.location_type === "incall" || s.location_type === "both");
+  const hasOutcall = active.some((s) => s.location_type === "outcall" || s.location_type === "both");
+  if (hasIncall && hasOutcall) return "🏠🚗";
+  if (hasIncall) return "🏠";
+  if (hasOutcall) return "🚗";
+  return "";
+}
+
+// Минимальная цена среди не-архивных услуг. null, если услуг нет.
+function minPrice(services) {
+  const prices = (services || [])
+    .filter((s) => !s.is_archived && s.price != null)
+    .map((s) => s.price);
+  return prices.length ? Math.min(...prices) : null;
+}
 const filterBtnStyle = (active) => ({
   padding: "8px 14px",
   borderRadius: "8px",
@@ -35,7 +54,7 @@ export default function MapPage() {
   useEffect(() => {
     supabase
       .from("executors")
-      .select("id, rating, price, latitude, longitude, subway_station, bio, avatar_url, service_type, users(full_name)")
+      .select("id, rating, price, latitude, longitude, subway_station, bio, avatar_url, service_type, is_verified, users(full_name), services(price, location_type, is_archived)")
       .then(({ data, error }) => {
         console.log("data:", data, "error:", error);
         setExecutors(data || []);
@@ -108,14 +127,36 @@ useEffect(() => {
   .map((ex) => (
           <Marker key={ex.id} position={[ex.latitude, ex.longitude]}>
             <Popup>
-              <div style={{ minWidth: 160 }}>
-              <p style={{ fontWeight: "bold", marginBottom: 4 }}>
-  {ex.users?.full_name ?? "Исполнитель"}
-</p>
-                <p>⭐ {ex.rating ?? "—"}</p>
-                <p>💰 {ex.price ?? "—"} ₽</p>
-                <p>🚇 {ex.subway_station ?? "—"}</p>
-                {ex.bio && <p style={{ color: "#666", fontSize: 12 }}>{ex.bio}</p>}
+              <div style={{ minWidth: 180 }}>
+              <p style={{ fontWeight: "bold", marginBottom: 6, fontSize: 14 }}>
+                  {ex.users?.full_name ?? "Исполнитель"}
+                  {ex.is_verified && <span style={{ color: "#2ecc71", marginLeft: 4 }} title="Проверенный исполнитель">✓</span>}
+                </p>
+                <p style={{ margin: "2px 0" }}>⭐ {ex.rating ?? "—"}</p>
+                {visitIcon(ex.services) && (
+                  <p style={{ margin: "2px 0" }}>{visitIcon(ex.services)}</p>
+                )}
+                {minPrice(ex.services) != null && (
+                  <p style={{ margin: "2px 0" }}>от {minPrice(ex.services)} ₽</p>
+                )}
+                {ex.bio && <p style={{ color: "#666", fontSize: 12, marginTop: 6 }}>{ex.bio}</p>}
+                 <a
+                  href={`/?executor_id=${ex.id}`}
+                  style={{
+                    display: "block",
+                    marginTop: 10,
+                    padding: "8px 12px",
+                    background: "#2481cc",
+                    color: "white",
+                    textAlign: "center",
+                    borderRadius: 6,
+                    textDecoration: "none",
+                    fontWeight: "bold",
+                    fontSize: 13,
+                  }}
+                >
+                  Записаться
+                </a>
               </div>
             </Popup>
           </Marker>
