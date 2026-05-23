@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../supabase'
 import { getTelegramUser } from '../telegram'
+import LocationPicker from '../components/LocationPicker'
 
 function ExecutorSettingsPage() {
   const [executor, setExecutor] = useState(null)
@@ -372,32 +373,21 @@ for (const s of group) {
               <option value="Asia/Kamchatka">Камчатка (МСК+9)</option>
             </select>
 
-            <div style={{ display: 'flex', gap: '12px' }}>
-              <div style={{ flex: 1 }}>
-                <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px', color: '#666' }}>Широта</label>
-                <input
-                  type="number"
-                  step="any"
-                  value={latitude}
-                  onChange={e => setLatitude(e.target.value)}
-                  placeholder="55.7558"
-                  style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #ddd', boxSizing: 'border-box' }}
-                />
-              </div>
-              <div style={{ flex: 1 }}>
-                <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px', color: '#666' }}>Долгота</label>
-                <input
-                  type="number"
-                  step="any"
-                  value={longitude}
-                  onChange={e => setLongitude(e.target.value)}
-                  placeholder="37.6173"
-                  style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #ddd', boxSizing: 'border-box' }}
-                />
-              </div>
-            </div>
+            <label style={{ display: 'block', marginBottom: '6px', fontSize: '14px', color: '#666' }}>
+              📍 Точка на карте
+            </label>
+            <LocationPicker
+              latitude={latitude}
+              longitude={longitude}
+              onChange={(lat, lng) => {
+                setLatitude(lat)
+                setLongitude(lng)
+              }}
+            />
             <div style={{ fontSize: '12px', color: '#888', marginTop: '4px' }}>
-              Позже здесь будет пин на карте
+              {(latitude !== '' && longitude !== '' && latitude != null && longitude != null)
+                ? `Координаты: ${Number(latitude).toFixed(5)}, ${Number(longitude).toFixed(5)}`
+                : 'Кликните по карте, чтобы поставить маркер'}
             </div>
           </div>
         )}
