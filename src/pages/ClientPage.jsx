@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../supabase'
+import { useProfessions } from "../hooks/useProfessions.js";
 import { getTelegramUser } from '../telegram'
 import BookingPage from './BookingPage'
 import { generateSlots } from '../utils/slotGenerator'
@@ -16,11 +17,11 @@ function ClientPage() {
   const [myExecutorId, setMyExecutorId] = useState(null)
   const [expandedServices, setExpandedServices] = useState([])
 
-  const services = [
-    { id: 'cleaning', label: '🧹 Клининг' },
-    { id: 'manicure', label: '💅 Маникюр' },
-    { id: 'nanny', label: '👶 Няня' },
-  ]
+  const { professions } = useProfessions()
+  const services = professions.map(p => ({
+    id: p.code,
+    label: `${p.icon || ''} ${p.name}`.trim()
+  }))
 // Определяем текущего пользователя по telegram_id
 useEffect(() => {
   async function checkUser() {

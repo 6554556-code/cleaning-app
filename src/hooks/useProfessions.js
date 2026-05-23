@@ -10,7 +10,7 @@ export function useProfessions() {
   useEffect(() => {
     supabase
       .from("professions")
-      .select("code, name")
+      .select("code, name, icon")
       .eq("is_active", true)
       .order("sort_order", { ascending: true })
       .then(({ data, error }) => {
