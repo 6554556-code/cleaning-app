@@ -139,6 +139,9 @@ function RegisterExecutorPage() {
 
   return (
     <div style={{ padding: '16px', maxWidth: '500px', margin: '0 auto' }}>
+      <a href="/" style={{ fontSize: '14px', color: '#2481cc', textDecoration: 'none', display: 'inline-block', marginBottom: '12px' }}>
+        🏠 На главную
+      </a>
       <h2 style={{ textAlign: 'center' }}>Регистрация исполнителя</h2>
       <p style={{ textAlign: 'center', color: '#888', fontSize: '13px', marginBottom: '20px' }}>
         Заполните минимум — остальное добавите потом в кабинете
