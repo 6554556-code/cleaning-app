@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { supabase } from '../supabase'
 import { getTelegramUser } from '../telegram'
+import LocationPicker from '../components/LocationPicker'
 
 function RegisterExecutorPage() {
   // Профиль
@@ -9,6 +10,8 @@ function RegisterExecutorPage() {
   const [address, setAddress] = useState('')
   const [serviceType, setServiceType] = useState('cleaning')
   const [timezone, setTimezone] = useState('Europe/Moscow')
+  const [latitude, setLatitude] = useState('')
+  const [longitude, setLongitude] = useState('')
   // График
   const [workStart, setWorkStart] = useState('09:00')
   const [workEnd, setWorkEnd] = useState('18:00')
@@ -41,6 +44,10 @@ function RegisterExecutorPage() {
     // Проверка обязательных полей
     if (!fullName || !phone || !address) {
       alert('Заполните имя, телефон и адрес')
+      return
+    }
+    if (latitude === '' || longitude === '') {
+      alert('Поставьте точку на карте — это место, где вы принимаете клиентов или откуда выезжаете')
       return
     }
     if (workDays.length === 0) {
@@ -91,7 +98,9 @@ function RegisterExecutorPage() {
         travel_time: 30,
         rating: 0,
         is_verified: false,
-        timezone: timezone
+        timezone: timezone,
+        latitude: Number(latitude),
+        longitude: Number(longitude)
       }])
       .select()
       .single()
@@ -145,6 +154,24 @@ function RegisterExecutorPage() {
 
       <label style={labelStyle}>Адрес</label>
       <input value={address} onChange={e => setAddress(e.target.value)} style={inputStyle} placeholder="Улица, дом" />
+
+      <label style={labelStyle}>Точка на карте *</label>
+      <div style={{ fontSize: '12px', color: '#888', marginBottom: '6px' }}>
+        Кликните по карте: место, где вы принимаете клиентов или откуда выезжаете.
+      </div>
+      <LocationPicker
+        latitude={latitude}
+        longitude={longitude}
+        onChange={(lat, lng) => {
+          setLatitude(lat)
+          setLongitude(lng)
+        }}
+      />
+      <div style={{ fontSize: '12px', color: '#888', marginTop: '4px', marginBottom: '12px' }}>
+        {(latitude !== '' && longitude !== '')
+          ? `Координаты: ${Number(latitude).toFixed(5)}, ${Number(longitude).toFixed(5)}`
+          : '⚠️ Точка ещё не поставлена'}
+      </div>
 
       <label style={labelStyle}>Вид услуг</label>
       <select value={serviceType} onChange={e => setServiceType(e.target.value)} style={inputStyle}>
