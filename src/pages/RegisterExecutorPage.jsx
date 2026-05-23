@@ -1,9 +1,11 @@
 import { useState } from 'react'
 import { supabase } from '../supabase'
+import { useProfessions } from "../hooks/useProfessions.js";
 import { getTelegramUser } from '../telegram'
 import LocationPicker from '../components/LocationPicker'
 
 function RegisterExecutorPage() {
+  const { professions } = useProfessions();
   // Профиль
   const [fullName, setFullName] = useState('')
   const [phone, setPhone] = useState('')
@@ -178,9 +180,9 @@ function RegisterExecutorPage() {
 
       <label style={labelStyle}>Вид услуг</label>
       <select value={serviceType} onChange={e => setServiceType(e.target.value)} style={inputStyle}>
-        <option value="cleaning">Клининг</option>
-        <option value="manicure">Маникюр</option>
-        <option value="nanny">Няня</option>
+      {professions.map(p => (
+  <option key={p.code} value={p.code}>{p.name}</option>
+))}
       </select>
       <label style={labelStyle}>Часовой пояс</label>
       <select value={timezone} onChange={e => setTimezone(e.target.value)} style={inputStyle}>
