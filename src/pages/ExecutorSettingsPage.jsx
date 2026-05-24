@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../supabase'
+import { getCityFromCoords } from "../geocoding.js";
 import { getTelegramUser } from '../telegram'
 import LocationPicker from '../components/LocationPicker'
 
@@ -262,7 +263,10 @@ for (const s of group) {
       .from('users')
       .update({ full_name: fullName, phone: phone })
       .eq('id', executor.user_id)
-
+// Если есть координаты — определяем город заново (вдруг пин подвинули в другой город)
+const newCity = latitude !== '' && longitude !== ''
+? await getCityFromCoords(Number(latitude), Number(longitude))
+: null;
     // Адрес лежит в таблице executors
     const { error: execError } = await supabase
       .from('executors')
@@ -277,6 +281,7 @@ for (const s of group) {
         latitude: latitude === '' ? null : Number(latitude),
         longitude: longitude === '' ? null : Number(longitude),
         timezone: timezone,
+        city: newCity,
       })
       .eq('id', executor.id)
 

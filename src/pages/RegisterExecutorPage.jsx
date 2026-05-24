@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { supabase } from '../supabase'
 import { useProfessions } from "../hooks/useProfessions.js";
+import { getCityFromCoords } from "../geocoding.js";
 import { getTelegramUser } from '../telegram'
 import LocationPicker from '../components/LocationPicker'
 
@@ -85,7 +86,8 @@ function RegisterExecutorPage() {
       setSaving(false)
       return
     }
-
+// Определяем город по координатам (если что-то пойдёт не так — null, не валим регистрацию)
+const city = await getCityFromCoords(latitude, longitude);
     // 2. Создаём профиль исполнителя
     const { data: executor, error: execError } = await supabase
       .from('executors')
@@ -102,7 +104,8 @@ function RegisterExecutorPage() {
         is_verified: false,
         timezone: timezone,
         latitude: Number(latitude),
-        longitude: Number(longitude)
+        longitude: Number(longitude),
+        city: city
       }])
       .select()
       .single()
