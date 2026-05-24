@@ -16,7 +16,37 @@ function ClientPage() {
   const [myUserId, setMyUserId] = useState(null)
   const [myExecutorId, setMyExecutorId] = useState(null)
   const [expandedServices, setExpandedServices] = useState([])
+  const [targetExecutorId, setTargetExecutorId] = useState(null)
 
+  // Ловим ?executor_id=N из URL — это переход с карты по кнопке "Записаться"
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    const id = params.get('executor_id')
+    if (!id) return
+    setTargetExecutorId(Number(id))
+    // Узнаём профессию исполнителя и переключаем фильтр на неё
+    supabase
+      .from('executors')
+      .select('service_type')
+      .eq('id', id)
+      .single()
+      .then(({ data }) => {
+        if (data?.service_type) setSelectedService(data.service_type)
+      })
+  }, [])
+  // Когда исполнители загрузились — прокручиваем к нужной карточке (если пришли с карты)
+  useEffect(() => {
+    if (!targetExecutorId || executors.length === 0) return
+    // Небольшая задержка — чтобы DOM успел отрисоваться после смены фильтра
+    const timer = setTimeout(() => {
+      const card = document.getElementById(`executor-card-${targetExecutorId}`)
+      if (card) {
+        card.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      }
+      setTargetExecutorId(null)
+    }, 200)
+    return () => clearTimeout(timer)
+  }, [executors, targetExecutorId])
   const { professions } = useProfessions()
   const services = professions.map(p => ({
     id: p.code,
