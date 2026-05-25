@@ -474,6 +474,13 @@ const viewStartMin = expandedBefore ? 0 : earliestMin
             Сегодня
           </button>
         )}
+        <button
+          onClick={onReload}
+          title="Обновить расписание"
+          style={{ padding: '5px 10px', borderRadius: '8px', border: '1px solid #ddd', background: 'white', cursor: 'pointer', fontSize: '13px' }}
+        >
+          🔄 Обновить
+        </button>
       </div>
 
       {/* Стрелка "раньше" */}
