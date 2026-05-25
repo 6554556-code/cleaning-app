@@ -54,7 +54,7 @@ const STATUS_LABELS = {
   confirmed_by_client: 'Подтверждено клиентом',
   in_progress: 'В работе',
   done: 'Выполнено',
-  cancelled: 'Отменено',
+  cancelled: 'Отменено вами',
 }
 function BlockDetailsModal({ block, onClose, onSaved }) {
   const [reason, setReason] = useState(block.reason || '')
@@ -126,9 +126,18 @@ function OrderDetailsModal({ order, clientStats, onClose, onSaved }) {
 
   async function save() {
     setSaving(true)
+    // Формируем апдейт: статус + комментарий, плюс гигиена cancelled_by
+    const updates = { status, executor_comment: comment }
+    if (status === 'cancelled') {
+      updates.cancelled_by = 'executor'
+    } else if (order.status === 'cancelled' && status !== 'cancelled') {
+      // Заказ оживляют — стираем пометку "кто отменил"
+      updates.cancelled_by = null
+    }
+
     const { error } = await supabase
       .from('orders')
-      .update({ status, executor_comment: comment })
+      .update(updates)
       .eq('id', order.id)
 
     // Если заказ отменён — удаляем его авто-блоки (дорога, буфер), освобождаем время
