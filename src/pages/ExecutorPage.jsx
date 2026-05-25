@@ -54,7 +54,7 @@ const STATUS_LABELS = {
   confirmed_by_client: 'Подтверждено клиентом',
   in_progress: 'В работе',
   done: 'Выполнено',
-  cancelled: 'Отменено вами',
+  cancelled: 'Отменено',
 }
 function BlockDetailsModal({ block, onClose, onSaved }) {
   const [reason, setReason] = useState(block.reason || '')
@@ -186,7 +186,21 @@ function OrderDetailsModal({ order, clientStats, onClose, onSaved }) {
           </div>
           <button onClick={onClose} style={{ background: 'none', border: 'none', fontSize: '20px', cursor: 'pointer' }}>✕</button>
         </div>
-
+        {order.status === 'cancelled' && order.cancelled_by && (
+          <div style={{
+            margin: '8px 0 12px',
+            padding: '8px 12px',
+            background: '#fef2f2',
+            border: '1px solid #fecaca',
+            borderRadius: '8px',
+            fontSize: '13px',
+            color: '#991b1b',
+            textAlign: 'center',
+            fontWeight: 'bold'
+          }}>
+            ⊘ Отменён {order.cancelled_by === 'client' ? 'клиентом' : 'вами'}
+          </div>
+        )}
         <p style={{ margin: '4px 0', fontSize: '14px', display: 'flex', alignItems: 'center', gap: '8px' }}>
           <span><b>Клиент:</b> {order.client_name || order.client?.full_name || order.name || '—'}</span>
           {clientStats && <ClientStatsBadges stats={clientStats} />}
