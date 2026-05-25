@@ -15,8 +15,8 @@ const STATUS_LABELS = {
 function ClientCabinetPage({ clientId }) {
   const [orders, setOrders] = useState([])
   const [loading, setLoading] = useState(true)
-  const [tab, setTab] = useState('active')
-
+  const [tab, setTab] = useState('future')
+  
   async function loadOrders() {
     setLoading(true)
 
@@ -93,12 +93,17 @@ function ClientCabinetPage({ clientId }) {
     loadOrders()
   }
 
-  // Активные — всё кроме done и cancelled
-  const activeOrders = orders.filter(o => o.status !== 'done' && o.status !== 'cancelled')
-  // История — done и cancelled
-  const historyOrders = orders.filter(o => o.status === 'done' || o.status === 'cancelled')
+  // Разделение по времени окончания заказа, статус не влияет.
+  // Если время окончания заказа в будущем — Будущие, иначе — Прошедшие.
+  function getOrderEndTime(o) {
+    if (!o.scheduled_at) return 0
+    return new Date(o.scheduled_at).getTime() + (o.total_duration || 60) * 60000
+  }
+  const now = Date.now()
+  const futureOrders = orders.filter(o => getOrderEndTime(o) >= now)
+  const pastOrders = orders.filter(o => getOrderEndTime(o) < now)
 
-  const shown = tab === 'active' ? activeOrders : historyOrders
+  const shown = tab === 'future' ? futureOrders : pastOrders
 
   if (loading) {
     return <div style={{ padding: '16px', textAlign: 'center' }}>Загрузка...</div>
@@ -114,33 +119,33 @@ function ClientCabinetPage({ clientId }) {
       {/* Табы */}
       <div style={{ display: 'flex', gap: '8px', marginBottom: '16px' }}>
         <button
-          onClick={() => setTab('active')}
+          onClick={() => setTab('future')}
           style={{
             flex: 1, padding: '10px', borderRadius: '8px', cursor: 'pointer', fontSize: '14px',
-            border: tab === 'active' ? '2px solid #2481cc' : '2px solid #f0f0f0',
-            background: tab === 'active' ? '#f0f7ff' : 'white',
-            color: tab === 'active' ? '#2481cc' : '#888', fontWeight: 'bold'
+            border: tab === 'future' ? '2px solid #2481cc' : '2px solid #f0f0f0',
+            background: tab === 'future' ? '#f0f7ff' : 'white',
+            color: tab === 'future' ? '#2481cc' : '#888', fontWeight: 'bold'
           }}
         >
-          Активные ({activeOrders.length})
+          Будущие ({futureOrders.length})
         </button>
         <button
-          onClick={() => setTab('history')}
+          onClick={() => setTab('past')}
           style={{
             flex: 1, padding: '10px', borderRadius: '8px', cursor: 'pointer', fontSize: '14px',
-            border: tab === 'history' ? '2px solid #2481cc' : '2px solid #f0f0f0',
-            background: tab === 'history' ? '#f0f7ff' : 'white',
-            color: tab === 'history' ? '#2481cc' : '#888', fontWeight: 'bold'
+            border: tab === 'past' ? '2px solid #2481cc' : '2px solid #f0f0f0',
+            background: tab === 'past' ? '#f0f7ff' : 'white',
+            color: tab === 'past' ? '#2481cc' : '#888', fontWeight: 'bold'
           }}
         >
-          История ({historyOrders.length})
+          Прошедшие ({pastOrders.length})
         </button>
       </div>
 
       {/* Список заказов */}
       {shown.length === 0 ? (
         <p style={{ textAlign: 'center', color: '#888' }}>
-          {tab === 'active' ? 'Активных заказов нет' : 'История пуста'}
+          {tab === 'future' ? 'Активных заказов нет' : 'История пуста'}
         </p>
       ) : (
         shown.map(order => (
@@ -187,17 +192,17 @@ function ClientCabinetPage({ clientId }) {
          
 
             {/* Кнопка "Опаздываю" — только в окне (за 2 часа до — +15 мин после начала) */}
-            {tab === 'active' && (
+            {tab === 'future' && (
               <DelayWidget order={order} onSaved={loadOrders} />
             )}
 
             {/* Личная заметка клиента к заказу (видит только сам клиент) */}
-            {tab === 'active' && (
+            {tab === 'future' && (
               <ClientNoteField order={order} onSaved={loadOrders} />
             )}
 
             {/* Кнопки связи с исполнителем — только для активных заказов */}
-            {tab === 'active' && (order.executorTelegram || order.executorPhone) && (
+            {tab === 'future' && (order.executorTelegram || order.executorPhone) && (
               <div style={{ display: 'flex', gap: '8px', marginTop: '8px' }}>
                 {order.executorTelegram && (
                     <a 
@@ -229,7 +234,7 @@ function ClientCabinetPage({ clientId }) {
             )}
 
             {/* Кнопка отмены — только для активных */}
-            {tab === 'active' && (
+            {tab === 'future' && (
               <button
                 onClick={() => cancelOrder(order.id)}
                 style={{
