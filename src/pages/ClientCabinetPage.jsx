@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../supabase'
-
+import ReviewModal from "../components/ReviewModal.jsx";
+import { canLeaveReview } from "../reviewsUtils.js";
 // Статусы и их подписи
 const STATUS_LABELS = {
   new: '🟡 Новая',
@@ -15,8 +16,11 @@ const STATUS_LABELS = {
 function ClientCabinetPage({ clientId }) {
   const [orders, setOrders] = useState([])
   const [loading, setLoading] = useState(true)
-  const [tab, setTab] = useState('future')
-  
+  const [tab, setTab] = useState(() => localStorage.getItem('clientCabinetTab') || 'future')
+// Отзывы клиента: { order_id: review_object }
+const [reviewsByOrder, setReviewsByOrder] = useState({})
+// Какой заказ сейчас открыт в модалке отзыва (или null)
+const [reviewModalOrder, setReviewModalOrder] = useState(null)
   async function loadOrders() {
     setLoading(true)
 
@@ -60,7 +64,16 @@ function ClientCabinetPage({ clientId }) {
       executorPhone: executorsMap[o.executor_id]?.phone || '',
       executorTelegram: executorsMap[o.executor_id]?.telegram_username || ''
     }))
-
+  // 4. Грузим все отзывы клиента — группируем по executor_id (один отзыв на исполнителя)
+  const { data: reviewsData } = await supabase
+  .from('reviews')
+  .select('id, order_id, executor_id, rating, comment, on_time')
+  .eq('client_id', clientId)
+  const reviewsMap = {}
+  ;(reviewsData || []).forEach(r => {
+  reviewsMap[r.executor_id] = r
+  })
+  setReviewsByOrder(reviewsMap)
     setOrders(ordersWithNames)
     setLoading(false)
   }
@@ -119,7 +132,7 @@ function ClientCabinetPage({ clientId }) {
       {/* Табы */}
       <div style={{ display: 'flex', gap: '8px', marginBottom: '16px' }}>
         <button
-          onClick={() => setTab('future')}
+          onClick={() => { setTab('future'); localStorage.setItem('clientCabinetTab', 'future') }}
           style={{
             flex: 1, padding: '10px', borderRadius: '8px', cursor: 'pointer', fontSize: '14px',
             border: tab === 'future' ? '2px solid #2481cc' : '2px solid #f0f0f0',
@@ -130,7 +143,7 @@ function ClientCabinetPage({ clientId }) {
           Будущие ({futureOrders.length})
         </button>
         <button
-          onClick={() => setTab('past')}
+          onClick={() => { setTab('past'); localStorage.setItem('clientCabinetTab', 'past') }}
           style={{
             flex: 1, padding: '10px', borderRadius: '8px', cursor: 'pointer', fontSize: '14px',
             border: tab === 'past' ? '2px solid #2481cc' : '2px solid #f0f0f0',
@@ -246,8 +259,74 @@ function ClientCabinetPage({ clientId }) {
                 Отменить бронь
               </button>
             )}
+
+            {/* Отзыв — только на вкладке "Прошедшие" */}
+            {tab === 'past' && (() => {
+              const existingReview = reviewsByOrder[order.executor_id]
+              const check = canLeaveReview(order)
+              if (existingReview) {
+                // Уже есть отзыв — показываем его кратко + кнопку редактировать
+                return (
+                  <div style={{ marginTop: '8px', padding: '8px', background: '#f9f9f9', borderRadius: '8px' }}>
+                    <div style={{ fontSize: '16px', color: '#ffc107', marginBottom: '4px' }}>
+                      {'★'.repeat(existingReview.rating)}{'☆'.repeat(5 - existingReview.rating)}
+                    </div>
+                    {existingReview.order_id !== order.id && (
+                      <p style={{ margin: '2px 0', fontSize: '11px', color: '#888' }}>
+                        Отзыв оставлен по заказу от {(() => {
+                          const otherOrder = orders.find(o => o.id === existingReview.order_id)
+                          return otherOrder?.scheduled_at
+                            ? new Date(otherOrder.scheduled_at).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' })
+                            : 'другой даты'
+                        })()}
+                      </p>
+                    )}
+                    {existingReview.comment && (
+                      <p style={{ margin: '4px 0', fontSize: '13px', color: '#444' }}>{existingReview.comment}</p>
+                    )}
+                    <button
+                      onClick={() => setReviewModalOrder(order)}
+                      style={{
+                        marginTop: '4px', padding: '6px 12px',
+                        background: 'white', color: '#2481cc', border: '1px solid #2481cc',
+                        borderRadius: '6px', cursor: 'pointer', fontSize: '12px'
+                      }}
+                    >
+                      Редактировать
+                    </button>
+                  </div>
+                )
+              }
+              if (check.allowed) {
+                // Можно оставить — показываем кнопку
+                return (
+                  <button
+                    onClick={() => setReviewModalOrder(order)}
+                    style={{
+                      marginTop: '8px', width: '100%', padding: '8px',
+                      background: '#2481cc', color: 'white', border: 'none',
+                      borderRadius: '8px', cursor: 'pointer', fontSize: '13px', fontWeight: 'bold'
+                    }}
+                  >
+                    ⭐ Оставить отзыв
+                  </button>
+                )
+              }
+              // Нельзя оставить (ручной заказ, не подтверждён и т.п.) — не показываем ничего
+              return null
+            })()}
           </div>
         ))
+      )}
+
+      {/* Модалка отзыва */}
+      {reviewModalOrder && (
+        <ReviewModal
+          order={reviewModalOrder}
+          existingReview={reviewsByOrder[reviewModalOrder.executor_id] || null}
+          onClose={() => setReviewModalOrder(null)}
+          onSaved={loadOrders}
+        />
       )}
     </div>
   )
