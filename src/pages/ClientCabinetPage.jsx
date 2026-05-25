@@ -71,14 +71,25 @@ function ClientCabinetPage({ clientId }) {
 
   async function cancelOrder(orderId) {
     if (!confirm('Отменить эту бронь?')) return
+
+    // 1. Меняем статус заказа + помечаем кем отменён
     const { error } = await supabase
       .from('orders')
-      .update({ status: 'cancelled' })
+      .update({ status: 'cancelled', cancelled_by: 'client' })
       .eq('id', orderId)
+
     if (error) {
       alert('Ошибка отмены: ' + error.message)
       return
     }
+
+    // 2. Освобождаем время у исполнителя: чистим авто-блоки (буфер и дорогу)
+    await supabase
+      .from('blocks')
+      .delete()
+      .eq('order_id', orderId)
+      .in('type', ['auto_travel', 'auto_buffer'])
+
     loadOrders()
   }
 
