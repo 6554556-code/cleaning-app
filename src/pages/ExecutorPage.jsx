@@ -212,9 +212,11 @@ function OrderDetailsModal({ order, clientStats, onClose, onSaved }) {
         <button onClick={save} disabled={saving} style={{ width: '100%', marginTop: '12px', padding: '12px', background: '#2481cc', color: 'white', border: 'none', borderRadius: '8px', fontSize: '15px', fontWeight: 'bold', cursor: 'pointer' }}>
           {saving ? 'Сохранение...' : 'Сохранить'}
         </button>
-        <button onClick={fullDelete} disabled={saving} style={{ width: '100%', marginTop: '8px', padding: '10px', background: 'white', color: '#ef4444', border: '1px solid #ef4444', borderRadius: '8px', fontSize: '13px', cursor: 'pointer' }}>
-          🗑 Удалить полностью
-        </button>
+        {order.source !== 'booking' && (
+          <button onClick={fullDelete} disabled={saving} style={{ width: '100%', marginTop: '8px', padding: '10px', background: 'white', color: '#ef4444', border: '1px solid #ef4444', borderRadius: '8px', fontSize: '13px', cursor: 'pointer' }}>
+            🗑 Удалить полностью
+          </button>
+        )}
       </div>
     </div>
   )
