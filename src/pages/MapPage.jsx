@@ -4,7 +4,7 @@ import "leaflet/dist/leaflet.css";
 import L from "leaflet";
 import { supabase } from "../supabase.js";
 import { useProfessions } from "../hooks/useProfessions.js";
-
+import { loadReviewsByExecutors, calculateStats } from "../reviewsUtils.js";
 delete L.Icon.Default.prototype._getIconUrl;
 L.Icon.Default.mergeOptions({
   iconRetinaUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png",
@@ -49,6 +49,7 @@ const filterBtnStyle = (active) => ({
 export default function MapPage() {
   const [executors, setExecutors] = useState([]);
   const [selectedService, setSelectedService] = useState("all");
+  const [reviewStats, setReviewStats] = useState({});
   const { professions } = useProfessions();
   const [mapCenter, setMapCenter] = useState(MOSCOW_CENTER);
   useEffect(() => {
@@ -58,6 +59,15 @@ export default function MapPage() {
       .then(({ data, error }) => {
         console.log("data:", data, "error:", error);
         setExecutors(data || []);
+        // Считаем статистику отзывов для всех загруженных исполнителей
+        const ids = (data || []).map((e) => e.id);
+        loadReviewsByExecutors(ids).then((reviewsByExec) => {
+          const statsMap = {};
+          ids.forEach((id) => {
+            statsMap[id] = calculateStats(reviewsByExec[id] || []);
+          });
+          setReviewStats(statsMap);
+        });
       });
   }, []);
 // Запрашиваем геолокацию пользователя
@@ -132,7 +142,27 @@ useEffect(() => {
                   {ex.users?.full_name ?? "Исполнитель"}
                   {ex.is_verified && <span style={{ color: "#2ecc71", marginLeft: 4 }} title="Проверенный исполнитель">✓</span>}
                 </p>
-                <p style={{ margin: "2px 0" }}>⭐ {ex.rating ?? "—"}</p>
+                {(() => {
+                  const stats = reviewStats[ex.id];
+                  if (!stats || stats.count === 0) {
+                    return <p style={{ margin: "2px 0", color: "#999", fontSize: 12 }}>Новый исполнитель</p>;
+                  }
+                  return (
+                    <>
+                      <p style={{ margin: "2px 0" }}>
+                        ⭐ {stats.avgRating}
+                        <span style={{ color: "#666", fontSize: 11, marginLeft: 4 }}>
+                          ({stats.count} {stats.count === 1 ? 'отзыв' : stats.count < 5 ? 'отзыва' : 'отзывов'})
+                        </span>
+                      </p>
+                      {stats.alwaysOnTime && (
+                        <p style={{ margin: "2px 0", color: "#2ecc71", fontSize: 11, fontWeight: "bold" }}>
+                          ✓ Всегда вовремя
+                        </p>
+                      )}
+                    </>
+                  );
+                })()}
                 {visitIcon(ex.services) && (
                   <p style={{ margin: "2px 0" }}>{visitIcon(ex.services)}</p>
                 )}

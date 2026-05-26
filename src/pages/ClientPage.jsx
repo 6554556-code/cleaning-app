@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../supabase'
 import { useProfessions } from "../hooks/useProfessions.js";
+import { loadReviewsByExecutors, calculateStats } from "../reviewsUtils.js";
 import { useCities } from "../hooks/useCities.js";
 import { getTelegramUser } from '../telegram'
 import BookingPage from './BookingPage'
@@ -18,6 +19,8 @@ function ClientPage() {
   const [myUserId, setMyUserId] = useState(null)
   const [myExecutorId, setMyExecutorId] = useState(null)
   const [expandedServices, setExpandedServices] = useState([])
+  // Статистика отзывов по исполнителю: { executor_id: { avgRating, count, onTimePercent, alwaysOnTime } }
+  const [reviewStats, setReviewStats] = useState({})
   const [targetExecutorId, setTargetExecutorId] = useState(null)
 
   // Ловим ?executor_id=N из URL — это переход с карты по кнопке "Записаться"
@@ -188,7 +191,14 @@ const tomorrowFuture = tomorrowSlots.slice(0, 4)
 
   return { ...executor, todaySlots: todayFuture, tomorrowSlots: tomorrowFuture, services: executorServices || [] }
       }))
-
+// Тянем отзывы для всех загруженных исполнителей и считаем статистику
+const executorIds = executorsWithData.map(e => e.id)
+const reviewsByExecutor = await loadReviewsByExecutors(executorIds)
+const statsMap = {}
+executorIds.forEach(id => {
+  statsMap[id] = calculateStats(reviewsByExecutor[id] || [])
+})
+setReviewStats(statsMap)
       setExecutors(executorsWithData)
       setLoading(false)
     }
@@ -212,6 +222,7 @@ const tomorrowFuture = tomorrowSlots.slice(0, 4)
     return (
       <BookingPage
         executor={selectedExecutor}
+        stats={reviewStats[selectedExecutor.id]}
         slot={selectedSlot}
         onBack={() => setShowBooking(false)}
         onSuccess={() => {
@@ -305,9 +316,26 @@ const tomorrowFuture = tomorrowSlots.slice(0, 4)
                 {executor.users?.full_name}
                 {executor.is_verified && <span title="Проверенный исполнитель">✅</span>}
               </h3>
-              <span style={{ color: '#f5a623', fontWeight: 'bold', fontSize: '18px' }}>
-                ⭐ {executor.rating}
-              </span>
+              <div style={{ textAlign: 'right' }}>
+                {(() => {
+                  const stats = reviewStats[executor.id]
+                  if (!stats || stats.count === 0) {
+                    return <span style={{ color: '#999', fontSize: '12px' }}>Новый исполнитель</span>
+                  }
+                  return (
+                    <>
+                      <span style={{ color: '#f5a623', fontWeight: 'bold', fontSize: '18px', display: 'block' }}>
+                        ⭐ {stats.avgRating}
+                      </span>
+                      {stats.alwaysOnTime && (
+                        <span title="Не опаздывает на встречи" style={{ color: '#2ecc71', fontSize: '11px', fontWeight: 'bold' }}>
+                          ✓ Всегда вовремя
+                        </span>
+                      )}
+                    </>
+                  )
+                })()}
+              </div>
             </div>
             {executor.subway_station && (
               <p style={{ margin: '4px 0', color: '#666', fontSize: '13px' }}>

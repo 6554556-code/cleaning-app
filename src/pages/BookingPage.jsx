@@ -3,8 +3,11 @@ import { supabase } from '../supabase'
 import { getTelegramUser } from '../telegram'
 import { generateSlots } from '../utils/slotGenerator'
 
-function BookingPage({ executor, slot, onBack, onSuccess }) {
-  
+function BookingPage({ executor, stats, slot, onBack, onSuccess }) {
+  // Автоскролл наверх при открытии страницы
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'instant' })
+  }, [])
   const [name, setName] = useState('')
   const [phone, setPhone] = useState('')
   const [address, setAddress] = useState('')
@@ -326,8 +329,27 @@ async function loadPickedDateSlots(dateStr) {
         padding: '12px',
         marginBottom: '20px'
       }}>
-        <p style={{ margin: 0, fontWeight: 'bold' }}>{executor.users?.full_name}</p>
-        {executor.rating && <p style={{ margin: '2px 0 0', color: '#f59e0b', fontSize: '13px' }}>⭐ {executor.rating}</p>}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+          <p style={{ margin: 0, fontWeight: 'bold', fontSize: '16px' }}>{executor.users?.full_name}</p>
+          {executor.is_verified && <span title="Проверенный исполнитель">✅</span>}
+        </div>
+        {stats && stats.count > 0 ? (
+          <div style={{ marginTop: '6px' }}>
+            <span style={{ color: '#f59e0b', fontWeight: 'bold', fontSize: '15px' }}>
+              ⭐ {stats.avgRating}
+            </span>
+            <span style={{ color: '#666', fontSize: '13px', marginLeft: '6px' }}>
+              ({stats.count} {stats.count === 1 ? 'отзыв' : stats.count < 5 ? 'отзыва' : 'отзывов'})
+            </span>
+            {stats.alwaysOnTime && (
+              <div style={{ color: '#2ecc71', fontSize: '12px', fontWeight: 'bold', marginTop: '4px' }}>
+                ✓ Всегда вовремя
+              </div>
+            )}
+          </div>
+        ) : (
+          <p style={{ margin: '4px 0 0', color: '#999', fontSize: '12px' }}>Новый исполнитель</p>
+        )}
         {fromSlot
           ? <p style={{ margin: '4px 0 0', color: '#2481cc' }}>📅 {formatSlot(slot.start)}</p>
           : <p style={{ margin: '4px 0 0', color: '#888', fontSize: '13px' }}>Выберите время ниже</p>
