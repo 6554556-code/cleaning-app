@@ -102,6 +102,7 @@ const city = await getCityFromCoords(latitude, longitude);
         travel_time: 30,
         rating: 0,
         is_verified: false,
+        is_visible: false,
         timezone: timezone,
         latitude: Number(latitude),
         longitude: Number(longitude),
