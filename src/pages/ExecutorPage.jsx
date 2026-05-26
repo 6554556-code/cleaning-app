@@ -781,8 +781,7 @@ function ExecutorPage({ executorId }) {
     setExecutor({ ...executor, is_visible: newValue })
   }
   async function loadData() {
-    setLoading(true)
-
+    
     // Определяем, чей это кабинет
     let realExecutorId = executorId  // запасной вариант (тест через ?executor=1)
 
