@@ -21,6 +21,8 @@ function ClientPage() {
   const [expandedServices, setExpandedServices] = useState([])
   // Статистика отзывов по исполнителю: { executor_id: { avgRating, count, onTimePercent, alwaysOnTime } }
   const [reviewStats, setReviewStats] = useState({})
+  // Сами отзывы по исполнителям (для показа в BookingPage)
+  const [reviewsByExecutor, setReviewsByExecutor] = useState({})
   const [targetExecutorId, setTargetExecutorId] = useState(null)
 
   // Ловим ?executor_id=N из URL — это переход с карты по кнопке "Записаться"
@@ -192,13 +194,14 @@ const tomorrowFuture = tomorrowSlots.slice(0, 4)
   return { ...executor, todaySlots: todayFuture, tomorrowSlots: tomorrowFuture, services: executorServices || [] }
       }))
 // Тянем отзывы для всех загруженных исполнителей и считаем статистику
-const executorIds = executorsWithData.map(e => e.id)
-const reviewsByExecutor = await loadReviewsByExecutors(executorIds)
-const statsMap = {}
-executorIds.forEach(id => {
-  statsMap[id] = calculateStats(reviewsByExecutor[id] || [])
-})
-setReviewStats(statsMap)
+      const executorIds = executorsWithData.map(e => e.id)
+      const reviewsMap = await loadReviewsByExecutors(executorIds)
+      const statsMap = {}
+      executorIds.forEach(id => {
+        statsMap[id] = calculateStats(reviewsMap[id] || [])
+      })
+      setReviewStats(statsMap)
+      setReviewsByExecutor(reviewsMap)
       setExecutors(executorsWithData)
       setLoading(false)
     }
@@ -223,6 +226,7 @@ setReviewStats(statsMap)
       <BookingPage
         executor={selectedExecutor}
         stats={reviewStats[selectedExecutor.id]}
+        reviews={reviewsByExecutor[selectedExecutor.id] || []}
         slot={selectedSlot}
         onBack={() => setShowBooking(false)}
         onSuccess={() => {

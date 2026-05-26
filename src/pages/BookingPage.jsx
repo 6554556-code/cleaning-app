@@ -3,7 +3,7 @@ import { supabase } from '../supabase'
 import { getTelegramUser } from '../telegram'
 import { generateSlots } from '../utils/slotGenerator'
 
-function BookingPage({ executor, stats, slot, onBack, onSuccess }) {
+function BookingPage({ executor, stats, reviews, slot, onBack, onSuccess }) {
   // Автоскролл наверх при открытии страницы
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'instant' })
@@ -27,6 +27,7 @@ function BookingPage({ executor, stats, slot, onBack, onSuccess }) {
   const [pickedSlots, setPickedSlots] = useState([])
   const [showAllPicked, setShowAllPicked] = useState(false)
   const [servicesExpanded, setServicesExpanded] = useState(false)
+  const [showAllReviews, setShowAllReviews] = useState(false)
   useEffect(() => {
     async function loadServices() {
       const { data } = await supabase
@@ -342,17 +343,56 @@ async function loadPickedDateSlots(dateStr) {
               ({stats.count} {stats.count === 1 ? 'отзыв' : stats.count < 5 ? 'отзыва' : 'отзывов'})
             </span>
             {stats.alwaysOnTime && (
-              <div style={{ color: '#2ecc71', fontSize: '12px', fontWeight: 'bold', marginTop: '4px' }}>
+              <span style={{ color: '#2ecc71', fontSize: '12px', fontWeight: 'bold', marginLeft: '8px' }}>
                 ✓ Всегда вовремя
-              </div>
+              </span>
             )}
           </div>
         ) : (
           <p style={{ margin: '4px 0 0', color: '#999', fontSize: '12px' }}>Новый исполнитель</p>
         )}
+        {/* Список отзывов */}
+        {reviews && reviews.length > 0 && (
+          <div style={{ marginTop: '12px', borderTop: '1px solid #d6e7f8', paddingTop: '10px' }}>
+            {(showAllReviews ? reviews : reviews.slice(0, 1)).map(r => {
+              const date = new Date(r.created_at)
+              const monthName = date.toLocaleDateString('ru-RU', { month: 'long', year: 'numeric' })
+              return (
+                <div key={r.id} style={{ marginBottom: '10px', paddingBottom: '8px', borderBottom: '1px solid #e8f0fa' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                    <span style={{ color: '#f59e0b', fontSize: '13px' }}>
+                      {'★'.repeat(r.rating)}{'☆'.repeat(5 - r.rating)}
+                    </span>
+                    <span style={{ color: '#999', fontSize: '11px' }}>{monthName}</span>
+                    {r.on_time === true && (
+                      <span style={{ color: '#2ecc71', fontSize: '11px' }}>✓ Вовремя</span>
+                    )}
+                    {r.on_time === false && (
+                      <span style={{ color: '#e67e22', fontSize: '11px' }}>⚠️ Опоздал</span>
+                    )}
+                  </div>
+                  {r.comment && (
+                    <p style={{ margin: '4px 0 0', fontSize: '13px', color: '#444' }}>{r.comment}</p>
+                  )}
+                </div>
+              )
+            })}
+            {reviews.length > 1 && (
+              <button
+                onClick={() => setShowAllReviews(!showAllReviews)}
+                style={{
+                  background: 'none', border: 'none', color: '#2481cc',
+                  cursor: 'pointer', fontSize: '13px', padding: '4px 0'
+                }}
+              >
+                {showAllReviews ? '▲ Скрыть' : `▼ Показать все (${reviews.length})`}
+              </button>
+            )}
+          </div>
+        )}
         {fromSlot
           ? <p style={{ margin: '4px 0 0', color: '#2481cc' }}>📅 {formatSlot(slot.start)}</p>
-          : <p style={{ margin: '4px 0 0', color: '#888', fontSize: '13px' }}>Выберите время ниже</p>
+          : null
         }
       </div>
 {/* Выбор времени если пришёл не со слота */}
