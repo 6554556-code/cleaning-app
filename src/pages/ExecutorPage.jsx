@@ -764,7 +764,7 @@ function ExecutorPage({ executorId }) {
   const [blocks, setBlocks] = useState([])
   const [executor, setExecutor] = useState(null)
   const [loading, setLoading] = useState(true)
-  const [activeTab, setActiveTab] = useState('orders')
+  const [activeTab, setActiveTab] = useState('schedule')
   const [showAddOrder, setShowAddOrder] = useState(false)
   async function toggleVisible() {
     const newValue = !executor.is_visible
