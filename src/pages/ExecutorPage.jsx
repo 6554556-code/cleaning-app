@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { supabase } from '../supabase'
 import { getTelegramUser } from '../telegram'
 import AddOrderPage from './AddOrderPage'
+import { loadReviewsByExecutors, calculateStats } from '../reviewsUtils'
 // Считает статистику заказов клиента по списку всех заказов
 function getClientStats(allOrders, clientId) {
   const clientOrders = allOrders.filter(o => o.client_id === clientId)
@@ -905,6 +906,7 @@ function ExecutorPage({ executorId }) {
   const [blocks, setBlocks] = useState([])
   const [executor, setExecutor] = useState(null)
   const [loading, setLoading] = useState(true)
+  const [ratingStats, setRatingStats] = useState(null)
   const [activeTab, setActiveTab] = useState('schedule')
   const [showAddOrder, setShowAddOrder] = useState(false)
   async function toggleVisible() {
@@ -968,6 +970,10 @@ function ExecutorPage({ executorId }) {
         .select('*')
         .eq('executor_id', realExecutorId)
       setBlocks(blocksData || [])
+      // Считаем рейтинг из реальных отзывов
+      const reviewsMap = await loadReviewsByExecutors([realExecutorId])
+      const stats = calculateStats(reviewsMap[realExecutorId] || [])
+      setRatingStats(stats)
   
       setLoading(false)
   }
@@ -1041,7 +1047,10 @@ function ExecutorPage({ executorId }) {
           const fromApp = doneOrders.filter(o => o.source === 'booking').length
           return (
             <p style={{ margin: '0', color: '#666' }}>
-              ⭐ {executor?.rating || '—'} · 📦 {fromApp} / {total} заказов
+              {ratingStats && ratingStats.count > 0
+                ? <>⭐ {ratingStats.avgRating.toFixed(1)} ({ratingStats.count}) · </>
+                : <>Новый исполнитель · </>}
+              📦 {fromApp} / {total} заказов
             </p>
           )
         })()}
