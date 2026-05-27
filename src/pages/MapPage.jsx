@@ -56,6 +56,7 @@ export default function MapPage() {
     supabase
       .from("executors")
       .select("id, rating, price, latitude, longitude, subway_station, bio, avatar_url, service_type, is_verified, users(full_name), services(price, location_type, is_archived)")
+      .eq("is_visible", true)
       .then(({ data, error }) => {
         console.log("data:", data, "error:", error);
         setExecutors(data || []);
