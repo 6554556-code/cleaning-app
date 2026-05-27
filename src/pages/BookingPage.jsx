@@ -159,6 +159,7 @@ async function loadPickedDateSlots(dateStr) {
     // Берём данные пользователя из Telegram
     const tgUser = getTelegramUser()
     const tgId = tgUser?.telegram_id || 0
+    const tgUsername = tgUser?.username || null
 
     let user = null
 
@@ -184,7 +185,8 @@ async function loadPickedDateSlots(dateStr) {
           full_name: name,
           phone: phone,
           role: 'client',
-          telegram_id: tgId
+          telegram_id: tgId,
+          telegram_username: tgUsername
         }])
         .select()
         .single()
