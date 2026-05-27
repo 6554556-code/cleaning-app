@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { supabase } from '../supabase'
 import { useProfessions } from "../hooks/useProfessions.js";
 import { loadReviewsByExecutors, calculateStats } from "../reviewsUtils.js";
+import { loadOrdersCountByExecutors } from "../ordersUtils.js";
 import { useCities } from "../hooks/useCities.js";
 import { getTelegramUser } from '../telegram'
 import BookingPage from './BookingPage'
@@ -23,6 +24,8 @@ function ClientPage() {
   const [reviewStats, setReviewStats] = useState({})
   // Сами отзывы по исполнителям (для показа в BookingPage)
   const [reviewsByExecutor, setReviewsByExecutor] = useState({})
+  // Счётчики выполненных заказов: { executor_id: { fromApp, total } }
+  const [ordersCountByExecutor, setOrdersCountByExecutor] = useState({})
   const [targetExecutorId, setTargetExecutorId] = useState(null)
 
   // Ловим ?executor_id=N из URL — это переход с карты по кнопке "Записаться"
@@ -196,12 +199,14 @@ const tomorrowFuture = tomorrowSlots.slice(0, 4)
 // Тянем отзывы для всех загруженных исполнителей и считаем статистику
       const executorIds = executorsWithData.map(e => e.id)
       const reviewsMap = await loadReviewsByExecutors(executorIds)
+      const ordersCountMap = await loadOrdersCountByExecutors(executorIds)
       const statsMap = {}
       executorIds.forEach(id => {
         statsMap[id] = calculateStats(reviewsMap[id] || [])
       })
       setReviewStats(statsMap)
       setReviewsByExecutor(reviewsMap)
+      setOrdersCountByExecutor(ordersCountMap)
       setExecutors(executorsWithData)
       setLoading(false)
     }
@@ -348,7 +353,10 @@ const tomorrowFuture = tomorrowSlots.slice(0, 4)
             )}
             <p style={{ color: '#666', margin: '8px 0', fontSize: '14px' }}>{executor.bio}</p>
             <div style={{ display: 'flex', gap: '16px', fontSize: '14px', flexWrap: 'wrap' }}>
-              <span>📦 {executor.orders_count} заказов</span>
+            {(() => {
+                const count = ordersCountByExecutor[executor.id]?.fromApp || 0
+                if (count === 0) return null
+                return <span>📦 {count} {count === 1 ? 'заказ' : count < 5 ? 'заказа' : 'заказов'}</span>              })()}
               
             </div>
             {executor.services && executor.services.length > 0 && (() => {

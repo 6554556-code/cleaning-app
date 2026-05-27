@@ -12,7 +12,7 @@ function App() {
     // Синхронизируем username Telegram с базой (автоматически, если юзер из Telegram)
     syncTelegramUsername()
   }, [])
-  const isExecutor = window.location.search.includes('executor=1')
+  const executorMatch = window.location.search.match(/executor=(\d+)/)
   const isMap = window.location.search.includes('map=1')
   const isRegister = window.location.search.includes('register=executor')
   const isSettings = window.location.search.includes('settings=1')
@@ -26,8 +26,8 @@ function App() {
   if (clientMatch) {
     return <ClientCabinetPage clientId={Number(clientMatch[1])} />
   }
-  if (isExecutor) {
-    return <ExecutorPage executorId={1} />
+  if (executorMatch) {
+    return <ExecutorPage executorId={Number(executorMatch[1])} />
   }
 
   if (isMap) {

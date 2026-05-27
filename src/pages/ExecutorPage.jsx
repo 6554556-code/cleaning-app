@@ -1033,7 +1033,16 @@ function ExecutorPage({ executorId }) {
         textAlign: 'center'
       }}>
         <h2 style={{ margin: '0 0 4px' }}>{executor?.users?.full_name}</h2>
-        <p style={{ margin: '0', color: '#666' }}>⭐ {executor?.rating} · 📦 {executor?.orders_count} заказов</p>
+        {(() => {
+          const doneOrders = orders.filter(o => o.status === 'done' && !o.is_deleted)
+          const total = doneOrders.length
+          const fromApp = doneOrders.filter(o => o.source === 'booking').length
+          return (
+            <p style={{ margin: '0', color: '#666' }}>
+              ⭐ {executor?.rating || '—'} · 📦 {fromApp} / {total} заказов
+            </p>
+          )
+        })()}
         <button
           onClick={toggleVisible}
           style={{
