@@ -67,7 +67,15 @@ function RegisterExecutorPage() {
     // 1. Создаём пользователя
     // Берём telegram_id из Telegram
     const tgUser = getTelegramUser()
-    const tgId = tgUser?.telegram_id || 0
+    const tgId = tgUser?.telegram_id || null
+    const tgUsername = tgUser?.username ? tgUser.username.toLowerCase() : null
+
+    // Защита: на боевом сайте регистрация без Telegram-данных запрещена
+    if (!tgId) {
+      alert('Не удалось получить данные из Telegram. Открой приложение через ссылку в чате бота (а не в браузере) и попробуй ещё раз.')
+      setLoading(false)
+      return
+    }
 
     const { data: user, error: userError } = await supabase
       .from('users')
@@ -76,7 +84,7 @@ function RegisterExecutorPage() {
         phone: phone, 
         role: 'executor', 
         telegram_id: tgId,
-        telegram_username: tgUser?.username || ''
+        telegram_username: tgUsername
       }])
       .select()
       .single()
