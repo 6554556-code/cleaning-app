@@ -670,8 +670,9 @@ const viewStartMin = expandedBefore ? 0 : earliestMin
     // Округляем до 15 минут вниз
     const roundedMinutes = Math.floor(absoluteMinutes / 15) * 15
     const clickHour = Math.floor(roundedMinutes / 60)
-    const clickMin = roundedMinutes % 60
-    setClickMenu({ x: e.clientX, y: e.clientY, day, hour: clickHour, minute: clickMin })
+    const clickMin = roundedMinutes % 60    
+    const centerX = rect.left + rect.width / 2
+    setClickMenu({ x: centerX, y: e.clientY, day, hour: clickHour, minute: clickMin })
   }}
   style={{ position: 'relative', height: `${totalMinutes * PX_PER_MIN}px`, background: '#fafafa', borderRadius: '4px', cursor: 'pointer' }}
 >
@@ -799,6 +800,7 @@ const viewStartMin = expandedBefore ? 0 : earliestMin
             position: 'fixed',
             top: `${clickMenu.y}px`,
             left: `${clickMenu.x}px`,
+            transform: 'translateX(-50%)',
             zIndex: 101,
             background: 'white',
             borderRadius: '8px',
