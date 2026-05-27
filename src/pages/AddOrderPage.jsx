@@ -34,6 +34,10 @@ function AddOrderPage({ executor, initialDay, initialHour, initialMinute, onBack
       setServices(data || [])
       const main = data?.find(s => s.is_main)
       if (main) setSelectedService(main)
+      if (main) {
+        if (main.location_type === 'incall') setLocationType('incall')
+        else setLocationType('outcall')
+      }
     }
     loadServices()
   }, [executor.id])
