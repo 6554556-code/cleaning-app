@@ -63,7 +63,7 @@ function BlockDetailsModal({ block, onClose, onSaved }) {
     new Date(block.start_at).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })
   )
   const [saving, setSaving] = useState(false)
-
+  const [overlapInfo, setOverlapInfo] = useState(null)
   
   async function save() {
     setSaving(true)
@@ -245,7 +245,7 @@ function OrderDetailsModal({ order, clientStats, onClose, onSaved }) {
   )
 }
 // Модалка создания перерыва
-function BreakModal({ executor, day, initialHour, initialMinute, onClose, onSaved }) {
+function BreakModal({ executor, day, orders, blocks, initialHour, initialMinute, onClose, onSaved }) {
   const initialTime = (initialHour !== undefined && initialMinute !== undefined)
     ? `${String(initialHour).padStart(2, '0')}:${String(initialMinute).padStart(2, '0')}`
     : '13:00'
@@ -253,18 +253,76 @@ function BreakModal({ executor, day, initialHour, initialMinute, onClose, onSave
   const [duration, setDuration] = useState(60)
   const [reason, setReason] = useState('Перерыв')
   const [saving, setSaving] = useState(false)
+  const [overlapInfo, setOverlapInfo] = useState(null)
 
-  async function handleSave() {
+  // Считаем пересечения и свободное окно (минуты от полуночи)
+  function checkOverlap(startMin, durMin) {
+    const travelTime = executor.travel_time || 0
+    const bufferTime = executor.buffer_time || 0
+    const dayStr = day.toDateString()
+    const endMin = startMin + durMin
+
+    // Собираем все занятые отрезки на этот день
+    const busy = []
+
+    orders.forEach(o => {
+      if (!o.scheduled_at) return
+      const d = new Date(o.scheduled_at)
+      if (d.toDateString() !== dayStr) return
+      if (o.status === 'cancelled') return
+      const sM = d.getHours() * 60 + d.getMinutes()
+      const dur = o.total_duration || 60
+      const isOut = o.location_type === 'outcall'
+      const from = sM - (isOut ? travelTime : 0)
+      const to = sM + dur + bufferTime + (isOut ? travelTime : 0)
+      busy.push({ from, to })
+    })
+
+    blocks.forEach(b => {
+      if (!b.start_at) return
+      const d = new Date(b.start_at)
+      if (d.toDateString() !== dayStr) return
+      const sM = d.getHours() * 60 + d.getMinutes()
+      const to = sM + (b.duration || 0)
+      busy.push({ from: sM, to })
+    })
+
+    // Есть ли пересечение с запрошенным интервалом?
+    const conflict = busy.some(b => b.from < endMin && b.to > startMin)
+    if (!conflict) return { ok: true }
+
+    // Левый край рабочего дня — дефолт для leftEdge, если слева ничего нет
+    const [wStartH, wStartM] = executor.work_start.split(':').map(Number)
+    const workStartMin = wStartH * 60 + wStartM
+
+    // Свободное окно вокруг startMin
+    let leftEdge = workStartMin
+    let rightEdge = null
+    busy.forEach(b => {
+      if (b.to <= startMin) {
+        if (leftEdge === null || b.to > leftEdge) leftEdge = b.to
+      }
+      if (b.from > startMin) {
+        if (rightEdge === null || b.from < rightEdge) rightEdge = b.from
+      }
+      // Если занятость окружает startMin — окно нулевое слева/справа
+      if (b.from <= startMin && b.to > startMin) {
+        leftEdge = b.to
+      }
+    })
+
+    return { ok: false, leftEdge, rightEdge }
+  }
+  // Реальное сохранение в базу (вызывается после проверки пересечений)
+  async function saveBlock(startMin, durMin) {
     setSaving(true)
-    // Собираем дату + время в один момент
-    const [h, m] = time.split(':').map(Number)
     const startAt = new Date(day)
-    startAt.setHours(h, m, 0, 0)
+    startAt.setHours(Math.floor(startMin / 60), startMin % 60, 0, 0)
 
     const { error } = await supabase.from('blocks').insert({
       executor_id: executor.id,
       start_at: startAt.toISOString(),
-      duration: Number(duration),
+      duration: durMin,
       reason: reason,
       type: 'manual'
     })
@@ -274,6 +332,22 @@ function BreakModal({ executor, day, initialHour, initialMinute, onClose, onSave
       alert('Ошибка: ' + error.message)
     } else {
       onSaved()
+    }
+  }
+
+  function handleSave() {
+    const [h, m] = time.split(':').map(Number)
+    const startMin = h * 60 + m
+    const durMin = Number(duration)
+
+    const result = checkOverlap(startMin, durMin)
+
+    if (result.ok) {
+      // Конфликта нет — сохраняем как есть
+      saveBlock(startMin, durMin)
+    } else {
+      // Конфликт — показываем диалог с вариантами
+      setOverlapInfo({ startMin, durMin, leftEdge: result.leftEdge, rightEdge: result.rightEdge })
     }
   }
 
@@ -288,6 +362,67 @@ function BreakModal({ executor, day, initialHour, initialMinute, onClose, onSave
         onClick={(e) => e.stopPropagation()}
         style={{ background: 'white', borderRadius: '12px', padding: '20px', width: '100%', maxWidth: '320px' }}
       >
+        {overlapInfo && (() => {
+          const fmt = (mins) => `${String(Math.floor(mins / 60)).padStart(2, '0')}:${String(mins % 60).padStart(2, '0')}`
+          const { startMin, durMin, leftEdge, rightEdge } = overlapInfo
+          // rightEdge может быть null — тогда берём конец рабочего дня
+          const [wEndH, wEndM] = executor.work_end.split(':').map(Number)
+          const workEndMin = wEndH * 60 + wEndM
+          const right = rightEdge !== null ? rightEdge : workEndMin
+
+          // Вариант 1: с запрошенного начала до правого края
+          const opt1Start = startMin
+          const opt1End = right
+          const opt1Dur = opt1End - opt1Start
+
+          // Вариант 2: максимально влево, сколько влезет до правого края
+          // Если запрошенная длительность влезает — получим полный перерыв.
+          // Если не влезает — получим всё свободное окно (что лучше, чем огрызок справа).
+          const opt2Start = Math.max(leftEdge, right - durMin)
+          const opt2End = right
+          const opt2Dur = opt2End - opt2Start
+          // Показываем, только если начало отличается от варианта 1 (иначе дубль)
+          const hasOpt2 = opt2Start < startMin
+          
+          return (
+            <div>
+              <h3 style={{ margin: '0 0 8px' }}>⚠️ Не хватает времени</h3>
+              <p style={{ margin: '0 0 16px', color: '#666', fontSize: '13px' }}>
+                В это время уже что-то стоит. Куда поставить перерыв?
+              </p>
+
+              {opt1Dur > 0 && (
+                <button
+                  onClick={() => { setOverlapInfo(null); saveBlock(opt1Start, opt1Dur) }}
+                  disabled={saving}
+                  style={{ width: '100%', padding: '12px', marginBottom: '8px', border: '1px solid #3b82f6', background: 'white', color: '#3b82f6', borderRadius: '6px', cursor: 'pointer', textAlign: 'left' }}
+                >
+                  Поставить с {fmt(opt1Start)} до {fmt(opt1End)} ({opt1Dur} мин)
+                </button>
+              )}
+
+              {hasOpt2 && opt2Dur > 0 && (
+                <button
+                  onClick={() => { setOverlapInfo(null); saveBlock(opt2Start, opt2Dur) }}
+                  disabled={saving}
+                  style={{ width: '100%', padding: '12px', marginBottom: '8px', border: '1px solid #3b82f6', background: 'white', color: '#3b82f6', borderRadius: '6px', cursor: 'pointer', textAlign: 'left' }}
+                >
+                  Поставить с {fmt(opt2Start)} до {fmt(opt2End)} ({opt2Dur} мин)
+                </button>
+              )}
+
+              <button
+                onClick={() => setOverlapInfo(null)}
+                style={{ width: '100%', padding: '10px', marginTop: '8px', border: '1px solid #ddd', background: 'white', borderRadius: '6px', cursor: 'pointer' }}
+              >
+                Отмена / подумаю
+              </button>
+            </div>
+          )
+        })()}
+
+        {!overlapInfo && (
+          <>
         <h3 style={{ margin: '0 0 4px' }}>☕ Новый перерыв</h3>
         <p style={{ margin: '0 0 16px', color: '#666', fontSize: '13px' }}>{dateLabel}</p>
 
@@ -328,8 +463,10 @@ function BreakModal({ executor, day, initialHour, initialMinute, onClose, onSave
             style={{ flex: 1, padding: '10px', border: 'none', background: '#3b82f6', color: 'white', borderRadius: '6px', cursor: 'pointer' }}
           >
             {saving ? 'Сохраняю...' : 'Сохранить'}
-          </button>
+            </button>
         </div>
+          </>
+        )}
       </div>
     </div>
   )
@@ -643,6 +780,8 @@ const viewStartMin = expandedBefore ? 0 : earliestMin
         <BreakModal
           executor={executor}
           day={breakDay.day}
+          orders={orders}
+          blocks={blocks}
           initialHour={breakDay.hour}
           initialMinute={breakDay.minute}
           onClose={() => setBreakDay(null)}
