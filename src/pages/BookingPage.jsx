@@ -159,7 +159,7 @@ async function loadPickedDateSlots(dateStr) {
     // Берём данные пользователя из Telegram
     const tgUser = getTelegramUser()
     const tgId = tgUser?.telegram_id || 0
-    const tgUsername = tgUser?.username || null
+    const tgUsername = tgUser?.username ? tgUser.username.toLowerCase() : null
 
     let user = null
 

@@ -9,6 +9,7 @@ function AddOrderPage({ executor, initialDay, initialHour, initialMinute, onBack
   const [comment, setComment] = useState('')
   const [loading, setLoading] = useState(false)
   const [overlapModal, setOverlapModal] = useState(null)
+  const [clientTgUsername, setClientTgUsername] = useState('')
   const [services, setServices] = useState([])
   const [selectedService, setSelectedService] = useState(null)
   const [selectedExtras, setSelectedExtras] = useState([])
@@ -67,10 +68,24 @@ function AddOrderPage({ executor, initialDay, initialHour, initialMinute, onBack
   }
   // Создаёт заказ и связанные блоки на заданное время
   async function createOrder(clientName, clientPhone, fullServiceName, scheduledAt) {
+    // Чистим username от @ и пробелов, приводим к нижнему регистру
+    const cleanUsername = clientTgUsername.trim().replace(/^@/, '').toLowerCase()
+
+    // Если username введён — пробуем найти существующего юзера в БД
+    let foundClientId = null
+    if (cleanUsername) {
+      const { data: existingUser } = await supabase
+        .from('users')
+        .select('id')
+        .eq('telegram_username', cleanUsername)
+        .maybeSingle()
+      if (existingUser) foundClientId = existingUser.id
+    }
+
     const { data: orderData, error: orderError } = await supabase
       .from('orders')
       .insert([{
-        client_id: null,
+        client_id: foundClientId,
         client_name: clientName,
         client_phone: clientPhone,
         executor_id: executor.id,
@@ -84,7 +99,8 @@ function AddOrderPage({ executor, initialDay, initialHour, initialMinute, onBack
         total_price: calcTotal(),
         total_duration: calcDuration(),
         location_type: locationType,
-        source: 'manual'
+        source: 'manual',
+        client_telegram_username: cleanUsername || null
       }])
       .select()
       .single()
@@ -389,6 +405,7 @@ function AddOrderPage({ executor, initialDay, initialHour, initialMinute, onBack
       {[
         { label: 'Имя клиента *', value: name, setter: setName, placeholder: 'Как зовут клиента' },
         { label: 'Телефон *', value: phone, setter: setPhone, placeholder: '+7 999 123 45 67' },
+        { label: 'Telegram-ник клиента (без @, необязательно)', value: clientTgUsername, setter: setClientTgUsername, placeholder: 'username' },
         ...(locationType !== 'incall' ? [{ label: 'Адрес', value: address, setter: setAddress, placeholder: 'Улица, дом, квартира' }] : []),
         { label: 'Комментарий', value: comment, setter: setComment, placeholder: 'Важные детали...' },
       ].map(field => (

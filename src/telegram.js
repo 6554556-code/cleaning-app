@@ -31,8 +31,28 @@ export async function syncTelegramUsername() {
   
   // Обновляем username для существующего пользователя
   // (если его нет в БД — ничего не произойдёт, это нормально)
+  const username = user.username.toLowerCase()
+
+  // 1. Обновляем username для существующего пользователя
   await supabase
     .from('users')
-    .update({ telegram_username: user.username })
+    .update({ telegram_username: username })
     .eq('telegram_id', user.telegram_id)
+
+  // 2. Дозамыкание: ищем "предзаказы" по username и проставляем им client_id
+  // (заказы, которые исполнитель создал вручную, указав @username клиента,
+  // и который теперь впервые зашёл в приложение)
+  const { data: existingUser } = await supabase
+    .from('users')
+    .select('id')
+    .eq('telegram_id', user.telegram_id)
+    .maybeSingle()
+
+  if (existingUser) {
+    await supabase
+      .from('orders')
+      .update({ client_id: existingUser.id })
+      .is('client_id', null)
+      .eq('client_telegram_username', username)
+  }
 }
