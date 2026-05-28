@@ -89,6 +89,12 @@ const [reviewModalOrder, setReviewModalOrder] = useState(null)
     if (p.length === 11 && p.startsWith('7')) return '+' + p
     return p                                 // иностранные/прочие — как есть
   }
+  function copyPhone(raw) {
+    const phone = normalizePhone(raw)
+    if (!phone) return
+    navigator.clipboard?.writeText(phone)
+    alert('Номер скопирован: ' + phone)
+  }
   function callPhone(raw) {
     const phone = normalizePhone(raw)
     if (!phone) {
@@ -258,6 +264,18 @@ const [reviewModalOrder, setReviewModalOrder] = useState(null)
                     📞 Позвонить
                   </button>
                 )}
+              </div>
+            )}
+
+            {order.executorPhone && (
+              <div
+                onClick={() => copyPhone(order.executorPhone)}
+                style={{
+                  marginTop: '6px', textAlign: 'center', fontSize: '12px',
+                  color: '#888', cursor: 'pointer'
+                }}
+              >
+                📋 {normalizePhone(order.executorPhone)} (нажми, чтобы скопировать)
               </div>
             )}
 
