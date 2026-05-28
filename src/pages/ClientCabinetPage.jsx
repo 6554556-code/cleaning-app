@@ -81,7 +81,27 @@ const [reviewModalOrder, setReviewModalOrder] = useState(null)
   useEffect(() => {
     loadOrders()
   }, [clientId])
-
+  function normalizePhone(raw) {
+    if (!raw) return null
+    let p = raw.replace(/[^\d+]/g, '')      // убираем всё кроме цифр и +
+    if (p.startsWith('+')) return p          // уже международный — не трогаем
+    if (p.length === 11 && p.startsWith('8')) return '+7' + p.slice(1)
+    if (p.length === 11 && p.startsWith('7')) return '+' + p
+    return p                                 // иностранные/прочие — как есть
+  }
+  function callPhone(raw) {
+    const phone = normalizePhone(raw)
+    if (!phone) {
+      alert('У этого исполнителя не указан телефон')
+      return
+    }
+    const tg = window.Telegram?.WebApp
+    if (tg?.openLink) {
+      tg.openLink('tel:' + phone)
+    } else {
+      window.location.href = 'tel:' + phone
+    }
+  }
   async function cancelOrder(orderId) {
     if (!confirm('Отменить эту бронь?')) return
 
@@ -232,16 +252,16 @@ const [reviewModalOrder, setReviewModalOrder] = useState(null)
                   </a>
                 )}
                 {order.executorPhone && (
-                  <a
-                    href={`tel:${order.executorPhone}`}
+                  <button
+                    onClick={() => callPhone(order.executorPhone)}
                     style={{
                       flex: 1, padding: '8px', textAlign: 'center',
-                      background: '#f0f0f0', color: 'black',
-                      borderRadius: '8px', textDecoration: 'none', fontSize: '13px'
+                      background: '#f0f0f0', color: 'black', border: 'none',
+                      borderRadius: '8px', cursor: 'pointer', fontSize: '13px'
                     }}
                   >
                     📞 Позвонить
-                  </a>
+                  </button>
                 )}
               </div>
             )}
