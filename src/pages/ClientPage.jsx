@@ -389,7 +389,7 @@ const tomorrowFuture = tomorrowSlots.slice(0, 4)
             fontSize: '12px',
             color: '#888'
           }}>
-            <span>➕ {extra.name} {getLocationIcon(extra.location_type)} {extra.duration ? `· ${extra.duration} мин` : ''}</span>
+            <span>➕ {extra.name} {extra.duration ? `· ${extra.duration} мин` : ''}</span>
             <span>+{extra.price} руб</span>
           </div>
         ))}
