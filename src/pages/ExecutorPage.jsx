@@ -909,6 +909,30 @@ function ExecutorPage({ executorId }) {
   const [ratingStats, setRatingStats] = useState(null)
   const [activeTab, setActiveTab] = useState('schedule')
   const [showAddOrder, setShowAddOrder] = useState(false)
+  function normalizePhone(raw) {
+    if (!raw) return null
+    let p = raw.replace(/[^\d+]/g, '')
+    if (p.startsWith('+')) return p
+    if (p.length === 11 && p.startsWith('8')) return '+7' + p.slice(1)
+    if (p.length === 11 && p.startsWith('7')) return '+' + p
+    return p
+  }
+
+  function callPhone(raw) {
+    const phone = normalizePhone(raw)
+    if (!phone) {
+      alert('У этого клиента не указан телефон')
+      return
+    }
+    window.location.href = 'tel:' + phone
+  }
+
+  function copyPhone(raw) {
+    const phone = normalizePhone(raw)
+    if (!phone) return
+    navigator.clipboard?.writeText(phone)
+    alert('Номер скопирован: ' + phone)
+  }
   async function toggleVisible() {
     const newValue = !executor.is_visible
         const { error } = await supabase
@@ -958,7 +982,7 @@ function ExecutorPage({ executorId }) {
 
     const { data: ordersData } = await supabase
     .from('orders')
-    .select('*, client:client_id(full_name, phone)')
+    .select('*, client:client_id(full_name, phone, telegram_username)')
     .eq('executor_id', realExecutorId)
     .neq('is_deleted', true)
     .order('created_at', { ascending: false })
@@ -1160,19 +1184,43 @@ function ExecutorPage({ executorId }) {
   {order.total_duration && <span>⏱ {order.total_duration} мин</span>}
   </div>
 <div style={{ display: 'flex', gap: '8px', marginTop: '8px' }}>
-<a href={`tel:${order.client_phone || order.client?.phone || ''}`} style={{
+{(order.client_telegram_username || order.client?.telegram_username) && (
+  <a
+  href={`https://t.me/${order.client_telegram_username || order.client?.telegram_username}`}
+  target="_blank"
+  rel="noreferrer"
+  style={{
     flex: 1,
     padding: '8px',
-    background: '#f0f0f0',
-    color: 'black',
-    border: 'none',
+    background: '#2481cc',
+    color: 'white',
     borderRadius: '8px',
-    cursor: 'pointer',
+    textDecoration: 'none',
     fontSize: '14px',
-    textAlign: 'center',
-    textDecoration: 'none'
-  }}>📞 Позвонить</a>
+    textAlign: 'center'
+  }}
+>💬 Написать</a>
+)}
+<button onClick={() => callPhone(order.client_phone || order.client?.phone)} style={{
+  flex: 1,
+  padding: '8px',
+  background: '#f0f0f0',
+  color: 'black',
+  border: 'none',
+  borderRadius: '8px',
+  cursor: 'pointer',
+  fontSize: '14px',
+  textAlign: 'center'
+}}>📞 Позвонить</button>
 </div>
+{(order.client_phone || order.client?.phone) && (
+  <div
+    onClick={() => copyPhone(order.client_phone || order.client?.phone)}
+    style={{ marginTop: '6px', textAlign: 'center', fontSize: '12px', color: '#888', cursor: 'pointer' }}
+  >
+    📋 {normalizePhone(order.client_phone || order.client?.phone)} (нажми, чтобы скопировать)
+  </div>
+)}
                   <div style={{ display: 'flex', gap: '8px', marginTop: '12px' }}>
                     {order.status === 'new' && (
                       <button
