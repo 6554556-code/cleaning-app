@@ -91,6 +91,7 @@ const [reviewModalOrder, setReviewModalOrder] = useState(null)
   }
   function callPhone(raw) {
     const phone = normalizePhone(raw)
+    alert('Звоню на: [' + phone + '] | Telegram есть: ' + (!!window.Telegram?.WebApp))
     if (!phone) {
       alert('У этого исполнителя не указан телефон')
       return
