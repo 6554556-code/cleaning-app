@@ -34,6 +34,7 @@ function BookingPage({ executor, stats, reviews, slot, onBack, onSuccess }) {
         .from('services')
         .select('*')
         .eq('executor_id', executor.id)
+        .eq('is_archived', false)
         .order('is_main', { ascending: false })
         .order('name', { ascending: true })
       setServices(data || [])
@@ -52,7 +53,6 @@ useEffect(() => {
     const { data: existingOrders } = await supabase
       .from('orders')
       .select('scheduled_at, total_duration, location_type')
-      .eq('executor_id', executor.id)
       .neq('status', 'cancelled')
       .neq('is_deleted', true)
 

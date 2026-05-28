@@ -151,6 +151,7 @@ const { data: executorServices } = await supabase
   .from('services')
   .select('*')
   .eq('executor_id', executor.id)
+  .eq('is_archived', false)
   .order('is_main', { ascending: false })
   .order('name', { ascending: true })
 
