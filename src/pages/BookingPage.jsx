@@ -53,6 +53,7 @@ useEffect(() => {
     const { data: existingOrders } = await supabase
       .from('orders')
       .select('scheduled_at, total_duration, location_type')
+      .eq('executor_id', executor.id)
       .neq('status', 'cancelled')
       .neq('is_deleted', true)
 
