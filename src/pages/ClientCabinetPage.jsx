@@ -91,17 +91,11 @@ const [reviewModalOrder, setReviewModalOrder] = useState(null)
   }
   function callPhone(raw) {
     const phone = normalizePhone(raw)
-    alert('Звоню на: [' + phone + '] | Telegram есть: ' + (!!window.Telegram?.WebApp))
     if (!phone) {
       alert('У этого исполнителя не указан телефон')
       return
     }
-    const tg = window.Telegram?.WebApp
-    if (tg?.openLink) {
-      tg.openLink('tel:' + phone)
-    } else {
-      window.location.href = 'tel:' + phone
-    }
+    window.location.href = 'tel:' + phone
   }
   async function cancelOrder(orderId) {
     if (!confirm('Отменить эту бронь?')) return
