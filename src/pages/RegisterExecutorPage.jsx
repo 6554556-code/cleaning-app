@@ -62,6 +62,19 @@ function RegisterExecutorPage() {
       return
     }
 
+    const [startH, startM] = workStart.split(':').map(Number)
+const [endH, endM] = workEnd.split(':').map(Number)
+const startMinutes = startH * 60 + startM
+const endMinutes = endH * 60 + endM
+
+if (endMinutes < startMinutes) {
+  alert('Время окончания раньше времени начала — мастер станет невидимым для клиентов.\n\n🌙 Работаете по ночному графику с переходом через полночь? Укажите 00:00–23:59, а нерабочие часы закройте перерывом в расписании.')
+  return
+}
+if (endMinutes === startMinutes) {
+  alert('Время начала и окончания совпадают — мастер станет невидимым для клиентов.\n\n🕐 Для круглосуточной работы укажите 00:00–23:59.')
+  return
+}
     setSaving(true)
 
     // 1. Создаём пользователя
