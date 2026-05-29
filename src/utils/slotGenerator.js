@@ -126,6 +126,9 @@ export function generateSlots(executor, existingOrders, date, newOrder = {}, exi
   const end = new Date(date)
   end.setHours(endHour, endMin, 0, 0)
 
+  // Фиксируем начало рабочего дня — current дальше мутирует в цикле
+  const dayStart = new Date(current)
+
   // Заранее считаем занятые интервалы заказов и блоков
   const orderRanges = existingOrders.map(o => getOrderBusyRange(o, executor))
   const blockRanges = existingBlocks.map(b => getBlockBusyRange(b))
@@ -140,8 +143,11 @@ export function generateSlots(executor, existingOrders, date, newOrder = {}, exi
     const newBusyEnd = new Date(slotStart)
     newBusyEnd.setMinutes(newBusyEnd.getMinutes() + newTotalAfter)
 
-    // Заказ должен целиком влезать в рабочий день
-    const fitsInWorkday = newBusyEnd <= end
+    // Заказ должен целиком влезать в рабочий день:
+    // — newBusyEnd <= end: услуга + буфер + дорога обратно не вылезают за конец смены
+    // — newBusyStart >= dayStart: для outcall дорога ТУДА не уходит за начало смены
+    //   (для in-call travel=0, поэтому newBusyStart === slotStart, и условие выполняется автоматически)
+    const fitsInWorkday = newBusyEnd <= end && newBusyStart >= dayStart
 
     // Проверяем пересечение с заказами И блоками
     const overlaps = allBusyRanges.some(({ busyStart, busyEnd }) => {
