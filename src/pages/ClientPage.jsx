@@ -86,12 +86,11 @@ useEffect(() => {
       if (executor) setMyExecutorId(executor.id)
     }
 
-    // --- Клиент: ищем строго по роли ---
+    // --- Клиент: без фильтра по роли (заказы носят и executor-юзеры) ---
     const { data: clientUser } = await supabase
       .from('users')
       .select('id')
       .eq('telegram_id', tgUser.telegram_id)
-      .eq('role', 'client')
       .maybeSingle()
 
     if (clientUser) {
