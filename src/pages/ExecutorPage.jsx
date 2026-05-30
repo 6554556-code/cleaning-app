@@ -765,7 +765,8 @@ const viewStartMin = expandedBefore ? 0 : earliestMin
                         >
                           <div style={{ width: '100%' }}>
                           <div style={{ fontWeight: 'bold' }}>{order.client_name || order.client?.full_name || order.name || 'Клиент'}</div>
-                            <div style={{ fontSize: '9px', opacity: 0.9 }}>{orderDate.getHours()}:{String(orderDate.getMinutes()).padStart(2, '0')}{order.total_price ? ` · ${order.total_price}₽` : ''}</div>
+                          <div style={{ fontSize: '9px', opacity: 0.9 }}>{orderDate.getHours()}:{String(orderDate.getMinutes()).padStart(2, '0')}{order.total_price ? ` · ${order.total_price}₽` : ''}</div>
+                          <div style={{ fontSize: '8px', opacity: 0.7 }}>#{order.id}</div>
                           </div>
                         </div>
                       )}
@@ -1160,13 +1161,16 @@ function ExecutorPage({ executorId }) {
                   {order.client_name || order.client?.full_name || 'Клиент'}
                       <ClientStatsBadges stats={getClientStats(orders, order.client_id)} />
                     </h4>
-                    <span style={{
-                      background: status.bg,
-                      color: status.color,
-                      padding: '4px 10px',
-                      borderRadius: '12px',
-                      fontSize: '13px'
-                    }}>{status.label}</span>
+                    <div style={{ textAlign: 'right' }}>
+                      <div style={{ fontSize: '10px', color: '#bbb', marginBottom: '2px' }}>#{order.id}</div>
+                      <span style={{
+                       background: status.bg,
+                       color: status.color,
+                       padding: '4px 10px',
+                       borderRadius: '12px',
+                       fontSize: '13px'
+                      }}>{status.label}</span>
+                    </div>
                   </div>
                   {order.location_type === 'outcall' && order.address && (
                     <p style={{ margin: '8px 0 4px', fontSize: '14px' }}>🚗 {order.address}</p>

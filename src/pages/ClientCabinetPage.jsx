@@ -192,7 +192,10 @@ const [reviewModalOrder, setReviewModalOrder] = useState(null)
               {order.location_type === 'incall' ? '🏠 ' : order.location_type === 'outcall' ? '🚗 ' : ''}
               {order.executorName}
             </h4>
-              <span style={{ fontSize: '12px' }}>{STATUS_LABELS[order.status] || order.status}</span>
+            <div style={{ textAlign: 'right' }}>
+  <div style={{ fontSize: '10px', color: '#bbb', marginBottom: '2px' }}>#{order.id}</div>
+  <span style={{ fontSize: '12px' }}>{STATUS_LABELS[order.status] || order.status}</span>
+</div>
             </div>
             {/* Адрес поездки — крупно, если incall. Берём снимок с момента брони,
                 а если его нет (старый заказ до миграции) — fallback на текущий адрес исполнителя. */}
