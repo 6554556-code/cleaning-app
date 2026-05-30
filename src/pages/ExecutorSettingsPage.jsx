@@ -268,6 +268,25 @@ const newCity = latitude !== '' && longitude !== ''
 ? await getCityFromCoords(Number(latitude), Number(longitude))
 : null;
     // Адрес лежит в таблице executors
+    const [startH, startM] = workStart.split(':').map(Number)
+const [endH, endM] = workEnd.split(':').map(Number)
+const startMinutes = startH * 60 + startM
+const endMinutes = endH * 60 + endM
+
+if (endMinutes < startMinutes) {
+  setWorkStart(executor.work_start)
+  setWorkEnd(executor.work_end)
+  setSaving(false)
+  alert('Время окончания раньше времени начала — мастер станет невидимым для клиентов.\n\n🌙 Работаете по ночному графику с переходом через полночь? Укажите 00:00–23:59, а нерабочие часы закройте перерывом в расписании.')
+  return
+}
+if (endMinutes === startMinutes) {
+  setWorkStart(executor.work_start)
+  setWorkEnd(executor.work_end)
+  setSaving(false)
+  alert('Время начала и окончания совпадают — мастер станет невидимым для клиентов.\n\n🕐 Для круглосуточной работы укажите 00:00–23:59.')
+  return
+}
     const { error: execError } = await supabase
       .from('executors')
       .update({
