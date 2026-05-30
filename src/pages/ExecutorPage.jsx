@@ -1225,8 +1225,8 @@ function ExecutorPage({ executorId }) {
                     {order.status === 'new' && (
                       <button
                         onClick={async () => {
-                          await supabase.from('orders').update({ status: 'in_progress' }).eq('id', order.id)
-                          setOrders(orders.map(o => o.id === order.id ? { ...o, status: 'in_progress' } : o))
+                          await supabase.from('orders').update({ status: 'confirmed_by_executor' }).eq('id', order.id)
+                          setOrders(orders.map(o => o.id === order.id ? { ...o, status: 'confirmed_by_executor' } : o))
                         }}
                         style={{
                           flex: 1,
@@ -1242,7 +1242,7 @@ function ExecutorPage({ executorId }) {
                         ✅ Принять
                       </button>
                     )}
-                    {order.status === 'in_progress' && (
+                    {!['new', 'done', 'cancelled'].includes(order.status) && (
                       <button
                         onClick={async () => {
                           await supabase.from('orders').update({ status: 'done' }).eq('id', order.id)
@@ -1262,6 +1262,28 @@ function ExecutorPage({ executorId }) {
                         🏁 Завершить
                       </button>
                     )}
+                    {!['done', 'cancelled'].includes(order.status) && (
+  <button
+    onClick={async () => {
+      if (!confirm('Отменить заказ? Клиент получит уведомление об отмене.')) return
+      await supabase.from('orders').update({ status: 'cancelled', cancelled_by: 'executor' }).eq('id', order.id)
+      await supabase.from('blocks').delete().eq('order_id', order.id).in('type', ['auto_travel', 'auto_buffer'])
+      setOrders(orders.map(o => o.id === order.id ? { ...o, status: 'cancelled' } : o))
+    }}
+    style={{
+      flex: 1,
+      padding: '8px',
+      background: '#ef4444',
+      color: 'white',
+      border: 'none',
+      borderRadius: '8px',
+      cursor: 'pointer',
+      fontSize: '14px'
+    }}
+  >
+    ✕ Отменить
+  </button>
+)}
                   </div>
                 </div>
               )
