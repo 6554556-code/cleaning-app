@@ -164,14 +164,16 @@ async function loadPickedDateSlots(dateStr) {
 
     let user = null
 
-    // Если есть telegram_id — ищем существующего пользователя
+    // Ищем существующего КЛИЕНТА (берём самого раннего, не давимся на дублях)
     if (tgId) {
       const { data: existing } = await supabase
         .from('users')
         .select('*')
         .eq('telegram_id', tgId)
-        .maybeSingle()
-      user = existing
+        .eq('role', 'client')
+        .order('id', { ascending: true })
+        .limit(1)
+      user = existing && existing[0] ? existing[0] : null
     }
 
     if (user) {
