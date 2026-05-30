@@ -69,37 +69,39 @@ useEffect(() => {
     const tgUser = getTelegramUser()
     if (!tgUser?.telegram_id) return
 
-    // Ищем пользователя в базе
-    const { data: user } = await supabase
+    // --- Исполнитель: ищем строго по роли ---
+    const { data: execUser } = await supabase
       .from('users')
       .select('id')
       .eq('telegram_id', tgUser.telegram_id)
+      .eq('role', 'executor')
       .maybeSingle()
 
-      if (!user) return
-
-      // Проверяем, есть ли у него заказы
-      const { data: orders } = await supabase
-        .from('orders')
-        .select('id')
-        .eq('client_id', user.id)
-        .limit(1)
-
-      // Если есть хотя бы один заказ — показываем кнопку кабинета
-      if (orders && orders.length > 0) {
-        setMyUserId(user.id)
-      }
-
-      // Проверяем, есть ли у него профиль исполнителя
+    if (execUser) {
       const { data: executor } = await supabase
         .from('executors')
         .select('id')
-        .eq('user_id', user.id)
+        .eq('user_id', execUser.id)
         .maybeSingle()
+      if (executor) setMyExecutorId(executor.id)
+    }
 
-      if (executor) {
-        setMyExecutorId(executor.id)
-      }
+    // --- Клиент: ищем строго по роли ---
+    const { data: clientUser } = await supabase
+      .from('users')
+      .select('id')
+      .eq('telegram_id', tgUser.telegram_id)
+      .eq('role', 'client')
+      .maybeSingle()
+
+    if (clientUser) {
+      const { data: orders } = await supabase
+        .from('orders')
+        .select('id')
+        .eq('client_id', clientUser.id)
+        .limit(1)
+      if (orders && orders.length > 0) setMyUserId(clientUser.id)
+    }
   }
   checkUser()
 }, [])
