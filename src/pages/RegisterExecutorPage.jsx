@@ -86,10 +86,31 @@ if (endMinutes === startMinutes) {
     // Защита: на боевом сайте регистрация без Telegram-данных запрещена
     if (!tgId) {
       alert('Не удалось получить данные из Telegram. Открой приложение через ссылку в чате бота (а не в браузере) и попробуй ещё раз.')
-      setLoading(false)
+      setSaving(false)
       return
     }
 
+    // Не плодим: если у этого telegram_id уже есть профиль исполнителя — ведём в кабинет
+    const { data: existingUser } = await supabase
+      .from('users')
+      .select('id')
+      .eq('telegram_id', tgId)
+      .eq('role', 'executor')
+      .maybeSingle()
+
+    if (existingUser) {
+      const { data: existingExec } = await supabase
+        .from('executors')
+        .select('id')
+        .eq('user_id', existingUser.id)
+        .maybeSingle()
+      if (existingExec) {
+        setSaving(false)
+        alert('У вас уже есть профиль исполнителя — открываю кабинет.')
+        window.location.href = '/?executor=1'
+        return
+      }
+    }
     const { data: user, error: userError } = await supabase
       .from('users')
       .insert([{ 

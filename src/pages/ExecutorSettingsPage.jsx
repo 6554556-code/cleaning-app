@@ -37,6 +37,7 @@ function ExecutorSettingsPage() {
           .from('users')
           .select('id')
           .eq('telegram_id', tgUser.telegram_id)
+          .eq('role', 'executor')
           .maybeSingle()
 
           if (user) {
