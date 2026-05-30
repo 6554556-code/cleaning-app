@@ -86,20 +86,22 @@ useEffect(() => {
       if (executor) setMyExecutorId(executor.id)
     }
 
-    // --- Клиент: без фильтра по роли (часть заказов висит на executor-строках) ---
-    const { data: clientUser } = await supabase
+    // --- Клиент: по факту заказов на любой строке этого telegram_id (без роли, без maybeSingle) ---
+    const { data: myRows } = await supabase
       .from('users')
       .select('id')
       .eq('telegram_id', tgUser.telegram_id)
-      .maybeSingle()
+    const myIds = (myRows || []).map(r => r.id)
 
-    if (clientUser) {
-      const { data: orders } = await supabase
+    if (myIds.length > 0) {
+      const { data: myOrders } = await supabase
         .from('orders')
-        .select('id')
-        .eq('client_id', clientUser.id)
+        .select('client_id')
+        .in('client_id', myIds)
         .limit(1)
-      if (orders && orders.length > 0) setMyUserId(clientUser.id)
+      if (myOrders && myOrders.length > 0) {
+        setMyUserId(myOrders[0].client_id)
+      }
     }
   }
   checkUser()
