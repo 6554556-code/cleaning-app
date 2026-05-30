@@ -1022,6 +1022,9 @@ function ExecutorPage({ executorId }) {
       new: { label: 'Новая', color: '#f5a623', bg: '#fff8ed' },
       in_progress: { label: 'В работе', color: '#2481cc', bg: '#e8f4fd' },
       done: { label: 'Выполнена', color: '#16a34a', bg: '#f0fdf4' },
+      confirmed_by_executor: { label: 'Подтверждено вами', color: '#3b82f6', bg: '#eff6ff' },
+      awaiting_client_confirmation: { label: 'Ждём клиента', color: '#f97316', bg: '#fff7ed' },
+      confirmed_by_client: { label: 'Подтверждено клиентом', color: '#22c55e', bg: '#f0fdf4' },
       cancelled: { label: 'Отменена', color: '#dc2626', bg: '#fef2f2' },
     }
     return statuses[status] || { label: status, color: '#666', bg: '#f0f0f0' }
