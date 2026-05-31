@@ -25,6 +25,8 @@ function ExecutorSettingsPage() {
   const [timezone, setTimezone] = useState('Europe/Moscow')
   const [avatarUrl, setAvatarUrl] = useState('')
   const [uploadingAvatar, setUploadingAvatar] = useState(false)
+  const [avatarBlob, setAvatarBlob] = useState(null)      // ужатое фото, ждёт кнопки "Сохранить"
+  const [avatarPreview, setAvatarPreview] = useState('')  // временный URL для превью
   useEffect(() => {
     async function loadProfile() {
       setLoading(true)
@@ -258,35 +260,80 @@ for (const s of group) {
     setSavingServiceId(null)
     alert('Услуга сохранена ✅')
   }
-  // Загрузка аватара: файл → Supabase Storage (бакет avatars) → ссылка в executors.avatar_url
-  async function handleAvatarUpload(e) {
+  // Ужимаем картинку прямо в браузере: уменьшаем до 512px по большей стороне
+  // и пересохраняем в JPEG. Это убивает разом две проблемы:
+  // большой размер (ошибка 413) и HEIC с айфона (нормализуем в обычный JPEG).
+  function resizeImageToJpeg(file, maxSize = 512, quality = 0.85) {
+    return new Promise((resolve, reject) => {
+      const objectUrl = URL.createObjectURL(file)
+      const img = new Image()
+      img.onload = () => {
+        URL.revokeObjectURL(objectUrl)
+        let { width, height } = img
+        if (width >= height && width > maxSize) {
+          height = Math.round(height * (maxSize / width))
+          width = maxSize
+        } else if (height > maxSize) {
+          width = Math.round(width * (maxSize / height))
+          height = maxSize
+        }
+        const canvas = document.createElement('canvas')
+        canvas.width = width
+        canvas.height = height
+        canvas.getContext('2d').drawImage(img, 0, 0, width, height)
+        canvas.toBlob(
+          blob => blob ? resolve(blob) : reject(new Error('toBlob failed')),
+          'image/jpeg',
+          quality
+        )
+      }
+      img.onerror = () => {
+        URL.revokeObjectURL(objectUrl)
+        reject(new Error('decode failed'))
+      }
+      img.src = objectUrl
+    })
+  }
+
+  // Шаг 1 — выбор файла. Ужимаем и показываем ТОЛЬКО превью.
+  // В storage и в базу ничего не пишем, пока не нажата "Сохранить фото".
+  async function handleAvatarPick(e) {
     const file = e.target.files?.[0]
-    if (!file || !executor) return
+    e.target.value = '' // сброс, чтобы можно было выбрать тот же файл ещё раз
+    if (!file) return
+    try {
+      const blob = await resizeImageToJpeg(file)
+      if (avatarPreview) URL.revokeObjectURL(avatarPreview)
+      setAvatarBlob(blob)
+      setAvatarPreview(URL.createObjectURL(blob))
+    } catch (err) {
+      alert('Не удалось прочитать изображение. Выберите фото в формате JPG или PNG.')
+    }
+  }
+
+  // Шаг 2 — подтверждение. Грузим ужатый JPEG в storage и пишем ссылку в профиль.
+  async function handleAvatarConfirm() {
+    if (!avatarBlob || !executor) return
     setUploadingAvatar(true)
 
-    // Имя файла: executor_<id>_<время>.<расширение> — уникальное, чтобы не кешировалось старое
-    const ext = file.name.split('.').pop()
-    const fileName = `executor_${executor.id}_${Date.now()}.${ext}`
-
-    // Льём в бакет
+    const fileName = `executor_${executor.id}_${Date.now()}.jpg`
     const { error: uploadError } = await supabase.storage
       .from('avatars')
-      .upload(fileName, file, { upsert: true, contentType: file.type })
+      .upload(fileName, avatarBlob, { upsert: true, contentType: 'image/jpeg' })
 
-      if (uploadError) {
-        console.error('Storage upload error:', uploadError)
-        alert('Ошибка загрузки фото: ' + uploadError.message + ' | ' + (uploadError.statusCode || '') + ' ' + (uploadError.error || ''))
-        setUploadingAvatar(false)
-        return
-      }
+    if (uploadError) {
+      setUploadingAvatar(false)
+      const tooBig = uploadError.statusCode === '413'
+        || /exceeded the maximum/i.test(uploadError.message || '')
+      alert(tooBig
+        ? 'Файл слишком большой. Попробуйте фото поменьше.'
+        : 'Не удалось загрузить фото. Попробуйте ещё раз.')
+      return
+    }
 
-    // Получаем публичную ссылку
-    const { data: publicData } = supabase.storage
-      .from('avatars')
-      .getPublicUrl(fileName)
+    const { data: publicData } = supabase.storage.from('avatars').getPublicUrl(fileName)
     const url = publicData?.publicUrl
 
-    // Сохраняем ссылку в профиль исполнителя
     const { error: dbError } = await supabase
       .from('executors')
       .update({ avatar_url: url })
@@ -294,10 +341,22 @@ for (const s of group) {
 
     setUploadingAvatar(false)
     if (dbError) {
-      alert('Фото загрузилось, но не сохранилось в профиль: ' + dbError.message)
+      alert('Фото загрузилось, но не сохранилось в профиль. Попробуйте ещё раз.')
       return
     }
+
+    // Успех: фиксируем новое фото, чистим превью
     setAvatarUrl(url)
+    if (avatarPreview) URL.revokeObjectURL(avatarPreview)
+    setAvatarPreview('')
+    setAvatarBlob(null)
+  }
+
+  // Отмена выбора — возвращаем старое фото, в базе ничего не трогаем.
+  function handleAvatarCancel() {
+    if (avatarPreview) URL.revokeObjectURL(avatarPreview)
+    setAvatarPreview('')
+    setAvatarBlob(null)
   }
   async function handleSave() {
     setSaving(true)
@@ -373,32 +432,60 @@ if (endMinutes === startMinutes) {
       <div style={{ background: 'white', borderRadius: '12px', padding: '16px', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
       <h3 style={{ marginTop: 0 }}>О себе</h3>
 
-{/* Аватар: круглое фото + кнопка загрузки */}
+{/* Аватар: круглое фото + превью с подтверждением */}
 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: '16px' }}>
   <div style={{
     width: '96px', height: '96px', borderRadius: '50%', overflow: 'hidden',
     background: '#f0f0f0', display: 'flex', alignItems: 'center', justifyContent: 'center',
     border: '2px solid #e0e0e0', marginBottom: '8px'
   }}>
-    {avatarUrl ? (
-      <img src={avatarUrl} alt="Фото" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+    {(avatarPreview || avatarUrl) ? (
+      <img src={avatarPreview || avatarUrl} alt="Фото" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
     ) : (
       <span style={{ fontSize: '36px', color: '#bbb' }}>📷</span>
     )}
   </div>
-  <label style={{
-    cursor: uploadingAvatar ? 'wait' : 'pointer', fontSize: '13px', color: '#2481cc',
-    padding: '6px 12px', border: '1px solid #2481cc', borderRadius: '8px'
-  }}>
-    {uploadingAvatar ? 'Загрузка...' : (avatarUrl ? 'Заменить фото' : 'Загрузить фото')}
-    <input
-      type="file"
-      accept="image/jpeg,image/png,image/webp"
-      onChange={handleAvatarUpload}
-      disabled={uploadingAvatar}
-      style={{ display: 'none' }}
-    />
-  </label>
+
+  {avatarPreview ? (
+    // Выбрано новое фото, но ещё не сохранено — Сохранить/Отмена прямо здесь
+    <div style={{ display: 'flex', gap: '8px' }}>
+      <button
+        onClick={handleAvatarConfirm}
+        disabled={uploadingAvatar}
+        style={{
+          cursor: uploadingAvatar ? 'wait' : 'pointer', fontSize: '13px',
+          padding: '6px 14px', borderRadius: '8px', border: 'none',
+          background: '#16a34a', color: 'white'
+        }}
+      >
+        {uploadingAvatar ? 'Сохраняю...' : '✓ Сохранить фото'}
+      </button>
+      <button
+        onClick={handleAvatarCancel}
+        disabled={uploadingAvatar}
+        style={{
+          cursor: 'pointer', fontSize: '13px',
+          padding: '6px 14px', borderRadius: '8px',
+          border: '1px solid #ddd', background: 'white', color: '#666'
+        }}
+      >
+        Отмена
+      </button>
+    </div>
+  ) : (
+    <label style={{
+      cursor: 'pointer', fontSize: '13px', color: '#2481cc',
+      padding: '6px 12px', border: '1px solid #2481cc', borderRadius: '8px'
+    }}>
+      {avatarUrl ? 'Заменить фото' : 'Загрузить фото'}
+      <input
+        type="file"
+        accept="image/*"
+        onChange={handleAvatarPick}
+        style={{ display: 'none' }}
+      />
+    </label>
+  )}
 </div>
 
         <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px', color: '#666' }}>Имя</label>
