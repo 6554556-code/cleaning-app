@@ -32,11 +32,15 @@ export async function syncTelegramUsername() {
   const username = user.username ? user.username.toLowerCase() : null
 
   // 1. Проверяем — есть ли юзер с таким telegram_id
-  const { data: existing } = await supabase
+  // Берём всех юзеров с этим telegram_id и выбираем самого первого (минимальный id).
+  // Устойчиво к дублям: maybeSingle() падал, когда строк было больше одной,
+  // из-за чего код думал "юзера нет" и плодил новую запись при каждом входе.
+  const { data: existingRows } = await supabase
     .from('users')
     .select('id')
     .eq('telegram_id', user.telegram_id)
-    .maybeSingle()
+    .order('id', { ascending: true })
+  const existing = existingRows && existingRows.length > 0 ? existingRows[0] : null
 
   let userId
 
