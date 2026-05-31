@@ -5,12 +5,10 @@ import RegisterExecutorPage from './pages/RegisterExecutorPage'
 import ClientCabinetPage from './pages/ClientCabinetPage'
 import ExecutorSettingsPage from './pages/ExecutorSettingsPage'
 import { useEffect } from 'react'
-import { initTelegram, getTelegramUser, syncTelegramUsername, ensureAuthSession } from './telegram'
+import { initTelegram, getTelegramUser, syncTelegramUsername } from './telegram'
 function App() {
   useEffect(() => {
     initTelegram()
-    // Анонимный вход — нужен для загрузки фото в Storage (даёт роль authenticated)
-    ensureAuthSession()
     // Синхронизируем username Telegram с базой (автоматически, если юзер из Telegram)
     syncTelegramUsername()
   }, [])
