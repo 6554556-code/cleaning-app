@@ -80,3 +80,15 @@ export async function syncTelegramUsername() {
       .eq('client_telegram_username', username)
   }
 }
+// Анонимный вход в Supabase Auth: даёт роль authenticated,
+// без неё Storage (загрузка фото) отбивает запись от anon с ошибкой RLS.
+// Вызывается один раз при старте приложения, до остальной работы с БД.
+export async function ensureAuthSession() {
+  const { data: { session } } = await supabase.auth.getSession()
+  console.log('AUTH: существующая сессия?', session)
+  if (!session) {
+    const { data, error } = await supabase.auth.signInAnonymously()
+    console.log('AUTH: результат анонимного входа →', data, error)
+    if (error) console.error('Anonymous sign-in error:', error)
+  }
+}

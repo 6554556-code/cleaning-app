@@ -23,6 +23,8 @@ function ExecutorSettingsPage() {
   const [latitude, setLatitude] = useState('')
   const [longitude, setLongitude] = useState('')
   const [timezone, setTimezone] = useState('Europe/Moscow')
+  const [avatarUrl, setAvatarUrl] = useState('')
+  const [uploadingAvatar, setUploadingAvatar] = useState(false)
   useEffect(() => {
     async function loadProfile() {
       setLoading(true)
@@ -69,6 +71,7 @@ function ExecutorSettingsPage() {
         setBufferTime(exec.buffer_time || 0)
         setTravelTime(exec.travel_time || 0)
         setBio(exec.bio || '')
+        setAvatarUrl(exec.avatar_url || '')
         setLatitude(exec.latitude ?? '')
         setLongitude(exec.longitude ?? '')
         setTimezone(exec.timezone || 'Europe/Moscow')
@@ -255,6 +258,47 @@ for (const s of group) {
     setSavingServiceId(null)
     alert('Услуга сохранена ✅')
   }
+  // Загрузка аватара: файл → Supabase Storage (бакет avatars) → ссылка в executors.avatar_url
+  async function handleAvatarUpload(e) {
+    const file = e.target.files?.[0]
+    if (!file || !executor) return
+    setUploadingAvatar(true)
+
+    // Имя файла: executor_<id>_<время>.<расширение> — уникальное, чтобы не кешировалось старое
+    const ext = file.name.split('.').pop()
+    const fileName = `executor_${executor.id}_${Date.now()}.${ext}`
+
+    // Льём в бакет
+    const { error: uploadError } = await supabase.storage
+      .from('avatars')
+      .upload(fileName, file, { upsert: true, contentType: file.type })
+
+      if (uploadError) {
+        console.error('Storage upload error:', uploadError)
+        alert('Ошибка загрузки фото: ' + uploadError.message + ' | ' + (uploadError.statusCode || '') + ' ' + (uploadError.error || ''))
+        setUploadingAvatar(false)
+        return
+      }
+
+    // Получаем публичную ссылку
+    const { data: publicData } = supabase.storage
+      .from('avatars')
+      .getPublicUrl(fileName)
+    const url = publicData?.publicUrl
+
+    // Сохраняем ссылку в профиль исполнителя
+    const { error: dbError } = await supabase
+      .from('executors')
+      .update({ avatar_url: url })
+      .eq('id', executor.id)
+
+    setUploadingAvatar(false)
+    if (dbError) {
+      alert('Фото загрузилось, но не сохранилось в профиль: ' + dbError.message)
+      return
+    }
+    setAvatarUrl(url)
+  }
   async function handleSave() {
     setSaving(true)
     
@@ -327,7 +371,35 @@ if (endMinutes === startMinutes) {
       </div>
       <h2 style={{ textAlign: 'center' }}>⚙️ Настройки профиля</h2>
       <div style={{ background: 'white', borderRadius: '12px', padding: '16px', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
-        <h3 style={{ marginTop: 0 }}>О себе</h3>
+      <h3 style={{ marginTop: 0 }}>О себе</h3>
+
+{/* Аватар: круглое фото + кнопка загрузки */}
+<div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: '16px' }}>
+  <div style={{
+    width: '96px', height: '96px', borderRadius: '50%', overflow: 'hidden',
+    background: '#f0f0f0', display: 'flex', alignItems: 'center', justifyContent: 'center',
+    border: '2px solid #e0e0e0', marginBottom: '8px'
+  }}>
+    {avatarUrl ? (
+      <img src={avatarUrl} alt="Фото" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+    ) : (
+      <span style={{ fontSize: '36px', color: '#bbb' }}>📷</span>
+    )}
+  </div>
+  <label style={{
+    cursor: uploadingAvatar ? 'wait' : 'pointer', fontSize: '13px', color: '#2481cc',
+    padding: '6px 12px', border: '1px solid #2481cc', borderRadius: '8px'
+  }}>
+    {uploadingAvatar ? 'Загрузка...' : (avatarUrl ? 'Заменить фото' : 'Загрузить фото')}
+    <input
+      type="file"
+      accept="image/jpeg,image/png,image/webp"
+      onChange={handleAvatarUpload}
+      disabled={uploadingAvatar}
+      style={{ display: 'none' }}
+    />
+  </label>
+</div>
 
         <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px', color: '#666' }}>Имя</label>
         <input
