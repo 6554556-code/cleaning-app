@@ -325,10 +325,20 @@ const tomorrowFuture = tomorrowSlots.slice(0, 4)
             boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
           }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <h3 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '4px' }}>
-                {executor.users?.full_name}
-                {executor.is_verified && <span title="Проверенный исполнитель">✅</span>}
-              </h3>
+            {(() => {
+  const prof = professions.find(p => p.code === executor.service_type)
+  if (!prof) return null
+  return (
+    <span style={{ display: 'inline-block', marginBottom: '4px', padding: '2px 8px', background: '#f0f7ff', color: '#2481cc', borderRadius: '12px', fontSize: '11px' }}>
+      {prof.icon} {prof.name}
+    </span>
+  )
+})()}
+<h3 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '4px' }}>
+  {executor.users?.full_name}
+  {executor.is_verified && <span title="Проверенный исполнитель">✅</span>}
+</h3>
+            
               <div style={{ textAlign: 'right' }}>
                 {(() => {
                   const stats = reviewStats[executor.id]
