@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
+import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import L from "leaflet";
 import { supabase } from "../supabase.js";
@@ -13,6 +13,16 @@ L.Icon.Default.mergeOptions({
 });
 
 const MOSCOW_CENTER = [55.7558, 37.6173];
+// Атрибуция без флага и без «Leaflet»: оставляем только обязательное © OpenStreetMap (требование лицензии).
+function AttributionNoFlag() {
+  const map = useMap()
+  useEffect(() => {
+    map.attributionControl?.remove()
+    const ctrl = L.control.attribution({ prefix: false }).addAttribution('© OpenStreetMap').addTo(map)
+    return () => ctrl.remove()
+  }, [])
+  return null
+}
 // Возвращает иконку типа визита по списку услуг исполнителя.
 // 🏠 — принимает у себя, 🚗 — выезжает, 🏠🚗 — и то и то.
 function visitIcon(services) {
@@ -128,8 +138,9 @@ useEffect(() => {
           </button>
         ))}
       </div>
-<MapContainer center={mapCenter} zoom={11} style={{ height: "100%" }} key={mapCenter.join(",")}>        <TileLayer
-          attribution='&copy; OpenStreetMap'
+      <MapContainer center={mapCenter} zoom={11} style={{ height: "100%" }} key={mapCenter.join(",")} attributionControl={false}>
+        <AttributionNoFlag />
+        <TileLayer
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
         {executors

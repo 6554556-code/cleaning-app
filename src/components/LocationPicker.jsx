@@ -31,7 +31,17 @@ function Recenter({ position }) {
   }, [position])
   return null
 }
-
+// Атрибуция без флага и без «Leaflet»: оставляем только обязательное © OpenStreetMap (требование лицензии).
+function AttributionNoFlag() {
+  const map = useMap()
+  useEffect(() => {
+    // Убираем стандартный контрол атрибуции (с флагом) и ставим свой, без префикса.
+    map.attributionControl?.remove()
+    const ctrl = L.control.attribution({ prefix: false }).addAttribution('© OpenStreetMap').addTo(map)
+    return () => ctrl.remove()
+  }, [])
+  return null
+}
 export default function LocationPicker({ latitude, longitude, onChange }) {
   // Стартовая позиция: сохранённые координаты или Москва
   const hasSaved = latitude !== '' && longitude !== '' && latitude != null && longitude != null
@@ -49,9 +59,10 @@ export default function LocationPicker({ latitude, longitude, onChange }) {
         center={initialCenter}
         zoom={hasSaved ? 15 : 10}
         style={{ height: '100%', width: '100%' }}
+        attributionControl={false}
       >
+        <AttributionNoFlag />
         <TileLayer
-          attribution='© OpenStreetMap'
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
         <ClickHandler onPick={handlePick} />
