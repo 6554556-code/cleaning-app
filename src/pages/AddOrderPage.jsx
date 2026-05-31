@@ -74,12 +74,14 @@ function AddOrderPage({ executor, initialDay, initialHour, initialMinute, onBack
     // Если username введён — пробуем найти существующего юзера в БД
     let foundClientId = null
     if (cleanUsername) {
-      const { data: existingUser } = await supabase
+      // Берём первого юзера с этим username (устойчиво к дублям).
+      // maybeSingle() падал на дублях → заказ не привязывался к клиенту.
+      const { data: existingUsers } = await supabase
         .from('users')
         .select('id')
         .eq('telegram_username', cleanUsername)
-        .maybeSingle()
-      if (existingUser) foundClientId = existingUser.id
+        .order('id', { ascending: true })
+      if (existingUsers && existingUsers.length > 0) foundClientId = existingUsers[0].id
     }
 
     const { data: orderData, error: orderError } = await supabase

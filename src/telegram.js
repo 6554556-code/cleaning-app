@@ -54,16 +54,18 @@ export async function syncTelegramUsername() {
         .eq('id', userId)
     }
   } else {
-    // Юзера нет — создаём новую запись (роль client)
+    // Юзера нет — создаём новую запись (роль client).
+    // upsert с onConflict: если параллельный запрос успел создать такого же
+    // (telegram_id + role) — не падаем на уникальном индексе, а берём существующего.
     const fullName = [user.first_name, user.last_name].filter(Boolean).join(' ') || 'Без имени'
     const { data: created } = await supabase
       .from('users')
-      .insert([{
+      .upsert([{
         full_name: fullName,
         telegram_id: user.telegram_id,
         telegram_username: username,
         role: 'client'
-      }])
+      }], { onConflict: 'telegram_id,role' })
       .select('id')
       .single()
     userId = created?.id
