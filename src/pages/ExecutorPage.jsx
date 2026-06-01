@@ -123,12 +123,13 @@ function BlockDetailsModal({ block, onClose, onSaved }) {
 function OrderDetailsModal({ order, clientStats, onClose, onSaved }) {
   const [status, setStatus] = useState(order.status)
   const [comment, setComment] = useState(order.executor_comment || '')
+  const [price, setPrice] = useState(order.total_price ?? '')
   const [saving, setSaving] = useState(false)
 
   async function save() {
     setSaving(true)
     // Формируем апдейт: статус + комментарий, плюс гигиена cancelled_by
-    const updates = { status, executor_comment: comment }
+    const updates = { status, executor_comment: comment, total_price: price === '' ? null : Number(price) }
     if (status === 'cancelled') {
       updates.cancelled_by = 'executor'
     } else if (order.status === 'cancelled' && status !== 'cancelled') {
@@ -233,7 +234,16 @@ function OrderDetailsModal({ order, clientStats, onClose, onSaved }) {
         </p>
         <p style={{ margin: '4px 0', fontSize: '14px' }}><b>Время:</b> {new Date(order.scheduled_at).toLocaleString('ru-RU')}</p>
         <p style={{ margin: '4px 0', fontSize: '14px' }}><b>Длительность:</b> {order.total_duration || '—'} мин</p>
-        <p style={{ margin: '4px 0', fontSize: '14px' }}><b>Цена:</b> {order.total_price || '—'} ₽</p>
+        <p style={{ margin: '4px 0', fontSize: '14px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <b>Цена:</b>
+          <input
+            type="number"
+            value={price}
+            onChange={e => setPrice(e.target.value)}
+            style={{ width: '100px', padding: '4px 8px', borderRadius: '6px', border: '1px solid #ddd', fontSize: '14px' }}
+          />
+          <span>₽</span>
+        </p>
         {order.location_type === 'outcall' && order.address && (
           <p style={{ margin: '4px 0', fontSize: '14px' }}><b>Адрес:</b> {order.address}</p>
         )}
