@@ -8,6 +8,7 @@ import { getTelegramUser } from '../telegram'
 import BookingPage from './BookingPage'
 import { generateSlots } from '../utils/slotGenerator'
 import { getLocationIcon } from '../utils/locationIcon'
+import Avatar from '../components/Avatar'
 
 function ClientPage() {
   const [executors, setExecutors] = useState([])
@@ -325,19 +326,24 @@ const tomorrowFuture = tomorrowSlots.slice(0, 4)
             boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
           }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            {(() => {
-  const prof = professions.find(p => p.code === executor.service_type)
-  if (!prof) return null
-  return (
-    <span style={{ display: 'inline-block', marginBottom: '4px', padding: '2px 8px', background: '#f0f7ff', color: '#2481cc', borderRadius: '12px', fontSize: '11px' }}>
-      {prof.icon} {prof.name}
-    </span>
-  )
-})()}
-<h3 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '4px' }}>
-  {executor.users?.full_name}
-  {executor.is_verified && <span title="Проверенный исполнитель">✅</span>}
-</h3>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <Avatar url={executor.avatar_url} name={executor.users?.full_name} size={92} />
+                <div>
+                  {(() => {
+                    const prof = professions.find(p => p.code === executor.service_type)
+                    if (!prof) return null
+                    return (
+                      <span style={{ display: 'inline-block', marginBottom: '4px', padding: '2px 8px', background: '#f0f7ff', color: '#2481cc', borderRadius: '12px', fontSize: '11px' }}>
+                        {prof.icon} {prof.name}
+                      </span>
+                    )
+                  })()}
+                  <h3 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    {executor.users?.full_name}
+                    {executor.is_verified && <span title="Проверенный исполнитель">✅</span>}
+                  </h3>
+                </div>
+              </div>
             
               <div style={{ textAlign: 'right' }}>
                 {(() => {
