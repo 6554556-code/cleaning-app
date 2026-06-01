@@ -103,6 +103,19 @@ const [reviewModalOrder, setReviewModalOrder] = useState(null)
     }
     window.location.href = 'tel:' + phone
   }
+  async function confirmVisit(orderId) {
+    const { error } = await supabase
+      .from('orders')
+      .update({ status: 'confirmed_by_client' })
+      .eq('id', orderId)
+
+    if (error) {
+      alert('Не удалось подтвердить визит: ' + error.message)
+      return
+    }
+    loadOrders()
+  }
+
   async function cancelOrder(orderId) {
     if (!confirm('Отменить эту бронь?')) return
 
@@ -280,6 +293,20 @@ const [reviewModalOrder, setReviewModalOrder] = useState(null)
               >
                 📋 {normalizePhone(order.executorPhone)} (нажми, чтобы скопировать)
               </div>
+            )}
+
+            {/* Кнопка подтверждения визита — только если напоминание уже отправлено и заказ ещё не подтверждён клиентом */}
+            {tab === 'future' && order.visit_reminder_sent && order.status === 'confirmed_by_executor' && (
+              <button
+                onClick={() => confirmVisit(order.id)}
+                style={{
+                  marginTop: '8px', width: '100%', padding: '10px',
+                  background: '#22c55e', color: 'white', border: 'none',
+                  borderRadius: '8px', cursor: 'pointer', fontSize: '14px', fontWeight: 'bold'
+                }}
+              >
+                ✅ Подтвердить визит
+              </button>
             )}
 
             {/* Кнопка отмены — только для активных */}
