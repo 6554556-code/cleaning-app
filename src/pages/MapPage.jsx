@@ -151,37 +151,48 @@ useEffect(() => {
           <Marker key={ex.id} position={[ex.latitude, ex.longitude]}>
             <Popup>
               <div style={{ minWidth: 180 }}>
-              <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: 8 }}>
-                  <Avatar url={ex.avatar_url} name={ex.users?.full_name ?? "Исполнитель"} size={44} />
-                  <p style={{ fontWeight: "bold", margin: 0, fontSize: 14 }}>
-                    {ex.users?.full_name ?? "Исполнитель"}
-                    {ex.is_verified && <span style={{ color: "#2ecc71", marginLeft: 4 }} title="Проверенный исполнитель">✓</span>}
-                  </p>
-                </div>
-                {(() => {
-                  const stats = reviewStats[ex.id];
-                  if (!stats || stats.count === 0) {
-                    return <p style={{ margin: "2px 0", color: "#999", fontSize: 12 }}>Новый исполнитель</p>;
-                  }
-                  return (
-                    <>
-                      <p style={{ margin: "2px 0" }}>
-                        ⭐ {stats.avgRating}
-                        <span style={{ color: "#666", fontSize: 11, marginLeft: 4 }}>
-                          ({stats.count} {stats.count === 1 ? 'отзыв' : stats.count < 5 ? 'отзыва' : 'отзывов'})
-                        </span>
-                      </p>
-                      {stats.alwaysOnTime && (
-                        <p style={{ margin: "2px 0", color: "#2ecc71", fontSize: 11, fontWeight: "bold" }}>
-                          ✓ Всегда вовремя
-                        </p>
-                      )}
-                    </>
-                  );
-                })()}
-                {visitIcon(ex.services) && (
-                  <p style={{ margin: "2px 0" }}>{visitIcon(ex.services)}</p>
-                )}
+              <div style={{ marginBottom: 8 }}>
+  {/* Строка 1: плашка профессии + иконка визита */}
+  <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 6 }}>
+    {(() => {
+      const prof = professions.find(p => p.code === ex.service_type)
+      if (!prof) return null
+      return <span style={{ display:'inline-block', padding:'2px 8px', background:'#f0f7ff', color:'#2481cc', borderRadius:'12px', fontSize:'11px' }}>{prof.icon} {prof.name}</span>
+    })()}
+    {visitIcon(ex.services) && (
+      <span style={{ fontSize: 13 }}>{visitIcon(ex.services)}</span>
+    )}
+  </div>
+  {/* Строка 2: аватар + имя + рейтинг */}
+  <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+    <Avatar url={ex.avatar_url} name={ex.users?.full_name ?? "Исполнитель"} size={44} />
+    <div>
+      <p style={{ fontWeight: "bold", margin: 0, fontSize: 14 }}>
+        {ex.users?.full_name ?? "Исполнитель"}
+        {ex.is_verified && <span style={{ color: "#2ecc71", marginLeft: 4 }} title="Проверенный исполнитель">✓</span>}
+      </p>
+      {(() => {
+        const stats = reviewStats[ex.id];
+        if (!stats || stats.count === 0) {
+          return <p style={{ margin: "2px 0", color: "#999", fontSize: 12 }}>Новый исполнитель</p>;
+        }
+        return (
+          <div>
+            <p style={{ margin: "2px 0", fontSize: 12 }}>
+              ⭐ {stats.avgRating}
+              <span style={{ color: "#666", fontSize: 11, marginLeft: 4 }}>
+                ({stats.count} {stats.count === 1 ? 'отзыв' : stats.count < 5 ? 'отзыва' : 'отзывов'})
+              </span>
+            </p>
+            {stats.alwaysOnTime && (
+              <p style={{ margin: "2px 0", color: "#2ecc71", fontSize: 11, fontWeight: "bold" }}>✓ Всегда вовремя</p>
+            )}
+          </div>
+        );
+      })()}
+    </div>
+  </div>
+</div>
                 {minPrice(ex.services) != null && (
                   <p style={{ margin: "2px 0" }}>от {minPrice(ex.services)} ₽</p>
                 )}
