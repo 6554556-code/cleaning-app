@@ -1284,7 +1284,7 @@ function ExecutorPage({ executorId }) {
       if (!confirm('Отменить заказ? Клиент получит уведомление об отмене.')) return
       await supabase.from('orders').update({ status: 'cancelled', cancelled_by: 'executor' }).eq('id', order.id)
       await supabase.from('blocks').delete().eq('order_id', order.id).in('type', ['auto_travel', 'auto_buffer'])
-      setOrders(orders.map(o => o.id === order.id ? { ...o, status: 'cancelled' } : o))
+      setOrders(orders.map(o => o.id === order.id ? { ...o, status: 'cancelled', cancelled_by: 'executor' } : o))
     }}
     style={{
       flex: 1,
