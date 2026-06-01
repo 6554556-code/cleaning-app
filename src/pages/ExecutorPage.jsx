@@ -207,6 +207,27 @@ function OrderDetailsModal({ order, clientStats, onClose, onSaved }) {
           {clientStats && <ClientStatsBadges stats={clientStats} />}
         </p>
         <p style={{ margin: '4px 0', fontSize: '14px' }}><b>Телефон:</b> {order.client_phone || order.client?.phone || order.phone || '—'}</p>
+        {(order.client_telegram_username || order.client?.telegram_username) && (
+          <a
+            href={`https://t.me/${order.client_telegram_username || order.client?.telegram_username}`}
+            target="_blank"
+            rel="noreferrer"
+            style={{
+              display: 'block',
+              margin: '8px 0',
+              padding: '10px',
+              background: '#2481cc',
+              color: 'white',
+              borderRadius: '8px',
+              textDecoration: 'none',
+              fontSize: '14px',
+              textAlign: 'center',
+              fontWeight: 'bold'
+            }}
+          >
+            💬 Написать @{order.client_telegram_username || order.client?.telegram_username}
+          </a>
+        )}
         <p style={{ margin: '4px 0', fontSize: '14px' }}>
           <b>Услуга:</b> {order.location_type === 'incall' ? '🏠 ' : order.location_type === 'outcall' ? '🚗 ' : ''}{order.cleaning_type || '—'}
         </p>
@@ -1215,7 +1236,7 @@ function ExecutorPage({ executorId }) {
     fontSize: '14px',
     textAlign: 'center'
   }}
->💬 Написать</a>
+>💬 Написать @{order.client_telegram_username || order.client?.telegram_username}</a>
 )}
 <button onClick={() => callPhone(order.client_phone || order.client?.phone)} style={{
   flex: 1,
