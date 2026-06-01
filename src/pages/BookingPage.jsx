@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { supabase } from '../supabase'
 import { getTelegramUser } from '../telegram'
 import { generateSlots } from '../utils/slotGenerator'
+import Avatar from '../components/Avatar'
 
 function BookingPage({ executor, stats, reviews, slot, onBack, onSuccess }) {
   // Автоскролл наверх при открытии страницы
@@ -339,9 +340,12 @@ async function loadPickedDateSlots(dateStr) {
         padding: '12px',
         marginBottom: '20px'
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
-          <p style={{ margin: 0, fontWeight: 'bold', fontSize: '16px' }}>{executor.users?.full_name}</p>
-          {executor.is_verified && <span title="Проверенный исполнитель">✅</span>}
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
+          <Avatar url={executor.avatar_url} name={executor.users?.full_name} size={118} />
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap', justifyContent: 'center' }}>
+            <p style={{ margin: 0, fontWeight: 'bold', fontSize: '16px' }}>{executor.users?.full_name}</p>
+            {executor.is_verified && <span title="Проверенный исполнитель">✅</span>}
+          </div>
         </div>
         {stats && stats.count > 0 ? (
           <div style={{ marginTop: '6px' }}>

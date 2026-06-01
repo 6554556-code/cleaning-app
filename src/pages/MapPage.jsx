@@ -4,6 +4,7 @@ import "leaflet/dist/leaflet.css";
 import L from "leaflet";
 import { supabase } from "../supabase.js";
 import { useProfessions } from "../hooks/useProfessions.js";
+import Avatar from "../components/Avatar";
 import { loadReviewsByExecutors, calculateStats } from "../reviewsUtils.js";
 delete L.Icon.Default.prototype._getIconUrl;
 L.Icon.Default.mergeOptions({
@@ -150,10 +151,13 @@ useEffect(() => {
           <Marker key={ex.id} position={[ex.latitude, ex.longitude]}>
             <Popup>
               <div style={{ minWidth: 180 }}>
-              <p style={{ fontWeight: "bold", marginBottom: 6, fontSize: 14 }}>
-                  {ex.users?.full_name ?? "Исполнитель"}
-                  {ex.is_verified && <span style={{ color: "#2ecc71", marginLeft: 4 }} title="Проверенный исполнитель">✓</span>}
-                </p>
+              <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: 8 }}>
+                  <Avatar url={ex.avatar_url} name={ex.users?.full_name ?? "Исполнитель"} size={44} />
+                  <p style={{ fontWeight: "bold", margin: 0, fontSize: 14 }}>
+                    {ex.users?.full_name ?? "Исполнитель"}
+                    {ex.is_verified && <span style={{ color: "#2ecc71", marginLeft: 4 }} title="Проверенный исполнитель">✓</span>}
+                  </p>
+                </div>
                 {(() => {
                   const stats = reviewStats[ex.id];
                   if (!stats || stats.count === 0) {
