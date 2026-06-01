@@ -309,8 +309,8 @@ const [reviewModalOrder, setReviewModalOrder] = useState(null)
               </button>
             )}
 
-            {/* Кнопка отмены — только для активных */}
-            {tab === 'future' && (
+            {/* Кнопка отмены — только для активных и не отменённых/выполненных/в работе */}
+            {tab === 'future' && !['cancelled', 'done', 'in_progress'].includes(order.status) && (
               <button
                 onClick={() => cancelOrder(order.id)}
                 style={{
