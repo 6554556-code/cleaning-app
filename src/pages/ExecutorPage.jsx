@@ -199,7 +199,7 @@ function OrderDetailsModal({ order, clientStats, onClose, onSaved }) {
             textAlign: 'center',
             fontWeight: 'bold'
           }}>
-            ⊘ Отменён {order.cancelled_by === 'client' ? 'клиентом' : 'вами'}
+            ⊘ Отменён {order.cancelled_by === 'client' ? 'клиентом' : order.cancelled_by === 'executor' ? 'вами' : 'системой'}
           </div>
         )}
         <p style={{ margin: '4px 0', fontSize: '14px', display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -761,7 +761,9 @@ const viewStartMin = expandedBefore ? 0 : earliestMin
                           }
                         }}
                           style={{ position: 'absolute', top: `${top}px`, left: '2px', right: '2px', height: `${duration * PX_PER_MIN}px`, background: color, borderRadius: '4px', padding: '2px 4px', fontSize: '10px', color: 'white', overflow: 'hidden', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-                          title={STATUS_LABELS[order.status]}
+                          title={order.status === 'cancelled' && order.cancelled_by
+                            ? `Отменена ${order.cancelled_by === 'client' ? 'клиентом' : order.cancelled_by === 'executor' ? 'вами' : 'системой'}`
+                            : STATUS_LABELS[order.status]}
                         >
                           <div style={{ width: '100%' }}>
                           <div style={{ fontWeight: 'bold' }}>{order.client_name || order.client?.full_name || order.name || 'Клиент'}</div>
@@ -1017,7 +1019,7 @@ function ExecutorPage({ executorId }) {
     })
   }
 
-  function getStatusLabel(status) {
+  function getStatusLabel(status, cancelledBy) {
     const statuses = {
       new: { label: 'Новая', color: '#f5a623', bg: '#fff8ed' },
       in_progress: { label: 'В работе', color: '#2481cc', bg: '#e8f4fd' },
@@ -1027,7 +1029,13 @@ function ExecutorPage({ executorId }) {
       confirmed_by_client: { label: 'Подтверждено клиентом', color: '#22c55e', bg: '#f0fdf4' },
       cancelled: { label: 'Отменена', color: '#dc2626', bg: '#fef2f2' },
     }
-    return statuses[status] || { label: status, color: '#666', bg: '#f0f0f0' }
+    const result = statuses[status] || { label: status, color: '#666', bg: '#f0f0f0' }
+    if (status === 'cancelled') {
+      if (cancelledBy === 'client') return { ...result, label: 'Отменена клиентом' }
+      if (cancelledBy === 'executor') return { ...result, label: 'Отменена вами' }
+      if (cancelledBy === 'system') return { ...result, label: 'Отменена системой' }
+    }
+    return result
   }
 
   if (loading) return <p style={{ padding: '20px' }}>Загружаем данные...</p>
@@ -1150,7 +1158,7 @@ function ExecutorPage({ executorId }) {
             <p style={{ color: '#666', textAlign: 'center' }}>Заявок пока нет</p>
           ) : (
             orders.map(order => {
-              const status = getStatusLabel(order.status)
+              const status = getStatusLabel(order.status, order.cancelled_by)
               return (
                 <div key={order.id} style={{
                   background: 'white',
