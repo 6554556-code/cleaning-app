@@ -408,7 +408,7 @@ if (endMinutes === startMinutes) {
         longitude: longitude === '' ? null : Number(longitude),
         timezone: timezone,
         city: newCity,
-        subway_station: newSubway,
+        ...(newSubway !== null && { subway_station: newSubway }),
       })
       .eq('id', executor.id)
 
