@@ -987,14 +987,23 @@ const viewStartMin = expandedBefore ? 0 : earliestMin
           {expandedAfter ? '▲ Скрыть поздние часы' : '▼ Показать поздние часы'}
         </button>
       )}
-      {/* Легенда */}
-      <div style={{ marginTop: '16px', display: 'flex', flexWrap: 'wrap', gap: '8px', fontSize: '11px' }}>
-        {Object.entries(STATUS_LABELS).map(([key, label]) => (
-          <div key={key} style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-            <div style={{ width: '12px', height: '12px', borderRadius: '3px', background: STATUS_COLORS[key] }}></div>
-            <span>{label}</span>
-          </div>
-        ))}
+      {/* Легенда + объясняшки */}
+      <div style={{ marginTop: '16px', display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '8px', fontSize: '11px', color: '#666', textAlign: 'left' }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', width: '100%' }}>
+          {Object.entries(STATUS_LABELS).map(([key, label]) => (
+            <div key={key} style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+              <div style={{ width: '12px', height: '12px', borderRadius: '3px', background: STATUS_COLORS[key] }}></div>
+              <span>{label}</span>
+            </div>
+          ))}
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexWrap: 'wrap', width: '100%', lineHeight: 1.7 }}>
+          <span style={{ background: '#16a34a', color: 'white', borderRadius: '10px', padding: '1px 7px', fontSize: '11px', fontWeight: 'bold' }}>0</span>
+          <span style={{ background: '#3b82f6', color: 'white', borderRadius: '10px', padding: '1px 7px', fontSize: '11px', fontWeight: 'bold' }}>0</span>
+          <span style={{ background: '#ef4444', color: 'white', borderRadius: '10px', padding: '1px 7px', fontSize: '11px', fontWeight: 'bold' }}>0</span>
+          <span>— заказы клиента: выполнено / активно / отменено</span>
+        </div>
+        <div style={{ width: '100%', lineHeight: 1.7 }}>📦 X / Y заказов — выполнено через мини-апп / всего выполнено</div>
       </div>
     </div>
   )
