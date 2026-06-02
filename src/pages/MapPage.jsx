@@ -112,8 +112,8 @@ useEffect(() => {
       <div
         style={{
           position: "absolute",
-          top: "12px",
-          left: "198px",
+          top: "56px",
+          left: "60px",
           right: "12px",
           zIndex: 1000,
           display: "flex",
