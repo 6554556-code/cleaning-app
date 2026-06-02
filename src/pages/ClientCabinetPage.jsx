@@ -16,7 +16,7 @@ const STATUS_LABELS = {
 function ClientCabinetPage({ clientId }) {
   const [orders, setOrders] = useState([])
   const [loading, setLoading] = useState(true)
-  const [tab, setTab] = useState(() => localStorage.getItem('clientCabinetTab') || 'future')
+  const [tab, setTab] = useState('future')
 // Отзывы клиента: { order_id: review_object }
 const [reviewsByOrder, setReviewsByOrder] = useState({})
 // Какой заказ сейчас открыт в модалке отзыва (или null)
@@ -166,7 +166,7 @@ const [reviewModalOrder, setReviewModalOrder] = useState(null)
       {/* Табы */}
       <div style={{ display: 'flex', gap: '8px', marginBottom: '16px' }}>
         <button
-          onClick={() => { setTab('future'); localStorage.setItem('clientCabinetTab', 'future') }}
+          onClick={() => setTab('future')}
           style={{
             flex: 1, padding: '10px', borderRadius: '8px', cursor: 'pointer', fontSize: '14px',
             border: tab === 'future' ? '2px solid #2481cc' : '2px solid #f0f0f0',
@@ -177,7 +177,7 @@ const [reviewModalOrder, setReviewModalOrder] = useState(null)
           Будущие ({futureOrders.length})
         </button>
         <button
-          onClick={() => { setTab('past'); localStorage.setItem('clientCabinetTab', 'past') }}
+          onClick={() => setTab('past')}
           style={{
             flex: 1, padding: '10px', borderRadius: '8px', cursor: 'pointer', fontSize: '14px',
             border: tab === 'past' ? '2px solid #2481cc' : '2px solid #f0f0f0',
