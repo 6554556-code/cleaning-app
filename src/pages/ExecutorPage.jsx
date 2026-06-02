@@ -807,6 +807,23 @@ const viewStartMin = expandedBefore ? 0 : earliestMin
                   )
                 })}
               </div>
+            {/* Итог дня */}
+            {(() => {
+                const doneRev = dayOrders.filter(o => o.status === 'done').reduce((s, o) => s + (o.total_price || 0), 0)
+                const planRev = dayOrders.filter(o => o.status !== 'cancelled').reduce((s, o) => s + (o.total_price || 0), 0)
+                if (doneRev === 0 && planRev === 0) return null
+                return (
+                  <div style={{ textAlign: 'center', padding: '4px 2px', borderTop: '1px solid #eee', marginTop: '4px' }}>
+                    <div style={{ fontSize: '9px', color: '#999', marginBottom: '1px' }}>факт / план</div>
+                    <div style={{ fontSize: '11px' }}>
+                      <span style={{ color: '#16a34a', fontWeight: 'bold' }}>{doneRev.toLocaleString('ru-RU')}</span>
+                      <span style={{ color: '#bbb' }}>/</span>
+                      <span style={{ color: '#3b82f6' }}>{planRev.toLocaleString('ru-RU')}</span>
+                      <span style={{ color: '#888' }}> ₽</span>
+                    </div>
+                  </div>
+                )
+              })()}
             </div>
           )
         })}
