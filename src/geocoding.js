@@ -36,14 +36,16 @@ export async function getCityFromCoords(lat, lng) {
 export async function getSubwayFromCoords(lat, lng) {
   if (lat == null || lng == null) return null;
   try {
-    const url = `https://nominatim.openstreetmap.org/search?format=json&limit=1&accept-language=ru&q=метро&lat=${lat}&lon=${lng}&radius=800&featuretype=railway`;
+    // Ищем станции метро рядом через Nominatim lookup по bbox вокруг точки
+    const delta = 0.007; // ~800м
+    const viewbox = `${lng - delta},${lat - delta},${lng + delta},${lat + delta}`;
+    const url = `https://nominatim.openstreetmap.org/search?format=json&limit=5&accept-language=ru&station=subway&viewbox=${viewbox}&bounded=1`;
     const response = await fetch(url, {
       headers: { 'Accept-Language': 'ru' }
     });
     if (!response.ok) return null;
     const data = await response.json();
     if (!data || data.length === 0) return null;
-    // Убираем слово "метро" / "станция" из названия если есть
     const name = data[0]?.display_name?.split(',')[0] || null;
     return name;
   } catch (err) {
