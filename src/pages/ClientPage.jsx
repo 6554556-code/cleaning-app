@@ -13,7 +13,7 @@ import Avatar from '../components/Avatar'
 function ClientPage() {
   const [executors, setExecutors] = useState([])
   const [loading, setLoading] = useState(true)
-  const [selectedService, setSelectedService] = useState('all')
+  const [selectedService, setSelectedService] = useState('cleaning')
   const [selectedCity, setSelectedCity] = useState(() => localStorage.getItem('selectedCity') || 'all')
   const [selectedExecutor, setSelectedExecutor] = useState(null)
   const [selectedSlot, setSelectedSlot] = useState(null)
@@ -113,7 +113,8 @@ useEffect(() => {
       const { data, error } = await supabase
         .from('executors')
         .select('*, users(full_name), address')
-        .eq('is_visible', true)
+        .eq('service_type', selectedService)
+        .eq('is_visible', true)      
         .order('is_verified', { ascending: false })
         .order('rating', { ascending: false })
 
@@ -124,10 +125,9 @@ useEffect(() => {
         }
   
         // Фильтр по городу применяем тут (в Supabase сделали бы условный, но проще здесь)
-        const filteredByCity = (selectedCity === 'all'
+        const filteredByCity = selectedCity === 'all'
           ? data
-          : (data || []).filter((ex) => ex.city === selectedCity))
-          .filter((ex) => selectedService === 'all' || ex.service_type === selectedService)
+          : (data || []).filter((ex) => ex.city === selectedCity)
   
         const today = new Date()
       today.setHours(0, 0, 0, 0)
@@ -293,30 +293,7 @@ const tomorrowFuture = tomorrowSlots.slice(0, 4)
         </div>
       )}
       <h2 style={{ textAlign: 'center', marginTop: 0 }}>Выберите услугу</h2>
-      <div style={{
-        display: 'flex',
-        gap: '8px',
-        marginBottom: '20px',
-        overflowX: 'auto',
-        scrollbarWidth: 'none',
-        padding: '4px 0',
-      }}>
-        <button
-          onClick={() => setSelectedService('all')}
-          style={{
-            padding: '8px 16px',
-            borderRadius: '20px',
-            border: 'none',
-            background: selectedService === 'all' ? '#2481cc' : '#f0f0f0',
-            color: selectedService === 'all' ? 'white' : 'black',
-            cursor: 'pointer',
-            fontSize: '14px',
-            whiteSpace: 'nowrap',
-            flexShrink: 0,
-          }}
-        >
-          Все
-        </button>
+      <div style={{ display: 'flex', gap: '8px', marginBottom: '20px', flexWrap: 'wrap' }}>
         {services.map(s => (
           <button
             key={s.id}
@@ -328,9 +305,7 @@ const tomorrowFuture = tomorrowSlots.slice(0, 4)
               background: selectedService === s.id ? '#2481cc' : '#f0f0f0',
               color: selectedService === s.id ? 'white' : 'black',
               cursor: 'pointer',
-              fontSize: '14px',
-              whiteSpace: 'nowrap',
-              flexShrink: 0,
+              fontSize: '14px'
             }}
           >
             {s.label}
