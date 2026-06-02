@@ -1017,6 +1017,7 @@ function ExecutorPage({ executorId }) {
   const [activeTab, setActiveTab] = useState('schedule')
   const [showAddOrder, setShowAddOrder] = useState(false)
   const [scheduleWeekOffset, setScheduleWeekOffset] = useState(0)
+  const [searchQuery, setSearchQuery] = useState('')
   function normalizePhone(raw) {
     if (!raw) return null
     let p = raw.replace(/[^\d+]/g, '')
@@ -1259,10 +1260,47 @@ function ExecutorPage({ executorId }) {
 )}
       {activeTab === 'orders' && (
         <div>
-          {orders.length === 0 ? (
-            <p style={{ color: '#666', textAlign: 'center' }}>Заявок пока нет</p>
-          ) : (
-            orders.map(order => {
+          <input
+            type="text"
+            placeholder="🔍 Поиск по имени, телефону, @тг, адресу, комментарию, №"
+            value={searchQuery}
+            onChange={e => setSearchQuery(e.target.value)}
+            style={{
+              width: '100%',
+              padding: '10px 12px',
+              borderRadius: '10px',
+              border: '1px solid #ddd',
+              fontSize: '14px',
+              marginBottom: '12px',
+              boxSizing: 'border-box',
+              background: '#fafafa',
+            }}
+          />
+          {(() => {
+            const q = searchQuery.trim().toLowerCase()
+            const filtered = q === '' ? orders : orders.filter(o => {
+              const name = (o.client_name || o.client?.full_name || o.name || '').toLowerCase()
+              const phone = (o.client_phone || o.client?.phone || '').toLowerCase().replace(/[^\d]/g, '')
+              const tg = (o.client_telegram_username || o.client?.telegram_username || '').toLowerCase()
+              const address = (o.address || o.incall_address || '').toLowerCase()
+              const comment = (o.comment || '').toLowerCase()
+              const id = String(o.id)
+              const qDigits = q.replace(/[^\d]/g, '')
+              return (
+                name.includes(q) ||
+                (qDigits && phone.includes(qDigits)) ||
+                tg.includes(q.replace('@', '')) ||
+                address.includes(q) ||
+                comment.includes(q) ||
+                id.includes(q)
+              )
+            })
+            if (filtered.length === 0) return (
+              <p style={{ color: '#666', textAlign: 'center' }}>
+                {q ? 'Ничего не найдено' : 'Заявок пока нет'}
+              </p>
+            )
+            return filtered.map(order => {
               const status = getStatusLabel(order.status, order.cancelled_by)
               return (
                 <div key={order.id} style={{
@@ -1409,7 +1447,7 @@ function ExecutorPage({ executorId }) {
                 </div>
               )
             })
-          )}
+          })()}
         </div>
       )}
 
