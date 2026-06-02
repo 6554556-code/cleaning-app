@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { supabase } from '../supabase'
 import { getTelegramUser } from '../telegram'
 import AddOrderPage from './AddOrderPage'
+import MiniCalendar from '../components/MiniCalendar'
 import { loadReviewsByExecutors, calculateStats } from '../reviewsUtils'
 // Считает статистику заказов клиента по списку всех заказов
 function getClientStats(allOrders, clientId) {
@@ -552,6 +553,7 @@ function ScheduleView({ executor, orders, blocks, onReload, onCreateOrder, weekO
   const [expandedAfter, setExpandedAfter] = useState(false)
 
   const [clickMenu, setClickMenu] = useState(null)
+  const [pickedCalendarDate, setPickedCalendarDate] = useState(null)
   const [breakDay, setBreakDay] = useState(null)
   if (!executor) return null
 
@@ -660,21 +662,19 @@ const viewStartMin = expandedBefore ? 0 : earliestMin
       </div>
 
       {/* Быстрый переход к дате */}
-      <div style={{ display: 'flex', justifyContent: 'center', gap: '8px', alignItems: 'center', marginBottom: '12px' }}>
-        <input
-          type="date"
-          onChange={(e) => {
-            if (!e.target.value) return
-            const picked = new Date(e.target.value)
+      <div style={{ display: 'flex', justifyContent: 'center', gap: '8px', alignItems: 'center', marginBottom: '12px', flexWrap: 'wrap' }}>
+      <MiniCalendar
+          value={pickedCalendarDate}
+          onChange={(dateStr) => {
+            setPickedCalendarDate(dateStr)
+            if (!dateStr) return
+            const picked = new Date(dateStr)
             picked.setHours(0, 0, 0, 0)
             const todayMidnight = new Date()
             todayMidnight.setHours(0, 0, 0, 0)
-            // Разница в днях между выбранной датой и сегодня
             const diffDays = Math.round((picked - todayMidnight) / (1000 * 60 * 60 * 24))
-            // Переводим в "тройки дней"
             setWeekOffset(Math.floor(diffDays / 3))
           }}
-          style={{ padding: '5px 8px', borderRadius: '8px', border: '1px solid #ddd', fontSize: '13px' }}
         />
         {weekOffset !== 0 && (
           <button

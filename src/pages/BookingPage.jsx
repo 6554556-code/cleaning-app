@@ -3,6 +3,7 @@ import { supabase } from '../supabase'
 import { getTelegramUser } from '../telegram'
 import { generateSlots } from '../utils/slotGenerator'
 import Avatar from '../components/Avatar'
+import MiniCalendar from '../components/MiniCalendar'
 
 function BookingPage({ executor, stats, reviews, slot, onBack, onSuccess }) {
   // Автоскролл наверх при открытии страницы
@@ -487,15 +488,13 @@ async function loadPickedDateSlots(dateStr) {
 
           {/* Выбор другой даты */}
           <p style={{ margin: '12px 0 6px', fontSize: '13px', color: '#666' }}>Другая дата</p>
-          <input
-            type="date"
+          <MiniCalendar
             value={pickedDate}
-            min={new Date().toISOString().split('T')[0]}
-            onChange={(e) => {
-              setPickedDate(e.target.value)
-              loadPickedDateSlots(e.target.value)
+            minDate={new Date().toISOString().split('T')[0]}
+            onChange={(dateStr) => {
+              setPickedDate(dateStr)
+              loadPickedDateSlots(dateStr)
             }}
-            style={{ padding: '8px', borderRadius: '8px', border: '1px solid #ddd', fontSize: '14px' }}
           />
 
           {/* Слоты выбранной даты */}
