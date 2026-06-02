@@ -36,18 +36,16 @@ export async function getCityFromCoords(lat, lng) {
 export async function getSubwayFromCoords(lat, lng) {
   if (lat == null || lng == null) return null;
   try {
-    // Ищем станции метро рядом через Nominatim lookup по bbox вокруг точки
-    const delta = 0.007; // ~800м
-    const viewbox = `${lng - delta},${lat - delta},${lng + delta},${lat + delta}`;
-    const url = `https://nominatim.openstreetmap.org/search?format=json&limit=5&accept-language=ru&station=subway&viewbox=${viewbox}&bounded=1`;
-    const response = await fetch(url, {
-      headers: { 'Accept-Language': 'ru' }
-    });
+    const query = `[out:json];node[station=subway](around:800,${lat},${lng});out 1;`;
+    const url = 'https://overpass.kumi.systems/api/interpreter?data=' + encodeURIComponent(query);
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 5000);
+    const response = await fetch(url, { signal: controller.signal });
+    clearTimeout(timeout);
     if (!response.ok) return null;
     const data = await response.json();
-    if (!data || data.length === 0) return null;
-    const name = data[0]?.display_name?.split(',')[0] || null;
-    return name;
+    const node = data.elements?.[0];
+    return node?.tags?.['name:ru'] || node?.tags?.['name'] || null;
   } catch (err) {
     console.error("Поиск метро не удался:", err);
     return null;
