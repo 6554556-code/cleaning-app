@@ -36,20 +36,18 @@ export async function getCityFromCoords(lat, lng) {
 export async function getSubwayFromCoords(lat, lng) {
   if (lat == null || lng == null) return null;
   try {
-    const query = `[out:json];node[station=subway](around:800,${lat},${lng});out 1;`;
-    const url = 'https://overpass-api.de/api/interpreter?data=' + encodeURIComponent(query);
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 5000);
-    const response = await fetch(url, { signal: controller.signal });
-    clearTimeout(timeout);
+    const url = `https://nominatim.openstreetmap.org/search?format=json&limit=1&accept-language=ru&q=метро&lat=${lat}&lon=${lng}&radius=800&featuretype=railway`;
+    const response = await fetch(url, {
+      headers: { 'Accept-Language': 'ru' }
+    });
     if (!response.ok) return null;
     const data = await response.json();
-    const node = data.elements?.[0];
-    const result = node?.tags?.['name:ru'] || node?.tags?.['name'] || null;
-    alert('Метро: ' + result + ' | элементов: ' + (data.elements?.length ?? 'нет'));
-    return result;
+    if (!data || data.length === 0) return null;
+    // Убираем слово "метро" / "станция" из названия если есть
+    const name = data[0]?.display_name?.split(',')[0] || null;
+    return name;
   } catch (err) {
-    alert('Метро ОШИБКА: ' + err.message);
+    console.error("Поиск метро не удался:", err);
     return null;
   }
 }
