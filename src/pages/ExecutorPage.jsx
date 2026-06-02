@@ -544,13 +544,13 @@ function BreakModal({ executor, day, orders, blocks, initialHour, initialMinute,
     </div>
   )
 }
-function ScheduleView({ executor, orders, blocks, onReload, onCreateOrder }) {
+function ScheduleView({ executor, orders, blocks, onReload, onCreateOrder, weekOffset, setWeekOffset }) {
   const [selectedOrder, setSelectedOrder] = useState(null)
   const [selectedBlock, setSelectedBlock] = useState(null)
   const [overlapList, setOverlapList] = useState(null)
   const [expandedBefore, setExpandedBefore] = useState(false)
   const [expandedAfter, setExpandedAfter] = useState(false)
-  const [weekOffset, setWeekOffset] = useState(0)
+
   const [clickMenu, setClickMenu] = useState(null)
   const [breakDay, setBreakDay] = useState(null)
   if (!executor) return null
@@ -1007,6 +1007,7 @@ function ExecutorPage({ executorId }) {
   const [ratingStats, setRatingStats] = useState(null)
   const [activeTab, setActiveTab] = useState('schedule')
   const [showAddOrder, setShowAddOrder] = useState(false)
+  const [scheduleWeekOffset, setScheduleWeekOffset] = useState(0)
   function normalizePhone(raw) {
     if (!raw) return null
     let p = raw.replace(/[^\d+]/g, '')
@@ -1405,7 +1406,7 @@ function ExecutorPage({ executorId }) {
 
       {/* Расписание */}
       {activeTab === 'schedule' && (
-        <ScheduleView executor={executor} orders={orders} blocks={blocks} onReload={loadData} onCreateOrder={(info) => setShowAddOrder(info || true)} />
+        <ScheduleView executor={executor} orders={orders} blocks={blocks} onReload={loadData} onCreateOrder={(info) => setShowAddOrder(info || true)} weekOffset={scheduleWeekOffset} setWeekOffset={setScheduleWeekOffset} />
       )}
 
       {/* Заработок */}
