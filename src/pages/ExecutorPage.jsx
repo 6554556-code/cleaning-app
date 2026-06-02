@@ -336,8 +336,8 @@ function BreakModal({ executor, day, orders, blocks, initialHour, initialMinute,
       const sM = d.getHours() * 60 + d.getMinutes()
       const dur = o.total_duration || 60
       const isOut = o.location_type === 'outcall'
-      const from = sM - (isOut ? travelTime : 0)
-      const to = sM + dur + bufferTime + (isOut ? travelTime : 0)
+      const from = sM
+      const to = sM + dur
       busy.push({ from, to })
     })
 
