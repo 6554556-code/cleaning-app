@@ -120,7 +120,7 @@ function BlockDetailsModal({ block, onClose, onSaved }) {
     </div>
   )
 }
-function OrderDetailsModal({ order, clientStats, onClose, onSaved }) {
+function OrderDetailsModal({ order, clientStats, onClose, onSaved, executor }) {
   const [status, setStatus] = useState(order.status)
   const [comment, setComment] = useState(order.executor_comment || '')
   const [price, setPrice] = useState(order.total_price ?? '')
@@ -149,6 +149,37 @@ function OrderDetailsModal({ order, clientStats, onClose, onSaved }) {
         .delete()
         .eq('order_id', order.id)
         .in('type', ['auto_travel', 'auto_buffer'])
+    }
+
+    // Восстанавливаем авто-блоки при оживлении отменённого заказа
+    if (order.status === 'cancelled' && status !== 'cancelled' && executor && order.scheduled_at) {
+      const blocksToCreate = []
+      const orderDate = new Date(order.scheduled_at)
+      if (order.location_type === 'outcall' && executor.travel_time > 0) {
+        const travelStart = new Date(orderDate.getTime() - executor.travel_time * 60 * 1000)
+        blocksToCreate.push({
+          executor_id: executor.id, order_id: order.id,
+          start_at: travelStart.toISOString(),
+          duration: executor.travel_time, type: 'auto_travel', reason: 'Дорога'
+        })
+        // Дорога обратно
+        const travelBackStart = new Date(orderDate.getTime() + (order.total_duration || 60) * 60 * 1000)
+        blocksToCreate.push({
+          executor_id: executor.id, order_id: order.id,
+          start_at: travelBackStart.toISOString(),
+          duration: executor.travel_time, type: 'auto_travel', reason: 'Дорога'
+        })
+      }
+      if (executor.buffer_time > 0 && order.total_duration) {
+        const bufferOffset = order.total_duration + (order.location_type === 'outcall' ? (executor.travel_time || 0) : 0)
+        const bufferStart = new Date(orderDate.getTime() + bufferOffset * 60 * 1000)
+        blocksToCreate.push({
+          executor_id: executor.id, order_id: order.id,
+          start_at: bufferStart.toISOString(),
+          duration: executor.buffer_time, type: 'auto_buffer', reason: 'Буфер'
+        })
+      }
+      if (blocksToCreate.length > 0) await supabase.from('blocks').insert(blocksToCreate)
     }
 
     setSaving(false)
@@ -921,6 +952,7 @@ const viewStartMin = expandedBefore ? 0 : earliestMin
         clientStats={getClientStats(orders, selectedOrder.client_id)}
         onClose={() => setSelectedOrder(null)}
         onSaved={() => { setSelectedOrder(null); onReload() }}
+        executor={executor}
       />
       )}
       {/* Модалка с деталями блока */}
