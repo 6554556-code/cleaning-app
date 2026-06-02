@@ -45,11 +45,11 @@ export async function getSubwayFromCoords(lat, lng) {
     if (!response.ok) return null;
     const data = await response.json();
     const node = data.elements?.[0];
-    if (!node) return null;
-    // Предпочитаем русское название, fallback на любое
-    return node.tags?.['name:ru'] || node.tags?.['name'] || null;
+    const result = node?.tags?.['name:ru'] || node?.tags?.['name'] || null;
+    alert('Метро: ' + result + ' | элементов: ' + (data.elements?.length ?? 'нет'));
+    return result;
   } catch (err) {
-    console.error("Поиск метро не удался:", err);
+    alert('Метро ОШИБКА: ' + err.message);
     return null;
   }
 }
