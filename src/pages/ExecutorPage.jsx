@@ -263,7 +263,17 @@ function OrderDetailsModal({ order, clientStats, onClose, onSaved, executor }) {
         <p style={{ margin: '4px 0', fontSize: '14px' }}>
           <b>Услуга:</b> {order.location_type === 'incall' ? '🏠 ' : order.location_type === 'outcall' ? '🚗 ' : ''}{order.cleaning_type || '—'}
         </p>
-        <p style={{ margin: '4px 0', fontSize: '14px' }}><b>Время:</b> {new Date(order.scheduled_at).toLocaleString('ru-RU')}</p>
+        <p style={{ margin: '4px 0', fontSize: '14px' }}><b>Время:</b> {(() => {
+          const d = new Date(order.scheduled_at)
+          const dateStr = d.toLocaleDateString('ru-RU')
+          const startStr = d.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })
+          if (order.total_duration) {
+            const end = new Date(d.getTime() + order.total_duration * 60000)
+            const endStr = end.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })
+            return dateStr + ', ' + startStr + '–' + endStr
+          }
+          return dateStr + ', ' + startStr
+        })()}</p>
         <p style={{ margin: '4px 0', fontSize: '14px' }}><b>Длительность:</b> {order.total_duration || '—'} мин</p>
         <p style={{ margin: '4px 0', fontSize: '14px', display: 'flex', alignItems: 'center', gap: '8px' }}>
           <b>Цена:</b>
@@ -829,7 +839,12 @@ const viewStartMin = expandedBefore ? 0 : earliestMin
                         >
                           <div style={{ width: '100%' }}>
                           <div style={{ fontWeight: 'bold' }}>{order.client_name || order.client?.full_name || order.name || 'Клиент'}</div>
-                          <div style={{ fontSize: '9px', opacity: 0.9 }}>{orderDate.getHours()}:{String(orderDate.getMinutes()).padStart(2, '0')}{order.total_price ? ` · ${order.total_price}₽` : ''}</div>
+                          <div style={{ fontSize: '9px', opacity: 0.9 }}>{(() => {
+                            const startStr = orderDate.getHours() + ':' + String(orderDate.getMinutes()).padStart(2, '0')
+                            const end = new Date(orderDate.getTime() + duration * 60000)
+                            const endStr = end.getHours() + ':' + String(end.getMinutes()).padStart(2, '0')
+                            return startStr + '–' + endStr + ' ' + duration + 'мин' + (order.total_price ? ' · ' + order.total_price + '₽' : '')
+                          })()}</div>
                           <div style={{ fontSize: '8px', opacity: 0.7 }}>#{order.id}</div>
                           </div>
                         </div>
