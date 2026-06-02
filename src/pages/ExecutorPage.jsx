@@ -42,7 +42,7 @@ const STATUS_COLORS = {
   new: '#fbbf24',
   confirmed_by_executor: '#3b82f6',
   awaiting_client_confirmation: '#f97316',
-  confirmed_by_client: '#22c55e',
+  confirmed_by_client: '#86d4a8',
   in_progress: '#a855f7',
   done: '#16a34a',
   cancelled: '#ef4444',
@@ -1122,7 +1122,7 @@ function ExecutorPage({ executorId }) {
       done: { label: 'Выполнена', color: '#16a34a', bg: '#f0fdf4' },
       confirmed_by_executor: { label: 'Подтверждено вами', color: '#3b82f6', bg: '#eff6ff' },
       awaiting_client_confirmation: { label: 'Ждём клиента', color: '#f97316', bg: '#fff7ed' },
-      confirmed_by_client: { label: 'Подтверждено клиентом', color: '#22c55e', bg: '#f0fdf4' },
+      confirmed_by_client: { label: 'Подтверждено клиентом', color: '#15803d', bg: '#d1fae5' },
       cancelled: { label: 'Отменена', color: '#dc2626', bg: '#fef2f2' },
     }
     const result = statuses[status] || { label: status, color: '#666', bg: '#f0f0f0' }
