@@ -148,6 +148,7 @@ export function generateSlots(executor, existingOrders, date, newOrder = {}, exi
     // — newBusyStart >= dayStart: для outcall дорога ТУДА не уходит за начало смены
     //   (для in-call travel=0, поэтому newBusyStart === slotStart, и условие выполняется автоматически)
     const fitsInWorkday = newBusyEnd <= end && newBusyStart >= dayStart
+    
 
     // Проверяем пересечение с заказами И блоками
     const overlaps = allBusyRanges.some(({ busyStart, busyEnd }) => {
@@ -167,6 +168,45 @@ export function generateSlots(executor, existingOrders, date, newOrder = {}, exi
 
     current.setMinutes(current.getMinutes() + 30)
   }
+
+  // === Доводчики краёв: старт точно после освободившегося отрезка ===
+  // Берём точки освобождения: начало рабочего дня + конец каждой занятости.
+  // Из каждой делаем кандидата на старт: freePoint + travel (дорога ТУДА).
+  // Если такой старт ещё не в slots — проверяем стандартные условия и добавляем.
+  const existingStartTimes = new Set(slots.map(s => s.start.getTime()))
+  const freePoints = [dayStart, ...allBusyRanges.map(r => r.busyEnd)]
+
+  for (const freePoint of freePoints) {
+    const slotStart = new Date(freePoint)
+    slotStart.setMinutes(slotStart.getMinutes() + newTravelBefore)
+
+    if (existingStartTimes.has(slotStart.getTime())) continue
+
+    const newBusyStart = new Date(slotStart)
+    newBusyStart.setMinutes(newBusyStart.getMinutes() - newTravelBefore)
+    const newBusyEnd = new Date(slotStart)
+    newBusyEnd.setMinutes(newBusyEnd.getMinutes() + newTotalAfter)
+
+    const fitsInWorkday = newBusyEnd <= end && newBusyStart >= dayStart
+    if (!fitsInWorkday) continue
+
+    const overlaps = allBusyRanges.some(({ busyStart, busyEnd }) => {
+      return newBusyStart < busyEnd && busyStart < newBusyEnd
+    })
+    if (overlaps) continue
+
+    const slotEnd = new Date(slotStart)
+    slotEnd.setMinutes(slotEnd.getMinutes() + serviceDuration)
+    slots.push({
+      start: new Date(slotStart),
+      end: slotEnd,
+      label: slotStart.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })
+    })
+    existingStartTimes.add(slotStart.getTime())
+  }
+
+  // Сортируем — хвостовые слоты должны встать между круглыми
+  slots.sort((a, b) => a.start.getTime() - b.start.getTime())
 
   return slots
 }
