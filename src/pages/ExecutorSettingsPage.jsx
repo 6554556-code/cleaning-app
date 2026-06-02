@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../supabase'
-import { getCityFromCoords } from "../geocoding.js";
+import { getCityFromCoords, getSubwayFromCoords } from "../geocoding.js";
 import { getTelegramUser } from '../telegram'
 import LocationPicker from '../components/LocationPicker'
 
@@ -369,8 +369,11 @@ for (const s of group) {
       .eq('id', executor.user_id)
 // Если есть координаты — определяем город заново (вдруг пин подвинули в другой город)
 const newCity = latitude !== '' && longitude !== ''
-? await getCityFromCoords(Number(latitude), Number(longitude))
-: null;
+  ? await getCityFromCoords(Number(latitude), Number(longitude))
+  : null;
+const newSubway = latitude !== '' && longitude !== ''
+  ? await getSubwayFromCoords(Number(latitude), Number(longitude))
+  : null;
     // Адрес лежит в таблице executors
     const [startH, startM] = workStart.split(':').map(Number)
 const [endH, endM] = workEnd.split(':').map(Number)
@@ -405,6 +408,7 @@ if (endMinutes === startMinutes) {
         longitude: longitude === '' ? null : Number(longitude),
         timezone: timezone,
         city: newCity,
+        subway_station: newSubway,
       })
       .eq('id', executor.id)
 

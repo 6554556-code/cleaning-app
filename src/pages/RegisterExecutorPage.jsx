@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { supabase } from '../supabase'
 import { useProfessions } from "../hooks/useProfessions.js";
-import { getCityFromCoords } from "../geocoding.js";
+import { getCityFromCoords, getSubwayFromCoords } from "../geocoding.js";
 import { getTelegramUser } from '../telegram'
 import LocationPicker from '../components/LocationPicker'
 
@@ -131,6 +131,7 @@ if (endMinutes === startMinutes) {
     }
 // Определяем город по координатам (если что-то пойдёт не так — null, не валим регистрацию)
 const city = await getCityFromCoords(latitude, longitude);
+const subway = await getSubwayFromCoords(latitude, longitude);
     // 2. Создаём профиль исполнителя
     const { data: executor, error: execError } = await supabase
       .from('executors')
@@ -149,7 +150,8 @@ const city = await getCityFromCoords(latitude, longitude);
         timezone: timezone,
         latitude: Number(latitude),
         longitude: Number(longitude),
-        city: city
+        city: city,
+        subway_station: subway
       }])
       .select()
       .single()
