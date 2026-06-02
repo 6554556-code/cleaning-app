@@ -38,7 +38,10 @@ export async function getSubwayFromCoords(lat, lng) {
   try {
     const query = `[out:json];node[station=subway](around:800,${lat},${lng});out 1;`;
     const url = 'https://overpass-api.de/api/interpreter?data=' + encodeURIComponent(query);
-    const response = await fetch(url);
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 5000);
+    const response = await fetch(url, { signal: controller.signal });
+    clearTimeout(timeout);
     if (!response.ok) return null;
     const data = await response.json();
     const node = data.elements?.[0];
