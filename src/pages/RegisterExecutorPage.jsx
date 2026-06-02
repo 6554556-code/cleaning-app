@@ -24,6 +24,7 @@ function RegisterExecutorPage() {
   const [serviceName, setServiceName] = useState('')
   const [servicePrice, setServicePrice] = useState('')
   const [serviceDuration, setServiceDuration] = useState('')
+  const [serviceLocationType, setServiceLocationType] = useState('both')
 
   const [saving, setSaving] = useState(false)
 
@@ -168,7 +169,7 @@ const city = await getCityFromCoords(latitude, longitude);
         price: Number(servicePrice),
         duration: Number(serviceDuration),
         is_main: true,
-        location_type: 'both'
+        location_type: serviceLocationType
       }])
 
     setSaving(false)
@@ -292,6 +293,50 @@ const city = await getCityFromCoords(latitude, longitude);
           <label style={labelStyle}>Длительность, мин</label>
           <input type="number" value={serviceDuration} onChange={e => setServiceDuration(e.target.value)} style={inputStyle} placeholder="120" />
         </div>
+      </div>
+
+      <label style={labelStyle}>Тип визита</label>
+      <div style={{ display: 'flex', gap: '8px', marginBottom: '12px', justifyContent: 'center' }}>
+        <button
+          onClick={() => {
+            const incall = serviceLocationType === 'incall' || serviceLocationType === 'both'
+            const outcall = serviceLocationType === 'outcall' || serviceLocationType === 'both'
+            const newIncall = !incall
+            if (!newIncall && !outcall) return
+            setServiceLocationType(newIncall && outcall ? 'both' : newIncall ? 'incall' : 'outcall')
+          }}
+          style={{
+            padding: '5px 14px',
+            fontSize: '13px',
+            borderRadius: '999px',
+            border: '1px solid ' + ((serviceLocationType === 'incall' || serviceLocationType === 'both') ? '#2481cc' : '#ddd'),
+            background: (serviceLocationType === 'incall' || serviceLocationType === 'both') ? '#2481cc' : 'white',
+            color: (serviceLocationType === 'incall' || serviceLocationType === 'both') ? 'white' : '#333',
+            cursor: 'pointer',
+          }}
+        >
+          🏠 У меня
+        </button>
+        <button
+          onClick={() => {
+            const incall = serviceLocationType === 'incall' || serviceLocationType === 'both'
+            const outcall = serviceLocationType === 'outcall' || serviceLocationType === 'both'
+            const newOutcall = !outcall
+            if (!incall && !newOutcall) return
+            setServiceLocationType(incall && newOutcall ? 'both' : newOutcall ? 'outcall' : 'incall')
+          }}
+          style={{
+            padding: '5px 14px',
+            fontSize: '13px',
+            borderRadius: '999px',
+            border: '1px solid ' + ((serviceLocationType === 'outcall' || serviceLocationType === 'both') ? '#2481cc' : '#ddd'),
+            background: (serviceLocationType === 'outcall' || serviceLocationType === 'both') ? '#2481cc' : 'white',
+            color: (serviceLocationType === 'outcall' || serviceLocationType === 'both') ? 'white' : '#333',
+            cursor: 'pointer',
+          }}
+        >
+          🚗 Выезд
+        </button>
       </div>
 
       <button
