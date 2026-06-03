@@ -378,9 +378,25 @@ const [reviewModalOrder, setReviewModalOrder] = useState(null)
               // Нельзя оставить (ручной заказ, не подтверждён и т.п.) — не показываем ничего
               return null
             })()}
+
+            {/* Кнопка "Записаться снова" — только в прошедших */}
+            {tab === 'past' && order.executor_id && (
+              <a
+              href={'/?executor_id=' + order.executor_id + '&book=1'}
+                style={{
+                  display: 'block', marginTop: '8px', width: '100%', padding: '8px',
+                  background: 'white', color: '#2481cc', border: '1px solid #2481cc',
+                  borderRadius: '8px', fontSize: '13px',
+                  textAlign: 'center', textDecoration: 'none', boxSizing: 'border-box'
+                }}
+              >
+                🔄 Записаться снова
+              </a>
+            )}
           </div>
         ))
       )}
+           
 
       {/* Модалка отзыва */}
       {reviewModalOrder && (

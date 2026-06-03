@@ -28,13 +28,20 @@ function ClientPage() {
   // Счётчики выполненных заказов: { executor_id: { fromApp, total } }
   const [ordersCountByExecutor, setOrdersCountByExecutor] = useState({})
   const [targetExecutorId, setTargetExecutorId] = useState(null)
+  // Если в URL пришёл &book=1 — после загрузки исполнителей сразу откроем бронь
+  const [pendingBookExecutorId, setPendingBookExecutorId] = useState(null)
 
   // Ловим ?executor_id=N из URL — это переход с карты по кнопке "Записаться"
+  // Или ?executor_id=N&book=1 — это переход из ЛК клиента "Записаться снова"
   useEffect(() => {
     const params = new URLSearchParams(window.location.search)
     const id = params.get('executor_id')
     if (!id) return
     setTargetExecutorId(Number(id))
+    // Если есть флаг book=1 — запомним, что надо открыть бронь после загрузки
+    if (params.get('book') === '1') {
+      setPendingBookExecutorId(Number(id))
+    }
     // Узнаём профессию исполнителя и переключаем фильтр на неё
     supabase
       .from('executors')
@@ -45,6 +52,17 @@ function ClientPage() {
         if (data?.service_type) setSelectedService(data.service_type)
       })
   }, [])
+  // Когда исполнители загрузились и есть pendingBookExecutorId — открываем бронь
+  useEffect(() => {
+    if (!pendingBookExecutorId || executors.length === 0) return
+    const exec = executors.find(e => e.id === pendingBookExecutorId)
+    if (exec) {
+      setSelectedExecutor(exec)
+      setSelectedSlot(null)
+      setShowBooking(true)
+      setPendingBookExecutorId(null)
+    }
+  }, [executors, pendingBookExecutorId])
   // Когда исполнители загрузились — прокручиваем к нужной карточке (если пришли с карты)
   useEffect(() => {
     if (!targetExecutorId || executors.length === 0) return
