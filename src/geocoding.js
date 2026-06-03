@@ -1,3 +1,5 @@
+import { supabase } from './supabase'
+
 // Превращает координаты в название города через Nominatim (OpenStreetMap).
 // Бесплатно, без ключей. Лимит ~1 запрос в секунду — нам хватит, мы вызываем
 // только при регистрации / смене адреса.
@@ -36,16 +38,14 @@ export async function getCityFromCoords(lat, lng) {
 export async function getSubwayFromCoords(lat, lng) {
   if (lat == null || lng == null) return null;
   try {
-    const query = `[out:json];node[station=subway](around:800,${lat},${lng});out 1;`;
-    const url = 'https://overpass.kumi.systems/api/interpreter?data=' + encodeURIComponent(query);
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 5000);
-    const response = await fetch(url, { signal: controller.signal });
-    clearTimeout(timeout);
-    if (!response.ok) return null;
-    const data = await response.json();
-    const node = data.elements?.[0];
-    return node?.tags?.['name:ru'] || node?.tags?.['name'] || null;
+    const { data, error } = await supabase.functions.invoke('get-subway', {
+      body: { lat, lng }
+    });
+    if (error) {
+      console.error("Поиск метро не удался:", error);
+      return null;
+    }
+    return data?.subway || null;
   } catch (err) {
     console.error("Поиск метро не удался:", err);
     return null;
