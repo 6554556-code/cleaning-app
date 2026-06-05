@@ -14,7 +14,11 @@ function App() {
     syncTelegramUsername()
     // Логируем открытие приложения
     setTimeout(() => {
-      const user = window.Telegram?.WebApp?.initDataUnsafe?.user
+      const tgWebApp = window.Telegram?.WebApp
+      const user = tgWebApp?.initDataUnsafe?.user
+      console.log('WebApp:', tgWebApp)
+      console.log('initData:', tgWebApp?.initData)
+      console.log('user:', user)
       if (user) {
         supabase.from('app_opens').insert({
           tg_user_id: user.id,
