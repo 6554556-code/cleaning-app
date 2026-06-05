@@ -4,6 +4,7 @@ import { getTelegramUser } from '../telegram'
 import AddOrderPage from './AddOrderPage'
 import MiniCalendar from '../components/MiniCalendar'
 import { loadReviewsByExecutors, calculateStats } from '../reviewsUtils'
+import BalanceBlock from '../components/BalanceBlock'
 // Считает статистику заказов клиента по списку всех заказов
 function getClientStats(allOrders, clientId) {
   const clientOrders = allOrders.filter(o => o.client_id === clientId)
@@ -1197,21 +1198,23 @@ function ExecutorPage({ executorId }) {
             </p>
           )
         })()}
-        <button
-          onClick={toggleVisible}
-          style={{
-            marginTop: '10px',
-            padding: '8px 16px',
-            borderRadius: '8px',
-            border: 'none',
-            cursor: 'pointer',
-            fontSize: '14px',
-            background: executor?.is_visible ? '#22c55e' : '#9ca3af',
-            color: 'white',
-          }}
-        >
-          {executor?.is_visible ? '👁 Виден на главной' : '🙈 Скрыт с главной'}
-        </button>
+        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '8px', marginTop: '10px' }}>
+          <button
+            onClick={toggleVisible}
+            style={{
+              padding: '8px 16px',
+              borderRadius: '8px',
+              border: 'none',
+              cursor: 'pointer',
+              fontSize: '14px',
+              background: executor?.is_visible ? '#22c55e' : '#9ca3af',
+              color: 'white',
+            }}
+          >
+            {executor?.is_visible ? '👁 Виден на главной' : '🙈 Скрыт с главной'}
+          </button>
+          <BalanceBlock executor={executor} />
+          </div>
       </div>
 
       {/* Табы */}
