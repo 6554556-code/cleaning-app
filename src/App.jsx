@@ -18,6 +18,7 @@ function App() {
       supabase.from('app_opens').insert({
         tg_user_id: user?.id ?? null,
         username: user?.username ?? null,
+        error_info: user ? null : 'no_user',
       })
     }, 500)
   }, [])
