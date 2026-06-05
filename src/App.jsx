@@ -6,11 +6,20 @@ import ClientCabinetPage from './pages/ClientCabinetPage'
 import ExecutorSettingsPage from './pages/ExecutorSettingsPage'
 import { useEffect } from 'react'
 import { initTelegram, getTelegramUser, syncTelegramUsername } from './telegram'
+import { supabase } from './supabase'
 function App() {
   useEffect(() => {
     initTelegram()
     // Синхронизируем username Telegram с базой (автоматически, если юзер из Telegram)
     syncTelegramUsername()
+    // Логируем открытие приложения
+    const user = window.Telegram?.WebApp?.initDataUnsafe?.user
+    if (user) {
+      supabase.from('app_opens').insert({
+        tg_user_id: user.id,
+        username: user.username ?? null,
+      })
+    }
   }, [])
   const executorMatch = window.location.search.match(/executor=(\d+)/)
   const isMap = window.location.search.includes('map=1')
