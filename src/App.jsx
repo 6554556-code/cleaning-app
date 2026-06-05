@@ -19,7 +19,7 @@ function App() {
         tg_user_id: user?.id ?? null,
         username: user?.username ?? null,
         error_info: user ? null : 'no_user',
-      })
+      }).then(() => {})
     }, 500)
   }, [])
   const executorMatch = window.location.search.match(/executor=(\d+)/)
