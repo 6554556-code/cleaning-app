@@ -14,17 +14,11 @@ function App() {
     syncTelegramUsername()
     // Логируем открытие приложения
     setTimeout(() => {
-      const tgWebApp = window.Telegram?.WebApp
-      const user = tgWebApp?.initDataUnsafe?.user
-      console.log('WebApp:', tgWebApp)
-      console.log('initData:', tgWebApp?.initData)
-      console.log('user:', user)
-      if (user) {
-        supabase.from('app_opens').insert({
-          tg_user_id: user.id,
-          username: user.username ?? null,
-        })
-      }
+      const user = window.Telegram?.WebApp?.initDataUnsafe?.user
+      supabase.from('app_opens').insert({
+        tg_user_id: user?.id ?? null,
+        username: user?.username ?? null,
+      })
     }, 500)
   }, [])
   const executorMatch = window.location.search.match(/executor=(\d+)/)
