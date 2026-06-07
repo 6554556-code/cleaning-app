@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../supabase'
-import { getCityFromCoords, getSubwayFromCoords } from "../geocoding.js";
+import { getCityFromCoords, getSubwayFromCoords, isCountrySupported } from "../geocoding.js";
 import { getTelegramUser } from '../telegram'
 import LocationPicker from '../components/LocationPicker'
 
@@ -360,7 +360,15 @@ for (const s of group) {
   }
   async function handleSave() {
     setSaving(true)
-    
+    // Проверка: пин в поддерживаемой стране?
+    if (latitude !== '' && longitude !== '') {
+      const supported = await isCountrySupported(Number(latitude), Number(longitude));
+      if (!supported) {
+        setSaving(false);
+        alert('🌍 В этом месте мы пока не работаем\n\nПередвиньте метку на карте в Россию или страны СНГ.');
+        return;
+      }
+    }
 
     // Имя и телефон лежат в таблице users
     const { error: userError } = await supabase

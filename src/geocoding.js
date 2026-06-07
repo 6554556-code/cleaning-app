@@ -51,3 +51,24 @@ export async function getSubwayFromCoords(lat, lng) {
     return null;
   }
 }
+// Список стран, где мы работаем. Коды по ISO 3166-1 alpha-2 (lowercase).
+const SUPPORTED_COUNTRIES = ['ru', 'by', 'kz', 'am', 'az', 'kg', 'tj', 'uz', 'md'];
+
+// Проверяет, что координаты находятся в поддерживаемой стране.
+// На любых ошибках/неопределённости возвращает true (fail-open) —
+// лучше дать сохранить, чем ложно заблокировать из-за сбоя сети.
+export async function isCountrySupported(lat, lng) {
+  if (lat == null || lng == null) return true;
+  try {
+    const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&accept-language=ru&zoom=3`;
+    const response = await fetch(url);
+    if (!response.ok) return true;
+    const data = await response.json();
+    const country = data.address?.country_code;
+    if (!country) return true;
+    return SUPPORTED_COUNTRIES.includes(country);
+  } catch (err) {
+    console.error("Проверка страны не удалась:", err);
+    return true;
+  }
+}

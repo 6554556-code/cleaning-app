@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { supabase } from '../supabase'
 import { useProfessions } from "../hooks/useProfessions.js";
-import { getCityFromCoords, getSubwayFromCoords } from "../geocoding.js";
+import { getCityFromCoords, getSubwayFromCoords, isCountrySupported } from "../geocoding.js";
 import { getTelegramUser } from '../telegram'
 import LocationPicker from '../components/LocationPicker'
 
@@ -77,6 +77,15 @@ if (endMinutes === startMinutes) {
   return
 }
     setSaving(true)
+    // Проверка: пин в поддерживаемой стране?
+    if (latitude !== '' && longitude !== '') {
+      const supported = await isCountrySupported(Number(latitude), Number(longitude));
+      if (!supported) {
+        setSaving(false);
+        alert('🌍 В этом месте мы пока не работаем\n\nПередвиньте метку на карте в Россию или страны СНГ.');
+        return;
+      }
+    }
 
     // 1. Создаём пользователя
     // Берём telegram_id из Telegram
