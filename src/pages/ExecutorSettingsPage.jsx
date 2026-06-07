@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../supabase'
-import { getCityFromCoords, getSubwayFromCoords, isCountrySupported } from "../geocoding.js";
+import { getLocationFromCoords, getSubwayFromCoords } from "../geocoding.js";
 import { getTelegramUser } from '../telegram'
 import LocationPicker from '../components/LocationPicker'
 
@@ -19,6 +19,8 @@ function ExecutorSettingsPage() {
   const [services, setServices] = useState([])
   const [archiveOpen, setArchiveOpen] = useState(false)
   const [advancedOpen, setAdvancedOpen] = useState(false)
+  const [mapOpen, setMapOpen] = useState(false)
+  const [savingLocation, setSavingLocation] = useState(false)
   const [bio, setBio] = useState('')
   const [latitude, setLatitude] = useState('')
   const [longitude, setLongitude] = useState('')
@@ -360,28 +362,13 @@ for (const s of group) {
   }
   async function handleSave() {
     setSaving(true)
-    // Проверка: пин в поддерживаемой стране?
-    if (latitude !== '' && longitude !== '') {
-      const supported = await isCountrySupported(Number(latitude), Number(longitude));
-      if (!supported) {
-        setSaving(false);
-        alert('🌍 В этом месте мы пока не работаем\n\nПередвиньте метку на карте в Россию или страны СНГ.');
-        return;
-      }
-    }
+    
 
     // Имя и телефон лежат в таблице users
     const { error: userError } = await supabase
       .from('users')
       .update({ full_name: fullName, phone: phone })
       .eq('id', executor.user_id)
-// Если есть координаты — определяем город заново (вдруг пин подвинули в другой город)
-const newCity = latitude !== '' && longitude !== ''
-  ? await getCityFromCoords(Number(latitude), Number(longitude))
-  : null;
-const newSubway = latitude !== '' && longitude !== ''
-  ? await getSubwayFromCoords(Number(latitude), Number(longitude))
-  : null;
     // Адрес лежит в таблице executors
     const [startH, startM] = workStart.split(':').map(Number)
 const [endH, endM] = workEnd.split(':').map(Number)
@@ -412,11 +399,7 @@ if (endMinutes === startMinutes) {
         buffer_time: Number(bufferTime) || 0,
         travel_time: Number(travelTime) || 0,
         bio: bio,
-        latitude: latitude === '' ? null : Number(latitude),
-        longitude: longitude === '' ? null : Number(longitude),
         timezone: timezone,
-        city: newCity,
-        subway_station: newSubway,
       })
       .eq('id', executor.id)
 
@@ -428,6 +411,47 @@ if (endMinutes === startMinutes) {
     }
 
     alert('Сохранено ✅')
+  }
+
+  // Отдельное сохранение точки на карте. Тяжёлое (геокодинг + поиск метро),
+  // поэтому вынесено из основного "Сохранить" — пин меняют редко.
+  async function handleSaveLocation() {
+    if (latitude === '' || longitude === '') {
+      alert('Сначала поставьте точку на карте')
+      return
+    }
+    setSavingLocation(true)
+
+    // Проверка страны + город (быстрый Nominatim)
+    const loc = await getLocationFromCoords(Number(latitude), Number(longitude))
+    if (!loc.isSupported) {
+      setSavingLocation(false)
+      alert('🌍 В этом месте мы пока не работаем\n\nПередвиньте метку на карте в Россию или страны СНГ.')
+      return
+    }
+
+    // Метро ищем с щедрым таймаутом (20 сек) — здесь важно, чтобы нашлось
+    const subway = await getSubwayFromCoords(Number(latitude), Number(longitude), 20000)
+
+    const { error } = await supabase
+      .from('executors')
+      .update({
+        latitude: Number(latitude),
+        longitude: Number(longitude),
+        city: loc.city,
+        subway_station: subway,
+      })
+      .eq('id', executor.id)
+
+    setSavingLocation(false)
+
+    if (error) {
+      alert('Ошибка сохранения точки: ' + error.message)
+      return
+    }
+
+    const parts = [loc.city, subway].filter(Boolean).join(' · ')
+    alert('Точка сохранена ✅' + (parts ? '\n' + parts : ''))
   }
   if (loading) return <p style={{ textAlign: 'center', padding: '40px' }}>Загрузка...</p>
   if (!executor) return <p style={{ textAlign: 'center', padding: '40px' }}>Профиль исполнителя не найден</p>
@@ -568,10 +592,26 @@ if (endMinutes === startMinutes) {
               <option value="Asia/Magadan">Магадан (МСК+8)</option>
               <option value="Asia/Kamchatka">Камчатка (МСК+9)</option>
             </select>
+          </div>
+        )}
+      </div>
 
-            <label style={{ display: 'block', marginBottom: '6px', fontSize: '14px', color: '#666' }}>
-              📍 Точка на карте
-            </label>
+      {/* Отдельный блок: точка на карте. Меняется редко, сохраняется отдельной кнопкой. */}
+      <div style={{ background: 'white', borderRadius: '12px', padding: '16px', boxShadow: '0 2px 8px rgba(0,0,0,0.1)', marginTop: '16px' }}>
+        <div
+          onClick={() => setMapOpen(!mapOpen)}
+          style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer' }}
+        >
+          <h3 style={{ margin: 0 }}>📍 Вы на карте</h3>
+          <span style={{ color: '#2481cc', fontSize: '14px' }}>{mapOpen ? '▼ Свернуть' : '▶ Открыть'}</span>
+        </div>
+
+        {mapOpen && (
+          <div style={{ marginTop: '12px' }}>
+            <p style={{ fontSize: '13px', color: '#666', margin: '0 0 12px' }}>
+              Это место, откуда вы выезжаете или принимаете клиентов. По нему мы определяем ваш город и ближайшее метро.
+              Меняйте только при переезде.
+            </p>
             <LocationPicker
               latitude={latitude}
               longitude={longitude}
@@ -585,9 +625,34 @@ if (endMinutes === startMinutes) {
                 ? `Координаты: ${Number(latitude).toFixed(5)}, ${Number(longitude).toFixed(5)}`
                 : 'Кликните по карте, чтобы поставить маркер'}
             </div>
+
+            {savingLocation && (
+              <p style={{ fontSize: '13px', color: '#2481cc', margin: '12px 0 0', textAlign: 'center' }}>
+                ⏳ Определяю город и метро… это может занять до 20 секунд, не закрывайте страницу
+              </p>
+            )}
+
+            <button
+              onClick={handleSaveLocation}
+              disabled={savingLocation}
+              style={{
+                marginTop: '12px',
+                width: '100%',
+                padding: '10px',
+                background: savingLocation ? '#9bc4e8' : '#2481cc',
+                color: 'white',
+                border: 'none',
+                borderRadius: '8px',
+                cursor: savingLocation ? 'default' : 'pointer',
+                fontSize: '16px'
+              }}
+            >
+              {savingLocation ? 'Сохраняю точку…' : 'Сохранить точку'}
+            </button>
           </div>
         )}
       </div>
+
       <div style={{ background: 'white', borderRadius: '12px', padding: '16px', boxShadow: '0 2px 8px rgba(0,0,0,0.1)', marginTop: '16px' }}>
         <h3 style={{ marginTop: 0 }}>График работы</h3>
 
