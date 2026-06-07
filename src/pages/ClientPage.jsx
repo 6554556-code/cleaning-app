@@ -374,7 +374,20 @@ const tomorrowFuture = tomorrowSlots.slice(0, 4)
                 {(() => {
                   const stats = reviewStats[executor.id]
                   if (!stats || stats.count === 0) {
-                    return <span style={{ color: '#999', fontSize: '12px' }}>Новый исполнитель</span>
+                    return (
+                      <span style={{
+                        display: 'inline-block',
+                        padding: '4px 8px',
+                        background: '#f0f7ff',
+                        color: '#2481cc',
+                        borderRadius: '8px',
+                        fontSize: '11px',
+                        lineHeight: '1.3',
+                        textAlign: 'center'
+                      }}>
+                        Новый<br />исполнитель
+                      </span>
+                    )
                   }
                   return (
                     <>
