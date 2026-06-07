@@ -344,9 +344,9 @@ const tomorrowFuture = tomorrowSlots.slice(0, 4)
             boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
           }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flex: 1 }}>
                 <Avatar url={executor.avatar_url} name={executor.users?.full_name} size={92} />
-                <div>
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', flex: 1 }}>
                   {(() => {
                     const prof = professions.find(p => p.code === executor.service_type)
                     if (!prof) return null
@@ -360,6 +360,13 @@ const tomorrowFuture = tomorrowSlots.slice(0, 4)
                     {executor.users?.full_name}
                     {executor.is_verified && <span title="Проверенный исполнитель">✅</span>}
                   </h3>
+                  {(executor.city || executor.subway_station) && (
+                    <p style={{ margin: '4px 0 0', color: '#666', fontSize: '13px' }}>
+                      {executor.city && '📍 ' + executor.city}
+                      {executor.city && executor.subway_station && ' · '}
+                      {executor.subway_station && '🚇 ' + executor.subway_station}
+                    </p>
+                  )}
                 </div>
               </div>
             
@@ -384,11 +391,7 @@ const tomorrowFuture = tomorrowSlots.slice(0, 4)
                 })()}
               </div>
             </div>
-            {executor.subway_station && (
-              <p style={{ margin: '4px 0', color: '#666', fontSize: '13px' }}>
-                🚇 {executor.subway_station}
-              </p>
-            )}
+            
             <p style={{ color: '#666', margin: '8px 0', fontSize: '14px' }}>{executor.bio}</p>
             <div style={{ display: 'flex', gap: '16px', fontSize: '14px', flexWrap: 'wrap' }}>
             {(() => {
