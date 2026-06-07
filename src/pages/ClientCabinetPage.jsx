@@ -44,15 +44,14 @@ const [reviewModalOrder, setReviewModalOrder] = useState(null)
     if (executorIds.length > 0) {
       const { data: execData } = await supabase
         .from('executors')
-        .select('id, address, users(full_name, phone, telegram_username, telegram_id)')
+        .select('id, address, users(full_name, phone, telegram_username)')
         .in('id', executorIds)
       ;(execData || []).forEach(e => {
         executorsMap[e.id] = {
           name: e.users?.full_name || 'Исполнитель',
           address: e.address || '',
           phone: e.users?.phone || '',
-          telegram_username: e.users?.telegram_username || '',
-          telegram_id: e.users?.telegram_id || ''
+          telegram_username: e.users?.telegram_username || ''
         }
       })
     }
@@ -63,8 +62,7 @@ const [reviewModalOrder, setReviewModalOrder] = useState(null)
       executorName: executorsMap[o.executor_id]?.name || 'Исполнитель',
       executorAddress: executorsMap[o.executor_id]?.address || '',
       executorPhone: executorsMap[o.executor_id]?.phone || '',
-      executorTelegram: executorsMap[o.executor_id]?.telegram_username || '',
-      executorTelegramId: executorsMap[o.executor_id]?.telegram_id || ''
+      executorTelegram: executorsMap[o.executor_id]?.telegram_username || ''
     }))
   // 4. Грузим все отзывы клиента — группируем по executor_id (один отзыв на исполнителя)
   const { data: reviewsData } = await supabase
@@ -104,31 +102,6 @@ const [reviewModalOrder, setReviewModalOrder] = useState(null)
       return
     }
     window.location.href = 'tel:' + phone
-  }
-  function openExecutorChat({ username, telegramId }) {
-    const tg = window.Telegram?.WebApp
-    // Если есть @username — стандартная ссылка t.me/username
-    if (username) {
-      const url = `https://t.me/${username}`
-      if (tg?.openTelegramLink) {
-        tg.openTelegramLink(url)
-      } else {
-        window.open(url, '_blank')
-      }
-      return
-    }
-    // Нет username — открываем по числовому telegram_id
-    // Работает потому что оба пользователя сидят в одном боте
-    if (telegramId) {
-      const url = `tg://user?id=${telegramId}`
-      if (tg?.openTelegramLink) {
-        tg.openTelegramLink(url)
-      } else {
-        window.location.href = url
-      }
-      return
-    }
-    alert('У этого исполнителя нет контакта в Telegram')
   }
   async function confirmVisit(orderId) {
     const { error } = await supabase
@@ -279,22 +252,21 @@ const [reviewModalOrder, setReviewModalOrder] = useState(null)
             )}
 
             {/* Кнопки связи с исполнителем — только для активных заказов */}
-            {tab === 'future' && (order.executorTelegram || order.executorTelegramId || order.executorPhone) && (
+            {tab === 'future' && (order.executorTelegram || order.executorPhone) && (
               <div style={{ display: 'flex', gap: '8px', marginTop: '8px' }}>
-                {(order.executorTelegram || order.executorTelegramId) && (
-                  <button
-                    onClick={() => openExecutorChat({
-                      username: order.executorTelegram,
-                      telegramId: order.executorTelegramId
-                    })}
+                {order.executorTelegram && (
+                    <a 
+                    href={`https://t.me/${order.executorTelegram}`}
+                    target="_blank"
+                    rel="noreferrer"
                     style={{
                       flex: 1, padding: '8px', textAlign: 'center',
-                      background: '#2481cc', color: 'white', border: 'none',
-                      borderRadius: '8px', cursor: 'pointer', fontSize: '13px'
+                      background: '#2481cc', color: 'white',
+                      borderRadius: '8px', textDecoration: 'none', fontSize: '13px'
                     }}
                   >
                     💬 Написать
-                  </button>
+                  </a>
                 )}
                 {order.executorPhone && (
                   <button
