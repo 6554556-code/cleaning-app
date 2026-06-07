@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { supabase } from '../supabase'
 import { useProfessions } from "../hooks/useProfessions.js";
-import { getCityFromCoords, getSubwayFromCoords, isCountrySupported } from "../geocoding.js";
+import { getLocationFromCoords, getSubwayFromCoords } from "../geocoding.js";
 import { getTelegramUser } from '../telegram'
 import LocationPicker from '../components/LocationPicker'
 
@@ -77,15 +77,7 @@ if (endMinutes === startMinutes) {
   return
 }
     setSaving(true)
-    // Проверка: пин в поддерживаемой стране?
-    if (latitude !== '' && longitude !== '') {
-      const supported = await isCountrySupported(Number(latitude), Number(longitude));
-      if (!supported) {
-        setSaving(false);
-        alert('🌍 В этом месте мы пока не работаем\n\nПередвиньте метку на карте в Россию или страны СНГ.');
-        return;
-      }
-    }
+    
 
     // 1. Создаём пользователя
     // Берём telegram_id из Telegram
@@ -138,9 +130,15 @@ if (endMinutes === startMinutes) {
       setSaving(false)
       return
     }
-// Определяем город по координатам (если что-то пойдёт не так — null, не валим регистрацию)
-const city = await getCityFromCoords(latitude, longitude);
-const subway = await getSubwayFromCoords(latitude, longitude);
+// Геолокация: один запрос даёт и город, и проверку страны
+const loc = await getLocationFromCoords(Number(latitude), Number(longitude));
+if (!loc.isSupported) {
+  setSaving(false);
+  alert('🌍 В этом месте мы пока не работаем\n\nПередвиньте метку на карте в Россию или страны СНГ.');
+  return;
+}
+const city = loc.city;
+const subway = await getSubwayFromCoords(Number(latitude), Number(longitude));
     // 2. Создаём профиль исполнителя
     const { data: executor, error: execError } = await supabase
       .from('executors')
