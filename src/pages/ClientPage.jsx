@@ -361,10 +361,10 @@ const tomorrowFuture = tomorrowSlots.slice(0, 4)
                     {executor.is_verified && <span title="Проверенный исполнитель">✅</span>}
                   </h3>
                   {(executor.city || executor.subway_station) && (
-                    <p style={{ margin: '4px 0 0', color: '#666', fontSize: '13px' }}>
-                      {executor.city && '📍 ' + executor.city}
+                    <p style={{ margin: '4px 0 0', color: '#666', fontSize: '13px', textAlign: 'center' }}>
+                      {executor.city && <span style={{ whiteSpace: 'nowrap' }}>📍 {executor.city}</span>}
                       {executor.city && executor.subway_station && ' · '}
-                      {executor.subway_station && '🚇 ' + executor.subway_station}
+                      {executor.subway_station && <span style={{ whiteSpace: 'nowrap' }}>🚇 {executor.subway_station}</span>}
                     </p>
                   )}
                 </div>
