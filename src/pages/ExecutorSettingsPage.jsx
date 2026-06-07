@@ -7,7 +7,9 @@ import LocationPicker from '../components/LocationPicker'
 function ExecutorSettingsPage() {
   const [executor, setExecutor] = useState(null)
   const [loading, setLoading] = useState(true)
-  const [saving, setSaving] = useState(false)
+  const [savingAbout, setSavingAbout] = useState(false)
+  const [savingSchedule, setSavingSchedule] = useState(false)
+  const [savingBreaks, setSavingBreaks] = useState(false)
   const [fullName, setFullName] = useState('')
   const [phone, setPhone] = useState('')
   const [address, setAddress] = useState('')
@@ -360,56 +362,83 @@ for (const s of group) {
     setAvatarPreview('')
     setAvatarBlob(null)
   }
-  async function handleSave() {
-    setSaving(true)
-    
+  // Сохранение блока "О себе": имя, телефон, адрес, био, часовой пояс.
+  async function handleSaveAbout() {
+    setSavingAbout(true)
 
-    // Имя и телефон лежат в таблице users
     const { error: userError } = await supabase
       .from('users')
       .update({ full_name: fullName, phone: phone })
       .eq('id', executor.user_id)
-    // Адрес лежит в таблице executors
-    const [startH, startM] = workStart.split(':').map(Number)
-const [endH, endM] = workEnd.split(':').map(Number)
-const startMinutes = startH * 60 + startM
-const endMinutes = endH * 60 + endM
 
-if (endMinutes < startMinutes) {
-  setWorkStart(executor.work_start)
-  setWorkEnd(executor.work_end)
-  setSaving(false)
-  alert('Время окончания раньше времени начала — мастер станет невидимым для клиентов.\n\n🌙 Работаете по ночному графику с переходом через полночь? Укажите 00:00–23:59, а нерабочие часы закройте перерывом в расписании.')
-  return
-}
-if (endMinutes === startMinutes) {
-  setWorkStart(executor.work_start)
-  setWorkEnd(executor.work_end)
-  setSaving(false)
-  alert('Время начала и окончания совпадают — мастер станет невидимым для клиентов.\n\n🕐 Для круглосуточной работы укажите 00:00–23:59.')
-  return
-}
     const { error: execError } = await supabase
       .from('executors')
-      .update({
-        address: address,
-        work_start: workStart,
-        work_end: workEnd,
-        work_days: workDays.sort((a, b) => a - b).join(','),
-        buffer_time: Number(bufferTime) || 0,
-        travel_time: Number(travelTime) || 0,
-        bio: bio,
-        timezone: timezone,
-      })
+      .update({ address: address, bio: bio, timezone: timezone })
       .eq('id', executor.id)
 
-    setSaving(false)
+    setSavingAbout(false)
 
     if (userError || execError) {
       alert('Ошибка сохранения: ' + (userError?.message || execError?.message))
       return
     }
+    alert('Сохранено ✅')
+  }
 
+  // Сохранение блока "График работы": часы и рабочие дни (с проверкой времени).
+  async function handleSaveSchedule() {
+    const [startH, startM] = workStart.split(':').map(Number)
+    const [endH, endM] = workEnd.split(':').map(Number)
+    const startMinutes = startH * 60 + startM
+    const endMinutes = endH * 60 + endM
+
+    if (endMinutes < startMinutes) {
+      setWorkStart(executor.work_start)
+      setWorkEnd(executor.work_end)
+      alert('Время окончания раньше времени начала — мастер станет невидимым для клиентов.\n\n🌙 Работаете по ночному графику с переходом через полночь? Укажите 00:00–23:59, а нерабочие часы закройте перерывом в расписании.')
+      return
+    }
+    if (endMinutes === startMinutes) {
+      setWorkStart(executor.work_start)
+      setWorkEnd(executor.work_end)
+      alert('Время начала и окончания совпадают — мастер станет невидимым для клиентов.\n\n🕐 Для круглосуточной работы укажите 00:00–23:59.')
+      return
+    }
+
+    setSavingSchedule(true)
+    const { error } = await supabase
+      .from('executors')
+      .update({
+        work_start: workStart,
+        work_end: workEnd,
+        work_days: workDays.sort((a, b) => a - b).join(','),
+      })
+      .eq('id', executor.id)
+    setSavingSchedule(false)
+
+    if (error) {
+      alert('Ошибка сохранения: ' + error.message)
+      return
+    }
+    alert('Сохранено ✅')
+  }
+
+  // Сохранение блока "Перерывы и дорога": буфер и время на дорогу.
+  async function handleSaveBreaks() {
+    setSavingBreaks(true)
+    const { error } = await supabase
+      .from('executors')
+      .update({
+        buffer_time: Number(bufferTime) || 0,
+        travel_time: Number(travelTime) || 0,
+      })
+      .eq('id', executor.id)
+    setSavingBreaks(false)
+
+    if (error) {
+      alert('Ошибка сохранения: ' + error.message)
+      return
+    }
     alert('Сохранено ✅')
   }
 
@@ -594,6 +623,18 @@ if (endMinutes === startMinutes) {
             </select>
           </div>
         )}
+
+        <button
+          onClick={handleSaveAbout}
+          disabled={savingAbout}
+          style={{
+            width: '100%', marginTop: '16px', padding: '12px', borderRadius: '8px', border: 'none',
+            background: savingAbout ? '#9ca3af' : '#2481cc', color: 'white', fontSize: '15px',
+            cursor: savingAbout ? 'default' : 'pointer',
+          }}
+        >
+          {savingAbout ? 'Сохраняю...' : 'Сохранить'}
+        </button>
       </div>
 
       {/* Отдельный блок: точка на карте. Меняется редко, сохраняется отдельной кнопкой. */}
@@ -710,6 +751,18 @@ if (endMinutes === startMinutes) {
               </button>
           ))}
         </div>
+
+        <button
+          onClick={handleSaveSchedule}
+          disabled={savingSchedule}
+          style={{
+            width: '100%', marginTop: '16px', padding: '12px', borderRadius: '8px', border: 'none',
+            background: savingSchedule ? '#9ca3af' : '#2481cc', color: 'white', fontSize: '15px',
+            cursor: savingSchedule ? 'default' : 'pointer',
+          }}
+        >
+          {savingSchedule ? 'Сохраняю...' : 'Сохранить'}
+        </button>
       </div>
 
       <div style={{ background: 'white', borderRadius: '12px', padding: '16px', boxShadow: '0 2px 8px rgba(0,0,0,0.1)', marginTop: '16px' }}>
@@ -747,25 +800,20 @@ if (endMinutes === startMinutes) {
             </div>
           </div>
         </div>
+
+        <button
+          onClick={handleSaveBreaks}
+          disabled={savingBreaks}
+          style={{
+            width: '100%', marginTop: '16px', padding: '12px', borderRadius: '8px', border: 'none',
+            background: savingBreaks ? '#9ca3af' : '#2481cc', color: 'white', fontSize: '15px',
+            cursor: savingBreaks ? 'default' : 'pointer',
+          }}
+        >
+          {savingBreaks ? 'Сохраняю...' : 'Сохранить'}
+        </button>
       </div>
 
-      <button
-        onClick={handleSave}
-        disabled={saving}
-        style={{
-          width: '100%',
-          marginTop: '16px',
-          padding: '14px',
-          borderRadius: '10px',
-          border: 'none',
-          background: saving ? '#9ca3af' : '#2481cc',
-          color: 'white',
-          fontSize: '16px',
-          cursor: saving ? 'default' : 'pointer',
-        }}
-      >
-        {saving ? 'Сохраняю...' : 'Сохранить'}
-      </button>
       <div style={{ background: 'white', borderRadius: '12px', padding: '16px', boxShadow: '0 2px 8px rgba(0,0,0,0.1)', marginTop: '16px' }}>
         <h3 style={{ marginTop: 0 }}>Услуги</h3>
 
