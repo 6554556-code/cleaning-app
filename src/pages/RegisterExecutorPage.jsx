@@ -222,12 +222,11 @@ const subway = await getSubwayFromCoords(Number(latitude), Number(longitude));
           </p>
           <ol style={{ margin: '0 0 12px 20px', padding: 0, fontSize: '14px', lineHeight: '1.7', color: '#444' }}>
             <li>Откройте <b>Настройки</b> Telegram</li>
-            <li>Перейдите в <b>Мой профиль</b></li>
-            <li>Нажмите <b>Имя пользователя</b></li>
-            <li>Придумайте короткое имя (например, <code style={{ background: '#fff', padding: '1px 5px', borderRadius: '4px', fontSize: '13px' }}>anna_cleaning</code>)</li>
+            <li>Нажмите <b>Выбрать имя пользователя</b></li>
+            <li>Придумайте короткое имя (например, <code style={{ background: '#fff', padding: '1px 5px', borderRadius: '4px', fontSize: '13px' }}>anna_uborka</code>)</li>
           </ol>
           <p style={{ margin: '0', fontSize: '12px', color: '#888', fontStyle: 'italic' }}>
-            Имя видно только тем, кто заказал у вас услугу. Можно поменять в любой момент.
+            Имя видно только тем, кто заказал у вас услугу.
           </p>
         </div>
 
