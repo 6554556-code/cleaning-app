@@ -195,6 +195,67 @@ const subway = await getSubwayFromCoords(Number(latitude), Number(longitude));
   const inputStyle = { width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #ddd', fontSize: '14px', boxSizing: 'border-box', marginBottom: '12px' }
   const labelStyle = { display: 'block', fontWeight: 'bold', fontSize: '14px', marginBottom: '4px' }
 
+  // ── Гард: без @username клиенты не смогут с нами связаться. Блокируем регистрацию.
+  const tgUserCheck = getTelegramUser()
+  const hasUsername = !!tgUserCheck?.username
+  if (!hasUsername) {
+    return (
+      <div style={{ padding: '16px', maxWidth: '500px', margin: '0 auto' }}>
+        <a href="/" style={{ fontSize: '14px', color: '#2481cc', textDecoration: 'none', display: 'inline-block', marginBottom: '12px' }}>
+          🏠 На главную
+        </a>
+        <div style={{
+          background: '#fff8ed',
+          borderLeft: '4px solid #f5a623',
+          borderRadius: '8px',
+          padding: '16px',
+          marginTop: '12px'
+        }}>
+          <h2 style={{ margin: '0 0 12px', fontSize: '18px' }}>
+            ✋ Нужен @username в Telegram
+          </h2>
+          <p style={{ margin: '0 0 12px', fontSize: '14px', lineHeight: '1.5', color: '#444' }}>
+            Без имени пользователя клиенты не смогут написать вам через приложение — а это главный способ связи.
+          </p>
+          <p style={{ margin: '0 0 8px', fontSize: '14px', fontWeight: 'bold', color: '#444' }}>
+            Как установить (1 минута):
+          </p>
+          <ol style={{ margin: '0 0 12px 20px', padding: 0, fontSize: '14px', lineHeight: '1.7', color: '#444' }}>
+            <li>Откройте <b>Настройки</b> Telegram</li>
+            <li>Перейдите в <b>Мой профиль</b></li>
+            <li>Нажмите <b>Имя пользователя</b></li>
+            <li>Придумайте короткое имя (например, <code style={{ background: '#fff', padding: '1px 5px', borderRadius: '4px', fontSize: '13px' }}>anna_cleaning</code>)</li>
+          </ol>
+          <p style={{ margin: '0', fontSize: '12px', color: '#888', fontStyle: 'italic' }}>
+            Имя видно только тем, кто заказал у вас услугу. Можно поменять в любой момент.
+          </p>
+        </div>
+
+        <button
+          onClick={() => window.location.reload()}
+          style={{
+            width: '100%',
+            padding: '14px',
+            background: '#2481cc',
+            color: 'white',
+            border: 'none',
+            borderRadius: '8px',
+            fontSize: '16px',
+            fontWeight: 'bold',
+            cursor: 'pointer',
+            marginTop: '16px'
+          }}
+        >
+          ✅ Я установил, проверить
+        </button>
+
+        <p style={{ margin: '12px 0 0', fontSize: '12px', color: '#888', textAlign: 'center', lineHeight: '1.4' }}>
+          Если кнопка не помогла — полностью закройте Ebookee (свайпом или из меню) и откройте заново через бота.
+        </p>
+      </div>
+    )
+  }
+
   return (
     <div style={{ padding: '16px', maxWidth: '500px', margin: '0 auto' }}>
       <a href="/" style={{ fontSize: '14px', color: '#2481cc', textDecoration: 'none', display: 'inline-block', marginBottom: '12px' }}>
