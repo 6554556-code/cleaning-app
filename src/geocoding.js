@@ -14,6 +14,36 @@ function withTimeout(promise, ms, fallback) {
   ]);
 }
 
+// Срезаем административные обёртки в обе стороны:
+//   "городской округ Котельники"  →  "Котельники"    (префиксный паттерн)
+//   "Богородский городской округ" →  "Богородский"   (суффиксный паттерн)
+// Список держим консервативным: трогаем ТОЛЬКО однозначно "канцелярские" слова,
+// а "село", "посёлок", "деревня", "хутор", "станица" не трогаем — это часть
+// народного названия, юзеры реально так говорят ("я живу в селе Завьялово").
+function stripAdminPrefix(name) {
+  if (!name) return name;
+  const wrappers = [
+    'городской округ',
+    'муниципальный район',
+    'муниципальный округ',
+    'городское поселение',
+    'сельское поселение',
+  ];
+  const trimmed = name.trim();
+  const lower = trimmed.toLowerCase();
+  for (const w of wrappers) {
+    // Префикс: обёртка стоит в начале
+    if (lower.startsWith(w + ' ')) {
+      return trimmed.slice(w.length + 1).trim();
+    }
+    // Суффикс: обёртка стоит в конце
+    if (lower.endsWith(' ' + w)) {
+      return trimmed.slice(0, trimmed.length - w.length - 1).trim();
+    }
+  }
+  return trimmed;
+}
+
 // ОДИН запрос к Nominatim возвращает сразу и город, и код страны.
 // Раньше город и страну дёргали двумя отдельными запросами и упирались
 // в лимит Nominatim (1 запрос/сек) — отсюда были зависания. Теперь один.
@@ -42,7 +72,7 @@ export async function getLocationFromCoords(lat, lng) {
     const country = addr.country_code || null;
     // fail-open: если страна не определилась — лучше пустить, чем ложно заблокировать
     const isSupported = !country || SUPPORTED_COUNTRIES.includes(country);
-    return { city, isSupported };
+    return { city: stripAdminPrefix(city), isSupported };
   } catch (err) {
     console.error("Геокодирование не удалось:", err);
     return { city: null, isSupported: true };
