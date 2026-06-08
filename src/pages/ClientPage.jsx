@@ -255,10 +255,22 @@ useEffect(() => {
       executorIds.forEach(id => {
         statsMap[id] = calculateStats(reviewsMap[id] || [])
       })
+      // Финальная сортировка: сначала верифицированные, внутри — по реальному рейтингу из отзывов.
+      // Делаем здесь (а не полагаемся на order() из Supabase), потому что:
+      // 1. filter() по городу нарушает порядок из БД
+      // 2. реальный avgRating считается из отзывов, а не из колонки rating
+      const sortedExecutors = [...executorsWithData].sort((a, b) => {
+        // Верифицированные — наверх
+        if (b.is_verified !== a.is_verified) return b.is_verified ? 1 : -1
+        // Внутри группы — по рейтингу из отзывов (нет отзывов = 0)
+        const ratingA = statsMap[a.id]?.avgRating ?? 0
+        const ratingB = statsMap[b.id]?.avgRating ?? 0
+        return ratingB - ratingA
+      })
       setReviewStats(statsMap)
       setReviewsByExecutor(reviewsMap)
       setOrdersCountByExecutor(ordersCountMap)
-      setExecutors(executorsWithData)
+      setExecutors(sortedExecutors)
       setLoading(false)
     }
     loadExecutors()
@@ -376,7 +388,7 @@ useEffect(() => {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flex: 1, minWidth: 0 }}>
                 <Avatar url={executor.avatar_url} name={executor.users?.full_name} size={92} />
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', flex: 1 }}>
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', flex: 1, minWidth: 0 }}>
                   {(() => {
                     const prof = professions.find(p => p.code === executor.service_type)
                     if (!prof) return null
@@ -386,9 +398,11 @@ useEffect(() => {
                       </span>
                     )
                   })()}
-                  <h3 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '4px' }}>
-                    {executor.users?.full_name}
-                    {executor.is_verified && <span title="Проверенный исполнитель">✅</span>}
+                  <h3 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '4px', width: '100%', justifyContent: 'center', flexWrap: 'wrap' }}>
+                    <span style={{ wordBreak: 'break-word', overflowWrap: 'break-word', textAlign: 'center' }}>
+                      {executor.users?.full_name}
+                    </span>
+                    {executor.is_verified && <span title="Проверенный исполнитель" style={{ flexShrink: 0 }}>✅</span>}
                   </h3>
                   {(executor.city || executor.subway_station) && (
                     <p style={{ margin: '4px 0 0', color: '#666', fontSize: '13px', textAlign: 'center', overflowWrap: 'break-word', maxWidth: '100%' }}>
@@ -400,7 +414,7 @@ useEffect(() => {
                 </div>
               </div>
             
-              <div style={{ textAlign: 'right' }}>
+              <div style={{ textAlign: 'right', flexShrink: 0, alignSelf: 'flex-start' }}>
                 {(() => {
                   const stats = reviewStats[executor.id]
                   if (!stats || stats.count === 0) {
