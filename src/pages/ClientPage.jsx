@@ -152,75 +152,103 @@ useEffect(() => {
       const tomorrow = new Date(today)
       tomorrow.setDate(tomorrow.getDate() + 2)
 
-      const executorsWithData = await Promise.all(filteredByCity.map(async (executor) => {
-       // Загружаем существующие заказы исполнителя
-const { data: existingOrders } = await supabase
-.from('orders')
-.select('*')
-.eq('executor_id', executor.id)
-.neq('status', 'cancelled')
-.neq('is_deleted', true)
-.gte('scheduled_at', today.toISOString())
+      // ── N+1 → Batch ─────────────────────────────────────────────────────
+      // Было: N исполнителей × 3 запроса = 30-60+ запросов на открытие.
+      // Стало: 3 запроса на всех через .in(executorIds) = 5 запросов всего.
+      const executorIds = filteredByCity.map(e => e.id)
 
-// Загружаем блоки исполнителя (перерывы, дорога)
-const { data: existingBlocks } = await supabase
-.from('blocks')
-.select('start_at, duration')
-.eq('executor_id', executor.id)
+      const [
+        { data: allOrdersRaw },
+        { data: allBlocksRaw },
+        { data: allServicesRaw }
+      ] = await Promise.all([
+        supabase
+          .from('orders')
+          .select('*')
+          .in('executor_id', executorIds)
+          .neq('status', 'cancelled')
+          .neq('is_deleted', true)
+          .gte('scheduled_at', today.toISOString()),
+        supabase
+          .from('blocks')
+          .select('executor_id, start_at, duration')
+          .in('executor_id', executorIds)
+          .gte('start_at', today.toISOString()),
+        supabase
+          .from('services')
+          .select('*')
+          .in('executor_id', executorIds)
+          .eq('is_archived', false)
+          .order('is_main', { ascending: false })
+          .order('name', { ascending: true })
+      ])
 
-// Загружаем услуги исполнителя (нужны до генерации слотов, чтобы выбрать самую короткую)
-const { data: executorServices } = await supabase
-  .from('services')
-  .select('*')
-  .eq('executor_id', executor.id)
-  .eq('is_archived', false)
-  .order('is_main', { ascending: false })
-  .order('name', { ascending: true })
+      // Группируем по executor_id для быстрого доступа без вложенных запросов
+      const ordersByExecutor = {}
+      const blocksByExecutor = {}
+      const servicesByExecutor = {}
+      ;(allOrdersRaw || []).forEach(o => {
+        if (!ordersByExecutor[o.executor_id]) ordersByExecutor[o.executor_id] = []
+        ordersByExecutor[o.executor_id].push(o)
+      })
+      ;(allBlocksRaw || []).forEach(b => {
+        if (!blocksByExecutor[b.executor_id]) blocksByExecutor[b.executor_id] = []
+        blocksByExecutor[b.executor_id].push(b)
+      })
+      ;(allServicesRaw || []).forEach(s => {
+        if (!servicesByExecutor[s.executor_id]) servicesByExecutor[s.executor_id] = []
+        servicesByExecutor[s.executor_id].push(s)
+      })
 
-// Выбираем самую короткую основную услугу для расчёта слотов
-// Сначала ищем incall (или both), если нет — outcall
-const mainActive = (executorServices || []).filter(
-  s => s.is_main && !s.is_archived && s.duration > 0
-)
-const incallServices = mainActive.filter(
-  s => s.location_type === 'incall' || s.location_type === 'both'
-)
-const outcallServices = mainActive.filter(
-  s => s.location_type === 'outcall'
-)
-const pool = incallServices.length > 0 ? incallServices : outcallServices
-const shortestService = pool.length > 0
-  ? pool.reduce((a, b) => (a.duration < b.duration ? a : b))
-  : null
+      // Синхронная обработка — никаких запросов к БД внутри
+      const executorsWithData = filteredByCity.map((executor) => {
+        const existingOrders = ordersByExecutor[executor.id] || []
+        const existingBlocks = blocksByExecutor[executor.id] || []
+        const executorServices = servicesByExecutor[executor.id] || []
 
-// Параметры для генератора слотов
-const slotParams = shortestService
-  ? {
-      duration: shortestService.duration,
-      locationType: shortestService.location_type === 'both'
-        ? 'incall'
-        : shortestService.location_type
-    }
-  : {}
+        // Выбираем самую короткую основную услугу для расчёта слотов
+        // Сначала ищем incall (или both), если нет — outcall
+        const mainActive = executorServices.filter(
+          s => s.is_main && !s.is_archived && s.duration > 0
+        )
+        const incallServices = mainActive.filter(
+          s => s.location_type === 'incall' || s.location_type === 'both'
+        )
+        const outcallServices = mainActive.filter(
+          s => s.location_type === 'outcall'
+        )
+        const pool = incallServices.length > 0 ? incallServices : outcallServices
+        const shortestService = pool.length > 0
+          ? pool.reduce((a, b) => (a.duration < b.duration ? a : b))
+          : null
 
-// Генерируем слоты на сегодня и завтра
-const todaySlots = generateSlots(executor, existingOrders || [], today, slotParams, existingBlocks || [])
-const tomorrowDate = new Date(today)
-tomorrowDate.setDate(tomorrowDate.getDate() + 1)
-const tomorrowSlots = generateSlots(executor, existingOrders || [], tomorrowDate, slotParams, existingBlocks || [])
-const now = new Date()
-// Сегодня — только будущие, первые 4
-const todayFuture = todaySlots
-  .filter(s => new Date(s.start) > now)
-  .slice(0, 4)
-// Завтра — первые 4
-const tomorrowFuture = tomorrowSlots.slice(0, 4)
+        // Параметры для генератора слотов
+        const slotParams = shortestService
+          ? {
+              duration: shortestService.duration,
+              locationType: shortestService.location_type === 'both'
+                ? 'incall'
+                : shortestService.location_type
+            }
+          : {}
 
+        // Генерируем слоты на сегодня и завтра
+        const todaySlots = generateSlots(executor, existingOrders, today, slotParams, existingBlocks)
+        const tomorrowDate = new Date(today)
+        tomorrowDate.setDate(tomorrowDate.getDate() + 1)
+        const tomorrowSlots = generateSlots(executor, existingOrders, tomorrowDate, slotParams, existingBlocks)
+        const now = new Date()
+        // Сегодня — только будущие, первые 4
+        const todayFuture = todaySlots
+          .filter(s => new Date(s.start) > now)
+          .slice(0, 4)
+        // Завтра — первые 4
+        const tomorrowFuture = tomorrowSlots.slice(0, 4)
 
-  return { ...executor, todaySlots: todayFuture, tomorrowSlots: tomorrowFuture, services: executorServices || [] }
-      }))
-// Тянем отзывы для всех загруженных исполнителей и считаем статистику
-      const executorIds = executorsWithData.map(e => e.id)
+        return { ...executor, todaySlots: todayFuture, tomorrowSlots: tomorrowFuture, services: executorServices }
+      })
+
+      // Тянем отзывы для всех загруженных исполнителей и считаем статистику
       const reviewsMap = await loadReviewsByExecutors(executorIds)
       const ordersCountMap = await loadOrdersCountByExecutors(executorIds)
       const statsMap = {}
