@@ -290,9 +290,11 @@ const tomorrowFuture = tomorrowSlots.slice(0, 4)
         )}
       </div>
       {cities.length > 0 && (
-        <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '12px', fontSize: '13px', color: '#666' }}>
-          <label>
-            Город:{' '}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', fontSize: '13px', color: '#666', gap: '8px' }}>
+          {/* Левый слот зарезервирован под будущий поиск */}
+          <div style={{ flex: 1 }} />
+          <label style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
+            Город:
             <select
               value={selectedCity}
               onChange={(e) => {
@@ -300,7 +302,7 @@ const tomorrowFuture = tomorrowSlots.slice(0, 4)
                 setSelectedCity(value)
                 localStorage.setItem('selectedCity', value)
               }}
-              style={{ padding: '4px 8px', borderRadius: '6px', border: '1px solid #ddd', fontSize: '13px' }}
+              style={{ width: '180px', padding: '4px 8px', borderRadius: '6px', border: '1px solid #ddd', fontSize: '13px' }}
             >
               <option value="all">Все</option>
               {cities.map((c) => (
@@ -344,7 +346,7 @@ const tomorrowFuture = tomorrowSlots.slice(0, 4)
             boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
           }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flex: 1 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flex: 1, minWidth: 0 }}>
                 <Avatar url={executor.avatar_url} name={executor.users?.full_name} size={92} />
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', flex: 1 }}>
                   {(() => {
@@ -361,8 +363,8 @@ const tomorrowFuture = tomorrowSlots.slice(0, 4)
                     {executor.is_verified && <span title="Проверенный исполнитель">✅</span>}
                   </h3>
                   {(executor.city || executor.subway_station) && (
-                    <p style={{ margin: '4px 0 0', color: '#666', fontSize: '13px', textAlign: 'center' }}>
-                      {executor.city && <span style={{ whiteSpace: 'nowrap' }}>📍 {executor.city}</span>}
+                    <p style={{ margin: '4px 0 0', color: '#666', fontSize: '13px', textAlign: 'center', overflowWrap: 'break-word', maxWidth: '100%' }}>
+                      {executor.city && <span>{'📍\u00A0'}{executor.city}</span>}
                       {executor.city && executor.subway_station && ' · '}
                       {executor.subway_station && <span style={{ whiteSpace: 'nowrap' }}>🚇 {executor.subway_station}</span>}
                     </p>
