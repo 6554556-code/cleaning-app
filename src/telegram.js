@@ -47,12 +47,12 @@ export async function syncTelegramUsername() {
   if (existing) {
     // Юзер есть — обновляем username (на случай если поменялся)
     userId = existing.id
-    if (username) {
-      await supabase
-        .from('users')
-        .update({ telegram_username: username })
-        .eq('id', userId)
-    }
+    // Обновляем ВСЕ строки с этим telegram_id одним запросом (client + executor могут быть оба).
+    // null тоже пишем: если юзер убрал @username из Telegram, в базе будет null, а не устаревший ник.
+    await supabase
+      .from('users')
+      .update({ telegram_username: username })
+      .eq('telegram_id', user.telegram_id)
   } else {
     // Юзера нет — создаём новую запись (роль client).
     // upsert с onConflict: если параллельный запрос успел создать такого же
