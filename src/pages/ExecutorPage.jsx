@@ -17,8 +17,10 @@ function getClientStats(allOrders, clientId) {
   return { done, active, cancelled }
 }
 
-// Маленький блок с тремя цветными счётчиками
-function ClientStatsBadges({ stats }) {
+// Блок со счётчиками заказов клиента в одну строку: "У Вас 🟢🔵🔴 Всего 🟢🔵🔴".
+// Если глобальная статистика ещё не подгрузилась — показываем только "У Вас".
+// flexWrap позволяет перенести "Всего..." на новую строку, если не хватает места (длинные имена).
+function ClientStatsBadges({ stats, globalStats }) {
   const badge = (count, color) => (
     <span style={{
       background: color,
@@ -32,10 +34,19 @@ function ClientStatsBadges({ stats }) {
     </span>
   )
   return (
-    <span style={{ display: 'inline-flex', gap: '4px', alignItems: 'center' }}>
+    <span style={{ display: 'inline-flex', gap: '4px', alignItems: 'center', flexWrap: 'wrap' }}>
+      <span style={{ fontSize: '11px', color: '#666' }}>У Вас</span>
       {badge(stats.done, '#16a34a')}
       {badge(stats.active, '#3b82f6')}
       {badge(stats.cancelled, '#ef4444')}
+      {globalStats && (
+        <>
+          <span style={{ fontSize: '11px', color: '#666', marginLeft: '6px' }}>Всего</span>
+          {badge(globalStats.done, '#16a34a')}
+          {badge(globalStats.active, '#3b82f6')}
+          {badge(globalStats.cancelled, '#ef4444')}
+        </>
+      )}
     </span>
   )
 }
@@ -122,7 +133,7 @@ function BlockDetailsModal({ block, onClose, onSaved }) {
     </div>
   )
 }
-function OrderDetailsModal({ order, clientStats, onClose, onSaved, executor }) {
+function OrderDetailsModal({ order, clientStats, globalClientStats, onClose, onSaved, executor }) {
   const [status, setStatus] = useState(order.status)
   const [comment, setComment] = useState(order.executor_comment || '')
   const [price, setPrice] = useState(order.total_price ?? '')
@@ -238,7 +249,7 @@ function OrderDetailsModal({ order, clientStats, onClose, onSaved, executor }) {
         )}
         <p style={{ margin: '4px 0', fontSize: '14px', display: 'flex', alignItems: 'center', gap: '8px' }}>
           <span><b>Клиент:</b> {order.client_name || order.client?.full_name || order.name || '—'}</span>
-          {clientStats && <ClientStatsBadges stats={clientStats} />}
+          {clientStats && <ClientStatsBadges stats={clientStats} globalStats={globalClientStats} />}
         </p>
         <p style={{ margin: '4px 0', fontSize: '14px' }}><b>Телефон:</b> {order.client_phone || order.client?.phone || order.phone || '—'}</p>
         {(order.client_telegram_username || order.client?.telegram_username) && (
@@ -546,7 +557,7 @@ function BreakModal({ executor, day, orders, blocks, initialHour, initialMinute,
     </div>
   )
 }
-function ScheduleView({ executor, orders, blocks, onReload, onCreateOrder, weekOffset, setWeekOffset }) {
+function ScheduleView({ executor, orders, blocks, globalClientStats, onReload, onCreateOrder, weekOffset, setWeekOffset }) {
   const [selectedOrder, setSelectedOrder] = useState(null)
   const [selectedBlock, setSelectedBlock] = useState(null)
   const [overlapList, setOverlapList] = useState(null)
@@ -966,6 +977,7 @@ const viewStartMin = expandedBefore ? 0 : earliestMin
         <OrderDetailsModal
         order={selectedOrder}
         clientStats={getClientStats(orders, selectedOrder.client_id)}
+        globalClientStats={globalClientStats[selectedOrder.client_id]}
         onClose={() => setSelectedOrder(null)}
         onSaved={() => { setSelectedOrder(null); onReload() }}
         executor={executor}
@@ -999,10 +1011,18 @@ const viewStartMin = expandedBefore ? 0 : earliestMin
           ))}
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexWrap: 'wrap', width: '100%', lineHeight: 1.7 }}>
+          <span style={{ fontSize: '11px', color: '#666' }}>У Вас</span>
           <span style={{ background: '#16a34a', color: 'white', borderRadius: '10px', padding: '1px 7px', fontSize: '11px', fontWeight: 'bold' }}>0</span>
           <span style={{ background: '#3b82f6', color: 'white', borderRadius: '10px', padding: '1px 7px', fontSize: '11px', fontWeight: 'bold' }}>0</span>
           <span style={{ background: '#ef4444', color: 'white', borderRadius: '10px', padding: '1px 7px', fontSize: '11px', fontWeight: 'bold' }}>0</span>
-          <span>— заказы клиента: выполнено / активно / отменено</span>
+          <span>— заказы этого клиента у вас (выполнено / активно / отменено)</span>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexWrap: 'wrap', width: '100%', lineHeight: 1.7 }}>
+          <span style={{ fontSize: '11px', color: '#666' }}>Всего</span>
+          <span style={{ background: '#16a34a', color: 'white', borderRadius: '10px', padding: '1px 7px', fontSize: '11px', fontWeight: 'bold' }}>0</span>
+          <span style={{ background: '#3b82f6', color: 'white', borderRadius: '10px', padding: '1px 7px', fontSize: '11px', fontWeight: 'bold' }}>0</span>
+          <span style={{ background: '#ef4444', color: 'white', borderRadius: '10px', padding: '1px 7px', fontSize: '11px', fontWeight: 'bold' }}>0</span>
+          <span>— заказы этого клиента у всех исполнителей суммарно</span>
         </div>
         <div style={{ width: '100%', lineHeight: 1.7 }}>📦 X / Y заказов — выполнено через мини-апп / всего выполнено</div>
       </div>
@@ -1019,6 +1039,9 @@ function ExecutorPage({ executorId }) {
   const [showAddOrder, setShowAddOrder] = useState(false)
   const [scheduleWeekOffset, setScheduleWeekOffset] = useState(0)
   const [searchQuery, setSearchQuery] = useState('')
+  // Общая статистика клиентов по ВСЕЙ системе: client_id → { done, active, cancelled }.
+  // Используется для второго ряда пузырьков "Всего" в карточке заказа.
+  const [globalClientStats, setGlobalClientStats] = useState({})
   function normalizePhone(raw) {
     if (!raw) return null
     let p = raw.replace(/[^\d+]/g, '')
@@ -1098,9 +1121,28 @@ function ExecutorPage({ executorId }) {
     .neq('is_deleted', true)
     .order('created_at', { ascending: false })
 
-      setOrders(ordersData || [])
+    setOrders(ordersData || [])
 
-      const { data: blocksData } = await supabase
+    // Подгружаем общую статистику клиентов по всей системе — без фильтра по executor_id.
+    // Берём только тех client_id, что у нас уже есть в заказах этого исполнителя.
+    const clientIds = [...new Set((ordersData || []).map(o => o.client_id).filter(Boolean))]
+    if (clientIds.length > 0) {
+      const { data: allClientOrders } = await supabase
+        .from('orders')
+        .select('client_id, status')
+        .in('client_id', clientIds)
+        .neq('is_deleted', true)
+      const statsMap = {}
+      ;(allClientOrders || []).forEach(o => {
+        if (!statsMap[o.client_id]) statsMap[o.client_id] = { done: 0, active: 0, cancelled: 0 }
+        if (o.status === 'done') statsMap[o.client_id].done++
+        else if (o.status === 'cancelled') statsMap[o.client_id].cancelled++
+        else statsMap[o.client_id].active++
+      })
+      setGlobalClientStats(statsMap)
+    }
+
+    const { data: blocksData } = await supabase
         .from('blocks')
         .select('*')
         .eq('executor_id', realExecutorId)
@@ -1316,7 +1358,7 @@ function ExecutorPage({ executorId }) {
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <h4 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
                   {order.client_name || order.client?.full_name || 'Клиент'}
-                      <ClientStatsBadges stats={getClientStats(orders, order.client_id)} />
+                      <ClientStatsBadges stats={getClientStats(orders, order.client_id)} globalStats={globalClientStats[order.client_id]} />
                     </h4>
                     <div style={{ textAlign: 'right' }}>
                       <div style={{ fontSize: '10px', color: '#bbb', marginBottom: '2px' }}>#{order.id}</div>
@@ -1456,7 +1498,7 @@ function ExecutorPage({ executorId }) {
 
       {/* Расписание */}
       {activeTab === 'schedule' && (
-        <ScheduleView executor={executor} orders={orders} blocks={blocks} onReload={loadData} onCreateOrder={(info) => setShowAddOrder(info || true)} weekOffset={scheduleWeekOffset} setWeekOffset={setScheduleWeekOffset} />
+        <ScheduleView executor={executor} orders={orders} blocks={blocks} globalClientStats={globalClientStats} onReload={loadData} onCreateOrder={(info) => setShowAddOrder(info || true)} weekOffset={scheduleWeekOffset} setWeekOffset={setScheduleWeekOffset} />
       )}
 
       {/* Заработок */}
