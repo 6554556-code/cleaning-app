@@ -21,6 +21,8 @@ function ClientPage() {
   const [myUserId, setMyUserId] = useState(null)
   const [myExecutorId, setMyExecutorId] = useState(null)
   const [expandedServices, setExpandedServices] = useState([])
+  // Строка поиска по имени, услугам, описанию, метро (фильтрация на клиенте, без запросов к БД)
+  const [search, setSearch] = useState('')
   // Статистика отзывов по исполнителю: { executor_id: { avgRating, count, onTimePercent, alwaysOnTime } }
   const [reviewStats, setReviewStats] = useState({})
   // Сами отзывы по исполнителям (для показа в BookingPage)
@@ -305,6 +307,26 @@ useEffect(() => {
     )
   }
 
+  // Фильтр по строке поиска: имя, названия услуг, описание (bio), метро.
+  // Работает поверх уже загруженного и отсортированного списка — порядок сохраняется.
+  const query = search.trim().toLowerCase()
+  const visibleExecutors = query === ''
+    ? executors
+    : executors.filter((ex) => {
+        const name = (ex.users?.full_name || '').toLowerCase()
+        const bio = (ex.bio || '').toLowerCase()
+        const subway = (ex.subway_station || '').toLowerCase()
+        const serviceNames = (ex.services || [])
+          .map((s) => (s.name || '').toLowerCase())
+          .join(' ')
+        return (
+          name.includes(query) ||
+          bio.includes(query) ||
+          subway.includes(query) ||
+          serviceNames.includes(query)
+        )
+      })
+
   return (
     <div style={{ padding: '16px', maxWidth: '600px', margin: '0 auto' }}>
       {/* Шапка */}
@@ -331,8 +353,43 @@ useEffect(() => {
       </div>
       {cities.length > 0 && (
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', fontSize: '13px', color: '#666', gap: '8px' }}>
-          {/* Левый слот зарезервирован под будущий поиск */}
-          <div style={{ flex: 1 }} />
+          {/* Поиск по имени, услугам, описанию, метро */}
+          <div style={{ flex: 1, position: 'relative', display: 'flex', alignItems: 'center' }}>
+            <span style={{ position: 'absolute', left: '10px', fontSize: '13px', pointerEvents: 'none' }}>🔍</span>
+            <input
+              type="text"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Поиск..."
+              style={{
+                width: '100%',
+                padding: '5px 28px 5px 30px',
+                borderRadius: '6px',
+                border: '1px solid #ddd',
+                fontSize: '13px',
+                boxSizing: 'border-box'
+              }}
+            />
+            {search && (
+              <button
+                onClick={() => setSearch('')}
+                aria-label="Очистить поиск"
+                style={{
+                  position: 'absolute',
+                  right: '6px',
+                  background: 'none',
+                  border: 'none',
+                  cursor: 'pointer',
+                  fontSize: '15px',
+                  color: '#999',
+                  lineHeight: 1,
+                  padding: '2px'
+                }}
+              >
+                ×
+              </button>
+            )}
+          </div>
           <label style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
             Город:
             <select
@@ -376,8 +433,18 @@ useEffect(() => {
         <p>Загружаем исполнителей...</p>
       ) : executors.length === 0 ? (
         <p>Исполнители не найдены</p>
+      ) : visibleExecutors.length === 0 ? (
+        <div style={{ textAlign: 'center', color: '#666', padding: '24px 0' }}>
+          <p style={{ margin: '0 0 8px' }}>По запросу «{search.trim()}» никого не нашли</p>
+          <button
+            onClick={() => setSearch('')}
+            style={{ background: 'none', border: 'none', color: '#2481cc', cursor: 'pointer', fontSize: '14px' }}
+          >
+            Сбросить поиск
+          </button>
+        </div>
       ) : (
-        executors.map(executor => (
+        visibleExecutors.map(executor => (
           <div key={executor.id} id={`executor-card-${executor.id}`} style={{
             background: 'white',
             borderRadius: '12px',
