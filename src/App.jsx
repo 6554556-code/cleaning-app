@@ -23,7 +23,17 @@ function App() {
         supabase.from('app_opens').insert({
           tg_user_id: user.id,
           username: user.username ?? null,
-        }).then(() => {})
+        }).then(({ error }) => {
+          // Включённый "сенсор": раньше ошибки молча проглатывались через .then(() => {}).
+          // Если инсерт упал (RLS, constraint, сеть, что угодно) — увидим в DevTools.
+          if (error) {
+            console.error('[app_opens] INSERT failed:', error.message, error)
+          } else {
+            console.log('[app_opens] insert ok for tg_user_id:', user.id)
+          }
+        })
+      } else {
+        console.warn('[app_opens] no Telegram user — skip insert (открыто не из Telegram?)')
       }
     }, 500)
 
