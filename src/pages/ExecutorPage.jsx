@@ -17,36 +17,38 @@ function getClientStats(allOrders, clientId) {
   return { done, active, cancelled }
 }
 
-// Блок со счётчиками заказов клиента в одну строку: "У Вас 🟢🔵🔴 Всего 🟢🔵🔴".
-// Если глобальная статистика ещё не подгрузилась — показываем только "У Вас".
-// flexWrap позволяет перенести "Всего..." на новую строку, если не хватает места (длинные имена).
+// Пузырьки заказов клиента: две слепленные группы "У Вас" и "Всего".
+// Внутри группы пузырьки без gap (слеплены), между группами — отступ.
 function ClientStatsBadges({ stats, globalStats }) {
-  const badge = (count, color) => (
-    <span style={{
-      background: color,
-      color: 'white',
-      borderRadius: '10px',
-      padding: '1px 7px',
-      fontSize: '11px',
-      fontWeight: 'bold'
-    }}>
-      {count}
+  const badge = (count, color, pos) => {
+    const radius = pos === 'left' ? '8px 0 0 8px' : pos === 'right' ? '0 8px 8px 0' : pos === 'mid' ? '0' : '8px'
+    return (
+      <span style={{
+        background: color,
+        color: 'white',
+        borderRadius: radius,
+        padding: '1px 5px',
+        fontSize: '10px',
+        fontWeight: 'bold',
+        lineHeight: '18px',
+        display: 'inline-block',
+      }}>
+        {count}
+      </span>
+    )
+  }
+  const group = (label, s) => (
+    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0' }}>
+      <span style={{ fontSize: '10px', color: '#888', marginRight: '3px' }}>{label}</span>
+      {badge(s.done, '#16a34a', 'left')}
+      {badge(s.active, '#3b82f6', 'mid')}
+      {badge(s.cancelled, '#ef4444', 'right')}
     </span>
   )
   return (
-    <span style={{ display: 'inline-flex', gap: '4px', alignItems: 'center', flexWrap: 'wrap' }}>
-      <span style={{ fontSize: '11px', color: '#666' }}>У Вас</span>
-      {badge(stats.done, '#16a34a')}
-      {badge(stats.active, '#3b82f6')}
-      {badge(stats.cancelled, '#ef4444')}
-      {globalStats && (
-        <>
-          <span style={{ fontSize: '11px', color: '#666', marginLeft: '6px' }}>Всего</span>
-          {badge(globalStats.done, '#16a34a')}
-          {badge(globalStats.active, '#3b82f6')}
-          {badge(globalStats.cancelled, '#ef4444')}
-        </>
-      )}
+    <span style={{ display: 'inline-flex', gap: '8px', alignItems: 'center', flexWrap: 'nowrap' }}>
+      {group('У Вас', stats)}
+      {globalStats && group('Всего', globalStats)}
     </span>
   )
 }
@@ -1010,19 +1012,16 @@ const viewStartMin = expandedBefore ? 0 : earliestMin
             </div>
           ))}
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexWrap: 'wrap', width: '100%', lineHeight: 1.7 }}>
-          <span style={{ fontSize: '11px', color: '#666' }}>У Вас</span>
-          <span style={{ background: '#16a34a', color: 'white', borderRadius: '10px', padding: '1px 7px', fontSize: '11px', fontWeight: 'bold' }}>0</span>
-          <span style={{ background: '#3b82f6', color: 'white', borderRadius: '10px', padding: '1px 7px', fontSize: '11px', fontWeight: 'bold' }}>0</span>
-          <span style={{ background: '#ef4444', color: 'white', borderRadius: '10px', padding: '1px 7px', fontSize: '11px', fontWeight: 'bold' }}>0</span>
-          <span>— заказы этого клиента у вас (выполнено / активно / отменено)</span>
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexWrap: 'wrap', width: '100%', lineHeight: 1.7 }}>
-          <span style={{ fontSize: '11px', color: '#666' }}>Всего</span>
-          <span style={{ background: '#16a34a', color: 'white', borderRadius: '10px', padding: '1px 7px', fontSize: '11px', fontWeight: 'bold' }}>0</span>
-          <span style={{ background: '#3b82f6', color: 'white', borderRadius: '10px', padding: '1px 7px', fontSize: '11px', fontWeight: 'bold' }}>0</span>
-          <span style={{ background: '#ef4444', color: 'white', borderRadius: '10px', padding: '1px 7px', fontSize: '11px', fontWeight: 'bold' }}>0</span>
-          <span>— заказы этого клиента у всех исполнителей суммарно</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0', flexWrap: 'wrap', width: '100%', lineHeight: 1.7 }}>
+          <span style={{ fontSize: '11px', color: '#888', marginRight: '3px' }}>У Вас</span>
+          <span style={{ background: '#16a34a', color: 'white', borderRadius: '8px 0 0 8px', padding: '1px 5px', fontSize: '10px', fontWeight: 'bold' }}>0</span>
+          <span style={{ background: '#3b82f6', color: 'white', borderRadius: '0', padding: '1px 5px', fontSize: '10px', fontWeight: 'bold' }}>0</span>
+          <span style={{ background: '#ef4444', color: 'white', borderRadius: '0 8px 8px 0', padding: '1px 5px', fontSize: '10px', fontWeight: 'bold' }}>0</span>
+          <span style={{ fontSize: '11px', color: '#888', margin: '0 3px 0 8px' }}>Всего</span>
+          <span style={{ background: '#16a34a', color: 'white', borderRadius: '8px 0 0 8px', padding: '1px 5px', fontSize: '10px', fontWeight: 'bold' }}>0</span>
+          <span style={{ background: '#3b82f6', color: 'white', borderRadius: '0', padding: '1px 5px', fontSize: '10px', fontWeight: 'bold' }}>0</span>
+          <span style={{ background: '#ef4444', color: 'white', borderRadius: '0 8px 8px 0', padding: '1px 5px', fontSize: '10px', fontWeight: 'bold' }}>0</span>
+          <span style={{ fontSize: '11px', color: '#555', marginLeft: '6px' }}>— заказы клиента (выполнено / активно / отменено)</span>
         </div>
         <div style={{ width: '100%', lineHeight: 1.7 }}>📦 X / Y заказов — выполнено через мини-апп / всего выполнено</div>
       </div>
