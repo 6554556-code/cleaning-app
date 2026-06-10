@@ -474,7 +474,7 @@ useEffect(() => {
                     <p style={{ margin: '4px 0 0', color: '#666', fontSize: '13px', textAlign: 'center', overflowWrap: 'break-word', maxWidth: '100%' }}>
                       {executor.city && <span>{'📍\u00A0'}{executor.city}</span>}
                       {executor.city && executor.subway_station && ' · '}
-                      {executor.subway_station && <span style={{ whiteSpace: 'nowrap' }}>🚇 {executor.subway_station}</span>}
+                      {executor.subway_station && <span style={{ display: 'inline-block', maxWidth: '100%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>🚇 {executor.subway_station}</span>}
                     </p>
                   )}
                 </div>
