@@ -475,11 +475,16 @@ useEffect(() => {
                     {executor.is_verified && <span title="Проверенный исполнитель" style={{ flexShrink: 0 }}>✅</span>}
                   </h3>
                   {(executor.city || executor.subway_station) && (
-  <p style={{ margin: '4px 0 0', color: '#666', fontSize: '13px', textAlign: 'center', width: '100%', overflow: 'hidden' }}>
-    {executor.city && <span>{'📍\u00A0'}{executor.city}</span>}
-    {executor.city && executor.subway_station && ' · '}
-    {executor.subway_station && <span style={{ wordBreak: 'break-word', overflowWrap: 'anywhere' }}>🚇 {executor.subway_station}</span>}
-  </p>
+  <div style={{ margin: '4px 0 0', color: '#666', fontSize: '13px', textAlign: 'center', width: '100%' }}>
+    {executor.city && (
+      <div style={{ whiteSpace: 'nowrap' }}>📍&nbsp;{executor.city}</div>
+    )}
+    {executor.subway_station && (
+      <div style={{ wordBreak: 'break-word', overflowWrap: 'anywhere', marginTop: '2px' }}>
+        🚇&nbsp;{executor.subway_station}
+      </div>
+    )}
+  </div>
 )}
                 </div>
               </div>
