@@ -1356,10 +1356,12 @@ function ExecutorPage({ executorId }) {
                   boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
                 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <h4 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                  <h4 style={{ margin: 0 }}>
                   {order.client_name || order.client?.full_name || 'Клиент'}
-                      <ClientStatsBadges stats={getClientStats(orders, order.client_id)} globalStats={globalClientStats[order.client_id]} />
                     </h4>
+                    <ClientStatsBadges stats={getClientStats(orders, order.client_id)} globalStats={globalClientStats[order.client_id]} />
+                  </div>
                     <div style={{ textAlign: 'right' }}>
                       <div style={{ fontSize: '10px', color: '#bbb', marginBottom: '2px' }}>#{order.id}</div>
                       <span style={{
