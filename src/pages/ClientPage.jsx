@@ -409,24 +409,57 @@ useEffect(() => {
         </div>
       )}
       <h2 style={{ textAlign: 'center', marginTop: 0 }}>Выберите услугу</h2>
-      <div style={{ display: 'flex', gap: '8px', marginBottom: '20px', flexWrap: 'wrap' }}>
-        {services.map(s => (
-          <button
-            key={s.id}
-            onClick={() => setSelectedService(s.id)}
-            style={{
-              padding: '8px 16px',
-              borderRadius: '20px',
-              border: 'none',
-              background: selectedService === s.id ? '#2481cc' : '#f0f0f0',
-              color: selectedService === s.id ? 'white' : 'black',
-              cursor: 'pointer',
-              fontSize: '14px'
-            }}
-          >
-            {s.label}
-          </button>
-        ))}
+      {/* Змейка профессий: первая строка фиксирована (overflow:hidden), вторая скроллится вправо.
+          Чётные индексы — верхняя строка, нечётные — нижняя.
+          При скролле нижней строки вправо её правый конец «выползает» в правую часть верхней —
+          визуальная иллюзия змейки без единой строки JS. */}
+      <div style={{ marginBottom: '20px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+        {/* Верхняя строка — фиксирована шириной экрана */}
+        <div style={{ display: 'flex', gap: '8px', overflow: 'hidden', flexWrap: 'nowrap' }}>
+          {services.filter((_, i) => i % 2 === 0).map(s => (
+            <button
+              key={s.id}
+              onClick={() => setSelectedService(s.id)}
+              style={{
+                padding: '7px 14px',
+                borderRadius: '20px',
+                border: '1.5px solid',
+                borderColor: selectedService === s.id ? '#2481cc' : '#ddd',
+                background: selectedService === s.id ? '#2481cc' : 'white',
+                color: selectedService === s.id ? 'white' : '#333',
+                cursor: 'pointer',
+                fontSize: '13px',
+                whiteSpace: 'nowrap',
+                flexShrink: 0,
+              }}
+            >
+              {s.label}
+            </button>
+          ))}
+        </div>
+        {/* Нижняя строка — скроллится вправо, создавая эффект змейки */}
+        <div style={{ display: 'flex', gap: '8px', overflowX: 'scroll', flexWrap: 'nowrap', scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+          {services.filter((_, i) => i % 2 === 1).map(s => (
+            <button
+              key={s.id}
+              onClick={() => setSelectedService(s.id)}
+              style={{
+                padding: '7px 14px',
+                borderRadius: '20px',
+                border: '1.5px solid',
+                borderColor: selectedService === s.id ? '#2481cc' : '#ddd',
+                background: selectedService === s.id ? '#2481cc' : 'white',
+                color: selectedService === s.id ? 'white' : '#333',
+                cursor: 'pointer',
+                fontSize: '13px',
+                whiteSpace: 'nowrap',
+                flexShrink: 0,
+              }}
+            >
+              {s.label}
+            </button>
+          ))}
+        </div>
       </div>
       {loading ? (
         <p>Загружаем исполнителей...</p>
