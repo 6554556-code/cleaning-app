@@ -30,8 +30,13 @@ function ClientPage() {
   // Счётчики выполненных заказов: { executor_id: { fromApp, total } }
   const [ordersCountByExecutor, setOrdersCountByExecutor] = useState({})
   const [targetExecutorId, setTargetExecutorId] = useState(null)
-  // Если в URL пришёл &book=1 — после загрузки исполнителей сразу откроем бронь
-  const [pendingBookExecutorId, setPendingBookExecutorId] = useState(null)
+  // Если в URL пришёл &book=1 — после загрузки исполнителей сразу откроем бронь.
+  // Инициализируем СРАЗУ из URL, чтобы не мигнуть главной перед открытием брони.
+  const [pendingBookExecutorId, setPendingBookExecutorId] = useState(() => {
+    const params = new URLSearchParams(window.location.search)
+    const id = params.get('executor_id')
+    return id && params.get('book') === '1' ? Number(id) : null
+  })
 
   // Ловим ?executor_id=N из URL — это переход с карты по кнопке "Записаться"
   // Или ?executor_id=N&book=1 — это переход из ЛК клиента "Записаться снова"
@@ -65,6 +70,12 @@ function ClientPage() {
       setPendingBookExecutorId(null)
     }
   }, [executors, pendingBookExecutorId])
+  // Подстраховка: если за 4 сек бронь не открылась (исполнитель отфильтрован по городу и т.п.) — не зависаем на заглушке
+  useEffect(() => {
+    if (!pendingBookExecutorId) return
+    const t = setTimeout(() => setPendingBookExecutorId(null), 4000)
+    return () => clearTimeout(t)
+  }, [pendingBookExecutorId])
   // Когда исполнители загрузились — прокручиваем к нужной карточке (если пришли с карты)
   useEffect(() => {
     if (!targetExecutorId || executors.length === 0) return
@@ -127,9 +138,10 @@ useEffect(() => {
   }
   checkUser()
 }, [])
-  useEffect(() => {
-    async function loadExecutors() {
-      setLoading(true)
+useEffect(() => {
+  let cancelled = false
+  async function loadExecutors() {
+    setLoading(true)
       const { data, error } = await supabase
         .from('executors')
         .select('*, users(full_name), address')
@@ -269,6 +281,7 @@ useEffect(() => {
         const ratingB = statsMap[b.id]?.avgRating ?? 0
         return ratingB - ratingA
       })
+      if (cancelled) return
       setReviewStats(statsMap)
       setReviewsByExecutor(reviewsMap)
       setOrdersCountByExecutor(ordersCountMap)
@@ -276,6 +289,7 @@ useEffect(() => {
       setLoading(false)
     }
     loadExecutors()
+    return () => { cancelled = true }
   }, [selectedService, selectedCity])
   function formatSlot(start) {
     const date = new Date(start)
@@ -290,6 +304,15 @@ useEffect(() => {
     return time
   }
 
+  // Идём прямой дорогой в бронь (book=1) — пока грузим исполнителя, показываем заглушку, а не мигаем главной
+  if (pendingBookExecutorId && !showBooking) {
+    return (
+      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#888', fontSize: '14px' }}>
+        Открываем запись…
+      </div>
+    )
+  }
+
   if (showBooking && selectedExecutor) {
 
     return (
@@ -298,7 +321,14 @@ useEffect(() => {
         stats={reviewStats[selectedExecutor.id]}
         reviews={reviewsByExecutor[selectedExecutor.id] || []}
         slot={selectedSlot}
-        onBack={() => setShowBooking(false)}
+        onBack={() => {
+          // Пришли в бронь с карты (from=map) → возвращаемся на карту. Иначе — на главную/список.
+          if (new URLSearchParams(window.location.search).get('from') === 'map') {
+            window.location.href = '?map=1'
+          } else {
+            setShowBooking(false)
+          }
+        }}
         onSuccess={() => {
           setShowBooking(false)
           alert('Заявка принята! Мы свяжемся с вами.')

@@ -198,7 +198,7 @@ useEffect(() => {
                 )}
                 {ex.bio && <p style={{ color: "#666", fontSize: 12, marginTop: 6 }}>{ex.bio}</p>}
                  <a
-                  href={`/?executor_id=${ex.id}`}
+                  href={`/?executor_id=${ex.id}&book=1&from=map`}
                   style={{
                     display: "block",
                     marginTop: 10,
