@@ -360,7 +360,7 @@ useEffect(() => {
   return (
     <div style={{ padding: '16px', maxWidth: '600px', margin: '0 auto' }}>
       {/* Шапка */}
-      <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginBottom: '8px' }}>
+      <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'flex-end', gap: '8px', marginBottom: '8px' }}>
         
       <a href="?map=1"
           style={{ fontSize: '13px', color: '#2481cc', textDecoration: 'none', padding: '6px 10px', borderRadius: '8px', border: '1px solid #e0e0e0' }}
@@ -439,7 +439,7 @@ useEffect(() => {
         </div>
       )}
       <h2 style={{ textAlign: 'center', marginTop: 0 }}>Выберите услугу</h2>
-      <div style={{ display: 'flex', gap: '8px', marginBottom: '20px', flexWrap: 'wrap' }}>
+      <div style={{ display: 'flex', gap: '8px', marginBottom: '20px', flexWrap: 'wrap', justifyContent: 'center' }}>
         {services.map(s => (
           <button
             key={s.id}
