@@ -31,7 +31,9 @@ function AddOrderPage({ executor, initialDay, initialHour, initialMinute, onBack
         .from('services')
         .select('*')
         .eq('executor_id', executor.id)
+        .eq('is_archived', false)
         .order('is_main', { ascending: false })
+        .order('name', { ascending: true })
       setServices(data || [])
       const main = data?.find(s => s.is_main)
       if (main) setSelectedService(main)
@@ -43,15 +45,22 @@ function AddOrderPage({ executor, initialDay, initialHour, initialMinute, onBack
     loadServices()
   }, [executor.id])
 
-  function toggleExtra(service) {
+  function toggleExtra(extra) {
+    if (selectedService?.id !== extra.parent_service_id) {
+      const parent = services.find(s => s.id === extra.parent_service_id)
+      if (parent) handleServiceSelect(parent)
+      setSelectedExtras([extra])
+      return
+    }
     setSelectedExtras(prev =>
-      prev.find(s => s.id === service.id)
-        ? prev.filter(s => s.id !== service.id)
-        : [...prev, service]
+      prev.find(s => s.id === extra.id)
+        ? prev.filter(s => s.id !== extra.id)
+        : [...prev, extra]
     )
   }
   function handleServiceSelect(service) {
     setSelectedService(service)
+    setSelectedExtras([])
     if (service.location_type === 'outcall') setLocationType('outcall')
     if (service.location_type === 'incall') setLocationType('incall')
   }
@@ -375,8 +384,7 @@ function AddOrderPage({ executor, initialDay, initialHour, initialMinute, onBack
             </div>
 
             {/* Допы под своей основной */}
-            {selectedService?.id === service.id &&
-              services.filter(s => !s.is_main && s.parent_service_id === service.id).map(extra => (
+            {services.filter(s => !s.is_main && s.parent_service_id === service.id).map(extra => (
                 <div
                   key={extra.id}
                   onClick={() => toggleExtra(extra)}

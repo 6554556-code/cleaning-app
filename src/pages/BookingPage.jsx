@@ -119,15 +119,22 @@ async function loadPickedDateSlots(dateStr) {
   setPickedSlots(gen)
   setShowAllPicked(false)
 }
-  function toggleExtra(service) {
-    setSelectedExtras(prev =>
-      prev.find(s => s.id === service.id)
-        ? prev.filter(s => s.id !== service.id)
-        : [...prev, service]
-    )
+function toggleExtra(extra) {
+  if (selectedService?.id !== extra.parent_service_id) {
+    const parent = services.find(s => s.id === extra.parent_service_id)
+    if (parent) handleServiceSelect(parent)
+    setSelectedExtras([extra])
+    return
   }
+  setSelectedExtras(prev =>
+    prev.find(s => s.id === extra.id)
+      ? prev.filter(s => s.id !== extra.id)
+      : [...prev, extra]
+  )
+}
   function handleServiceSelect(service) {
     setSelectedService(service)
+    setSelectedExtras([])
     if (service.location_type === 'outcall') setLocationType('outcall')
     if (service.location_type === 'incall') setLocationType('incall')
   }
