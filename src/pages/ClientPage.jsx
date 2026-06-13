@@ -360,22 +360,20 @@ useEffect(() => {
   return (
     <div style={{ padding: '16px', maxWidth: '600px', margin: '0 auto' }}>
       {/* Шапка */}
-      <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'flex-end', gap: '8px', marginBottom: '8px' }}>
-        
-      <a href="?map=1"
-          style={{ fontSize: '13px', color: '#2481cc', textDecoration: 'none', padding: '6px 10px', borderRadius: '8px', border: '1px solid #e0e0e0' }}
+      <div style={{ display: 'flex', gap: '6px', marginBottom: '8px', alignItems: 'center' }}>
+        <a href="?map=1"
+          style={{ fontSize: '12px', color: '#2481cc', textDecoration: 'none', padding: '5px 8px', borderRadius: '8px', border: '1px solid #e0e0e0', whiteSpace: 'nowrap' }}
         >
           🗺 Карта
         </a>
-        
         <a href={myExecutorId ? '?executor=1' : '?register=executor'}
-          style={{ fontSize: '13px', color: '#2481cc', textDecoration: 'none', padding: '6px 10px', borderRadius: '8px', border: '1px solid #e0e0e0' }}
+          style={{ fontSize: '12px', color: '#2481cc', textDecoration: 'none', padding: '5px 8px', borderRadius: '8px', border: '1px solid #e0e0e0', whiteSpace: 'nowrap', flex: 1, textAlign: 'center' }}
         >
           {myExecutorId ? '👷 Кабинет исполнителя' : '👷 Стать исполнителем'}
         </a>
         {myUserId && (
           <a href={`?client=${myUserId}`}
-            style={{ fontSize: '13px', color: 'white', background: '#2481cc', textDecoration: 'none', padding: '6px 10px', borderRadius: '8px' }}
+            style={{ fontSize: '12px', color: 'white', background: '#2481cc', textDecoration: 'none', padding: '5px 8px', borderRadius: '8px', whiteSpace: 'nowrap' }}
           >
             👤 Кабинет
           </a>
@@ -439,19 +437,22 @@ useEffect(() => {
         </div>
       )}
       <h2 style={{ textAlign: 'center', marginTop: 0 }}>Выберите услугу</h2>
-      <div style={{ display: 'flex', gap: '8px', marginBottom: '20px', flexWrap: 'wrap', justifyContent: 'center' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px', marginBottom: '20px' }}>
         {services.map(s => (
           <button
             key={s.id}
             onClick={() => setSelectedService(s.id)}
             style={{
-              padding: '8px 16px',
+              padding: '7px 4px',
               borderRadius: '20px',
               border: 'none',
               background: selectedService === s.id ? '#2481cc' : '#f0f0f0',
               color: selectedService === s.id ? 'white' : 'black',
               cursor: 'pointer',
-              fontSize: '14px'
+              fontSize: '12px',
+              whiteSpace: 'nowrap',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis'
             }}
           >
             {s.label}
