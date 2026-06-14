@@ -214,6 +214,10 @@ function OrderDetailsModal({ order, clientStats, globalClientStats, onClose, onS
       alert('Ошибка сохранения: ' + error.message)
       return
     }
+    // Скликиваем лид при первом принятии заказа
+    if (status === 'confirmed_by_executor' && order.status === 'new') {
+      await supabase.rpc('consume_lead', { p_order_id: order.id })
+    }
     onSaved()
   }
   async function fullDelete() {
@@ -1441,10 +1445,11 @@ function ExecutorPage({ executorId }) {
                   <div style={{ display: 'flex', gap: '8px', marginTop: '12px' }}>
                     {order.status === 'new' && (
                       <button
-                        onClick={async () => {
-                          await supabase.from('orders').update({ status: 'confirmed_by_executor' }).eq('id', order.id)
-                          setOrders(orders.map(o => o.id === order.id ? { ...o, status: 'confirmed_by_executor' } : o))
-                        }}
+                      onClick={async () => {
+                        await supabase.from('orders').update({ status: 'confirmed_by_executor' }).eq('id', order.id)
+                        await supabase.rpc('consume_lead', { p_order_id: order.id })
+                        setOrders(orders.map(o => o.id === order.id ? { ...o, status: 'confirmed_by_executor' } : o))
+                      }}
                         style={{
                           flex: 1,
                           padding: '8px',
