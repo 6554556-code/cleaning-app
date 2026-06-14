@@ -214,8 +214,8 @@ function OrderDetailsModal({ order, clientStats, globalClientStats, onClose, onS
       alert('Ошибка сохранения: ' + error.message)
       return
     }
-    // Скликиваем лид при первом принятии заказа
-    if (status === 'confirmed_by_executor' && order.status === 'new') {
+    // Скликиваем лид при любом активном действии (кроме отмены)
+    if (status !== 'cancelled') {
       await supabase.rpc('consume_lead', { p_order_id: order.id })
     }
     onSaved()
