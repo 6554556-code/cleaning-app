@@ -17,18 +17,22 @@ export default function BalanceBlock({ executor }) {
   const hasFreeLeads = freeRemaining > 0
   const canPay = balance >= LEAD_COST
 
+  // Сколько ещё заказов доступно: бесплатные + куплено за баланс
+  const paidLeadsAvailable = Math.floor(balance / LEAD_COST)
+  const totalLeadsAvailable = freeRemaining + paidLeadsAvailable
+
   // Состояние мини-блока рядом с кнопкой видимости
   let big, small, bg, fg
-  if (hasFreeLeads) {
-    big = freeRemaining
-    small = 'заказов бесплатно'
-    bg = '#fef3c7' // мягкий жёлтый
-    fg = '#92400e'
-  } else if (canPay) {
-    big = `${balance} ₽`
-    small = 'баланс'
-    bg = '#dbeafe' // мягкий синий
-    fg = '#1e40af'
+  if (totalLeadsAvailable > 0) {
+    big = totalLeadsAvailable
+    small = 'заказов'
+    if (hasFreeLeads) {
+      bg = '#fef3c7' // мягкий жёлтый — есть бесплатные
+      fg = '#92400e'
+    } else {
+      bg = '#dbeafe' // мягкий синий — только за деньги
+      fg = '#1e40af'
+    }
   } else {
     big = 'Пополнить'
     small = `${balance} ₽ на счету`
@@ -39,8 +43,11 @@ export default function BalanceBlock({ executor }) {
   const handleTopup = () => {
     setShowModal(false)
     const link = `https://t.me/${BOT_USERNAME}?start=topup`
-    if (window.Telegram?.WebApp?.openTelegramLink) {
-      window.Telegram.WebApp.openTelegramLink(link)
+    const tg = window.Telegram?.WebApp
+    if (tg?.openTelegramLink) {
+      tg.openTelegramLink(link)
+      // Сворачиваем мини-апп, чтобы вернуться в чат с ботом
+      tg.close()
     } else {
       window.open(link, '_blank')
     }
@@ -119,9 +126,9 @@ export default function BalanceBlock({ executor }) {
               justifyContent: 'space-between',
               alignItems: 'center',
             }}>
-              <span style={{ fontSize: '14px', color: '#666' }}>Бесплатных заказов</span>
+              <span style={{ fontSize: '14px', color: '#666' }}>Доступно заказов</span>
               <span style={{ fontSize: '16px', fontWeight: 700 }}>
-                {freeRemaining} / {FREE_LEADS_LIMIT}
+                {totalLeadsAvailable}
               </span>
             </div>
 
