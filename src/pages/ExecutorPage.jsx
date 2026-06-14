@@ -5,6 +5,19 @@ import AddOrderPage from './AddOrderPage'
 import MiniCalendar from '../components/MiniCalendar'
 import { loadReviewsByExecutors, calculateStats } from '../reviewsUtils'
 import BalanceBlock from '../components/BalanceBlock'
+// Retry-обёртка для нестабильного соединения (Telegram WebApp)
+async function withRetry(fn, attempts = 3, delayMs = 1000) {
+  for (let i = 0; i < attempts; i++) {
+    try {
+      const result = await fn()
+      if (result?.error) throw result.error
+      return result
+    } catch (err) {
+      if (i === attempts - 1) throw err
+      await new Promise(r => setTimeout(r, delayMs * (i + 1)))
+    }
+  }
+}
 // Считает статистику заказов клиента по списку всех заказов
 function getClientStats(allOrders, clientId) {
   const clientOrders = allOrders.filter(o => o.client_id === clientId)
@@ -152,10 +165,9 @@ function OrderDetailsModal({ order, clientStats, globalClientStats, onClose, onS
       updates.cancelled_by = null
     }
 
-    const { error } = await supabase
-      .from('orders')
-      .update(updates)
-      .eq('id', order.id)
+    const { error } = await withRetry(() =>
+      supabase.from('orders').update(updates).eq('id', order.id)
+    )
 
     // Если заказ отменён — удаляем его авто-блоки (дорога, буфер), освобождаем время
     if (status === 'cancelled') {
