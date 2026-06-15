@@ -437,7 +437,7 @@ useEffect(() => {
         </div>
       )}
       <h2 style={{ textAlign: 'center', marginTop: 0 }}>Выберите услугу</h2>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px', marginBottom: '20px' }}>
+      <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: '8px', marginBottom: '20px' }}>
         {services.map(s => (
           <button
             key={s.id}
@@ -450,9 +450,7 @@ useEffect(() => {
               color: selectedService === s.id ? 'white' : 'black',
               cursor: 'pointer',
               fontSize: '12px',
-              whiteSpace: 'nowrap',
-              overflow: 'hidden',
-              textOverflow: 'ellipsis'
+              whiteSpace: 'nowrap'
             }}
           >
             {s.label}
