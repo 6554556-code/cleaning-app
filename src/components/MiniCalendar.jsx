@@ -3,10 +3,10 @@ import { useState, useRef, useEffect } from 'react'
 const MONTHS = ['Январь','Февраль','Март','Апрель','Май','Июнь','Июль','Август','Сентябрь','Октябрь','Ноябрь','Декабрь']
 const DAYS = ['Пн','Вт','Ср','Чт','Пт','Сб','Вс']
 
-function Calendar({ value, onChange, minDate, onClose }) {
+function Calendar({ value, onChange, minDate, onClose, allowPast }) {
   const today = new Date()
   today.setHours(0, 0, 0, 0)
-  const min = minDate ? new Date(minDate) : today
+  const min = minDate ? new Date(minDate) : (allowPast ? null : today)
 
   const [viewYear, setViewYear] = useState(() => {
     const d = value ? new Date(value) : today
@@ -65,7 +65,7 @@ function Calendar({ value, onChange, minDate, onClose }) {
           if (!day) return <div key={`e-${i}`} />
           const dateStr = toStr(viewYear, viewMonth, day)
           const cellDate = new Date(viewYear, viewMonth, day)
-          const isDisabled = cellDate < min
+          const isDisabled = min ? cellDate < min : false
           const isSelected = dateStr === value
           const isToday = cellDate.toDateString() === today.toDateString()
           return (
@@ -94,7 +94,7 @@ function Calendar({ value, onChange, minDate, onClose }) {
   )
 }
 
-export default function MiniCalendar({ value, onChange, minDate }) {
+export default function MiniCalendar({ value, onChange, minDate, allowPast }) {
   const [open, setOpen] = useState(false)
   const ref = useRef(null)
 
@@ -141,6 +141,7 @@ export default function MiniCalendar({ value, onChange, minDate }) {
             value={value}
             onChange={onChange}
             minDate={minDate}
+            allowPast={allowPast}
             onClose={() => setOpen(false)}
           />
         </div>

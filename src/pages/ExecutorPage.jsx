@@ -695,6 +695,7 @@ const viewStartMin = expandedBefore ? 0 : earliestMin
       <div style={{ display: 'flex', justifyContent: 'center', gap: '8px', alignItems: 'center', marginBottom: '12px', flexWrap: 'wrap' }}>
       <MiniCalendar
           value={pickedCalendarDate}
+          allowPast
           onChange={(dateStr) => {
             setPickedCalendarDate(dateStr)
             if (!dateStr) return
