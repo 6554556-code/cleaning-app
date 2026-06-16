@@ -1073,6 +1073,7 @@ function ExecutorPage({ executorId }) {
   const [loading, setLoading] = useState(true)
   const [ratingStats, setRatingStats] = useState(null)
   const [activeTab, setActiveTab] = useState('schedule')
+  const [showHelpModal, setShowHelpModal] = useState(false)
   const [showAddOrder, setShowAddOrder] = useState(false)
   const [scheduleWeekOffset, setScheduleWeekOffset] = useState(0)
   const [searchQuery, setSearchQuery] = useState('')
@@ -1244,15 +1245,59 @@ function ExecutorPage({ executorId }) {
   return (
     <div style={{ padding: '16px', maxWidth: '600px', margin: '0 auto' }}>
 
-      {/* Верхняя панель: домик слева, настройки справа */}
+      {/* Верхняя панель: домик слева, помощь + настройки справа */}
       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px' }}>
         <a href="/" style={{ fontSize: '14px', color: '#2481cc', textDecoration: 'none' }}>
           🏠 На главную
         </a>
-        <a href="/?settings=1" style={{ fontSize: '14px', color: '#2481cc', textDecoration: 'none' }}>
-          ⚙️ Настройки
-        </a>
+        <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+          <button
+            onClick={() => setShowHelpModal(true)}
+            style={{ background: 'none', border: 'none', fontSize: '14px', color: '#2481cc', cursor: 'pointer', padding: 0 }}
+          >
+            ❓ Помощь
+          </button>
+          <a href="/?settings=1" style={{ fontSize: '14px', color: '#2481cc', textDecoration: 'none' }}>
+            ⚙️ Настройки
+          </a>
+        </div>
       </div>
+
+      {showHelpModal && (
+        <div onClick={() => setShowHelpModal(false)} style={{ position: 'fixed', inset: 0, height: '100dvh', background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '16px' }}>
+          <div onClick={e => e.stopPropagation()} style={{ background: 'white', borderRadius: '12px', padding: '20px', maxWidth: '360px', width: '100%', textAlign: 'center' }}>
+            <h3 style={{ marginTop: 0 }}>Помощь</h3>
+            <p style={{ color: '#666', fontSize: '14px' }}>
+              На сайте — видео-обучалка и ответы на частые вопросы.
+            </p>
+            <a
+              href="https://ebookee.app"
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{ display: 'block', padding: '10px', borderRadius: '8px', border: '1px solid #2481cc', color: '#2481cc', textDecoration: 'none', marginBottom: '10px', fontSize: '14px' }}
+            >
+              🌐 Открыть ebookee.app
+            </a>
+            <p style={{ color: '#666', fontSize: '13px', margin: '14px 0 8px' }}>
+              Нужна верификация или остались вопросы — напишите нам:
+            </p>
+            <a
+              href="https://t.me/ebookee_zabota"
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{ display: 'block', padding: '10px', borderRadius: '8px', background: '#2481cc', color: 'white', textDecoration: 'none', fontSize: '14px', fontWeight: 'bold' }}
+            >
+              💬 Написать в Telegram
+            </a>
+            <button
+              onClick={() => setShowHelpModal(false)}
+              style={{ marginTop: '14px', background: 'none', border: 'none', color: '#888', cursor: 'pointer', fontSize: '13px' }}
+            >
+              Закрыть
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Профиль */}
       <div style={{
