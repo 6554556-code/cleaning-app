@@ -484,57 +484,43 @@ useEffect(() => {
             boxSizing: 'border-box',
             overflow: 'hidden'
           }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', boxSizing: 'border-box' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flex: 1, minWidth: 0, overflow: 'hidden' }}>
-                <Avatar url={executor.avatar_url} name={executor.users?.full_name} size={92} />
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', flex: 1, minWidth: 0 }}>
-                  {(() => {
-                    const prof = professions.find(p => p.code === executor.service_type)
-                    if (!prof) return null
-                    return (
-                      <span style={{ display: 'inline-block', marginBottom: '4px', padding: '2px 8px', background: '#f0f7ff', color: '#2481cc', borderRadius: '12px', fontSize: '11px' }}>
-                        {prof.icon} {prof.name}
-                      </span>
-                    )
-                  })()}
-                  <h3 style={{ margin: 0, fontSize: '16px', display: 'flex', alignItems: 'center', gap: '4px', width: '100%', justifyContent: 'center', flexWrap: 'wrap' }}>
-                    <span style={{ wordBreak: 'normal', overflowWrap: 'normal', textAlign: 'center' }}>
-                      {executor.users?.full_name}
-                    </span>
-                    {executor.is_verified && <span title="Проверенный исполнитель" style={{ flexShrink: 0 }}>✅</span>}
-                  </h3>
-                  {(executor.city || executor.subway_station) && (
-  <div style={{ margin: '4px 0 0', color: '#666', fontSize: '13px', textAlign: 'center', width: '100%' }}>
-    {executor.city && (
-      <div style={{ wordBreak: 'break-word', overflowWrap: 'anywhere' }}>📍&nbsp;{executor.city}</div>
-    )}
-    {executor.subway_station && (
-      <div style={{ wordBreak: 'break-word', overflowWrap: 'anywhere', marginTop: '2px' }}>
-        🚇&nbsp;{executor.subway_station}
-      </div>
-    )}
-  </div>
-)}
-                </div>
-              </div>
-            
-              <div style={{ textAlign: 'right', flexShrink: 0, alignSelf: 'flex-start' }}>
-                {(() => {
+            {/* Верхняя строка: профессия слева, статы справа */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '8px', marginBottom: '10px' }}>
+              {(() => {
+                const prof = professions.find(p => p.code === executor.service_type)
+                if (!prof) return <span />
+                return (
+                  <span style={{ display: 'inline-block', padding: '3px 10px', background: '#f0f7ff', color: '#2481cc', borderRadius: '12px', fontSize: '11px', flexShrink: 0 }}>
+                    {prof.icon} {prof.name}
+                  </span>
+                )
+              })()}
+              <div style={{ textAlign: 'right', flexShrink: 0 }}>
+              {(() => {
                   const stats = reviewStats[executor.id]
+                  const count = ordersCountByExecutor[executor.id]?.fromApp || 0
+                  const ordersLine = count > 0 ? (
+                    <span style={{ color: '#666', fontSize: '11px', display: 'block', marginTop: '4px' }}>
+                      📦 {count} {count === 1 ? 'заказ' : count < 5 ? 'заказа' : 'заказов'}
+                    </span>
+                  ) : null
                   if (!stats || stats.count === 0) {
                     return (
-                      <span style={{
-                        display: 'inline-block',
-                        padding: '4px 8px',
-                        background: '#f0f7ff',
-                        color: '#2481cc',
-                        borderRadius: '8px',
-                        fontSize: '11px',
-                        lineHeight: '1.3',
-                        textAlign: 'center'
-                      }}>
-                        Новый<br />исполнитель
-                      </span>
+                      <>
+                        <span style={{
+                          display: 'inline-block',
+                          padding: '4px 8px',
+                          background: '#f0f7ff',
+                          color: '#2481cc',
+                          borderRadius: '8px',
+                          fontSize: '11px',
+                          lineHeight: '1.3',
+                          textAlign: 'center'
+                        }}>
+                          Новый<br />исполнитель
+                        </span>
+                        {ordersLine}
+                      </>
                     )
                   }
                   return (
@@ -542,8 +528,9 @@ useEffect(() => {
                       <span style={{ color: '#f5a623', fontWeight: 'bold', fontSize: '18px', display: 'block' }}>
                         ⭐ {stats.avgRating}
                       </span>
+                      {ordersLine}
                       {stats.alwaysOnTime && (
-                        <span title="Не опаздывает на встречи" style={{ color: '#2ecc71', fontSize: '11px', fontWeight: 'bold' }}>
+                        <span title="Не опаздывает на встречи" style={{ color: '#2ecc71', fontSize: '11px', fontWeight: 'bold', display: 'block', marginTop: '2px' }}>
                           ✓ Всегда вовремя
                         </span>
                       )}
@@ -552,15 +539,29 @@ useEffect(() => {
                 })()}
               </div>
             </div>
+
+            {/* Средняя строка: аватар + город/метро */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '10px' }}>
+              <Avatar url={executor.avatar_url} name={executor.users?.full_name} size={92} />
+              {(executor.city || executor.subway_station) ? (
+                <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: '14px', minHeight: '92px', color: '#666', fontSize: '13px', textAlign: 'center', paddingRight: '104px' }}>
+                {executor.city && (
+                  <div style={{ wordBreak: 'break-word', overflowWrap: 'anywhere' }}>📍&nbsp;{executor.city}</div>
+                )}
+                {executor.subway_station && (
+                  <div style={{ wordBreak: 'break-word', overflowWrap: 'anywhere' }}>🚇&nbsp;{executor.subway_station}</div>
+                )}
+              </div>
+              ) : <div style={{ flex: 1 }} />}
+            </div>
+
+            {/* Имя одной строкой по центру под аватаром */}
+            <h3 style={{ margin: '0 0 8px', fontSize: '17px', textAlign: 'center', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px', flexWrap: 'wrap' }}>
+              <span>{executor.users?.full_name}</span>
+              {executor.is_verified && <span title="Проверенный исполнитель">✅</span>}
+            </h3>
             
             <p style={{ color: '#666', margin: '8px 0', fontSize: '14px' }}>{executor.bio}</p>
-            <div style={{ display: 'flex', gap: '16px', fontSize: '14px', flexWrap: 'wrap' }}>
-            {(() => {
-                const count = ordersCountByExecutor[executor.id]?.fromApp || 0
-                if (count === 0) return null
-                return <span>📦 {count} {count === 1 ? 'заказ' : count < 5 ? 'заказа' : 'заказов'}</span>              })()}
-              
-            </div>
             {executor.services && executor.services.length > 0 && (() => {
   const isExpanded = expandedServices.includes(executor.id)
   const allMain = executor.services.filter(s => s.is_main)
