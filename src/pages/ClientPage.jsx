@@ -544,13 +544,15 @@ useEffect(() => {
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '10px' }}>
               <Avatar url={executor.avatar_url} name={executor.users?.full_name} size={92} />
               {(executor.city || executor.subway_station) ? (
-                <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: '14px', minHeight: '92px', color: '#666', fontSize: '13px', textAlign: 'center', paddingRight: '104px' }}>
+                <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', justifyContent: executor.subway_station ? 'center' : 'flex-start', gap: '14px', minHeight: '92px', color: '#666', fontSize: '13px', textAlign: 'center', paddingRight: '104px' }}>
                 {executor.city && (
-                    <div style={{ wordBreak: 'break-word' }}>📍&nbsp;{executor.city}</div>
-                  )}
-                  {executor.subway_station && (
-                    <div style={{ wordBreak: 'break-word' }}>🚇&nbsp;{executor.subway_station}</div>
-                  )}
+                  <div style={{ wordBreak: 'break-word' }}>
+                    {executor.city.length <= 9 && '📍\u00A0'}{executor.city}
+                  </div>
+                )}
+                {executor.subway_station && (
+                  <div style={{ wordBreak: 'break-word' }}>🚇&nbsp;{executor.subway_station}</div>
+                )}
               </div>
               ) : <div style={{ flex: 1 }} />}
             </div>
