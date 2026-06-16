@@ -497,8 +497,8 @@ useEffect(() => {
                       </span>
                     )
                   })()}
-                  <h3 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '4px', width: '100%', justifyContent: 'center', flexWrap: 'wrap' }}>
-                    <span style={{ wordBreak: 'break-word', overflowWrap: 'break-word', textAlign: 'center' }}>
+                  <h3 style={{ margin: 0, fontSize: '16px', display: 'flex', alignItems: 'center', gap: '4px', width: '100%', justifyContent: 'center', flexWrap: 'wrap' }}>
+                    <span style={{ wordBreak: 'normal', overflowWrap: 'normal', textAlign: 'center' }}>
                       {executor.users?.full_name}
                     </span>
                     {executor.is_verified && <span title="Проверенный исполнитель" style={{ flexShrink: 0 }}>✅</span>}
