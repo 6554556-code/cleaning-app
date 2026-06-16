@@ -795,7 +795,7 @@ const viewStartMin = expandedBefore ? 0 : earliestMin
     const centerX = rect.left + rect.width / 2
     setClickMenu({ x: centerX, y: e.clientY, day, hour: clickHour, minute: clickMin })
   }}
-  style={{ position: 'relative', height: `${totalMinutes * PX_PER_MIN}px`, background: '#f7faf8', borderRadius: '4px', cursor: 'pointer', overflow: 'hidden' }}
+  style={{ position: 'relative', height: `${totalMinutes * PX_PER_MIN}px`, background: '#fcfcfc', borderRadius: '4px', cursor: 'pointer', overflow: 'hidden' }}
 >
                 {/* Подсветка рабочих часов */}
                 {workZoneHeight > 0 && isWorkDay(day) && (
@@ -1355,7 +1355,7 @@ function ExecutorPage({ executorId }) {
               fontSize: '14px',
               marginBottom: '12px',
               boxSizing: 'border-box',
-              background: '#f7faf8',
+              background: '#fcfcfc',
             }}
           />
           {(() => {
