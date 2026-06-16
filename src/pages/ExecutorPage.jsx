@@ -647,6 +647,20 @@ latestMin = Math.min(24 * 60, Math.ceil(latestMin / 60) * 60)
 const viewStartMin = expandedBefore ? 0 : earliestMin
   const viewEndMin = expandedAfter ? 24 * 60 : latestMin
   const totalMinutes = viewEndMin - viewStartMin
+
+  // Рабочая зона для подсветки в колонках дней
+  const workZoneStart = Math.max(workStartMin, viewStartMin)
+  const workZoneEnd = Math.min(workEndMin, viewEndMin)
+  const workZoneTop = (workZoneStart - viewStartMin) * PX_PER_MIN
+  const workZoneHeight = Math.max(0, (workZoneEnd - workZoneStart) * PX_PER_MIN)
+
+  // Рабочие дни недели (ISO: Пн=1..Вс=7)
+  const workDays = (executor.work_days || '').split(',').filter(Boolean).map(Number)
+  const isWorkDay = (date) => {
+    const dow = date.getDay() // 0=Вс..6=Сб
+    const isoDay = dow === 0 ? 7 : dow
+    return workDays.includes(isoDay)
+  }
   function formatDay(d) {
     const labels = ['Вс', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб']
     return `${labels[d.getDay()]} ${d.getDate()}.${String(d.getMonth() + 1).padStart(2, '0')}`
@@ -781,8 +795,12 @@ const viewStartMin = expandedBefore ? 0 : earliestMin
     const centerX = rect.left + rect.width / 2
     setClickMenu({ x: centerX, y: e.clientY, day, hour: clickHour, minute: clickMin })
   }}
-  style={{ position: 'relative', height: `${totalMinutes * PX_PER_MIN}px`, background: '#fafafa', borderRadius: '4px', cursor: 'pointer' }}
+  style={{ position: 'relative', height: `${totalMinutes * PX_PER_MIN}px`, background: '#f7faf8', borderRadius: '4px', cursor: 'pointer', overflow: 'hidden' }}
 >
+                {/* Подсветка рабочих часов */}
+                {workZoneHeight > 0 && isWorkDay(day) && (
+                  <div style={{ position: 'absolute', top: `${workZoneTop}px`, left: 0, right: 0, height: `${workZoneHeight}px`, background: '#f5f5f5', pointerEvents: 'none' }}></div>
+                )}
                 {/* Линии часов */}
                 {Array.from({ length: Math.ceil(totalMinutes / 60) }).map((_, h) => (
                   <div key={h} style={{ position: 'absolute', top: `${h * 60 * PX_PER_MIN}px`, left: 0, right: 0, height: '1px', background: '#eee' }}></div>
@@ -1337,7 +1355,7 @@ function ExecutorPage({ executorId }) {
               fontSize: '14px',
               marginBottom: '12px',
               boxSizing: 'border-box',
-              background: '#fafafa',
+              background: '#f7faf8',
             }}
           />
           {(() => {
