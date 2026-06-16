@@ -312,7 +312,7 @@ function OrderDetailsModal({ order, clientStats, globalClientStats, onClose, onS
             type="number"
             value={price}
             onChange={e => setPrice(e.target.value)}
-            style={{ width: '100px', padding: '4px 8px', borderRadius: '6px', border: '1px solid #ddd', fontSize: '14px' }}
+            style={{ width: '100px', padding: '4px 8px', borderRadius: '6px', border: '1px solid #ddd', fontSize: '16px' }}
           />
           <span>₽</span>
         </p>
@@ -327,14 +327,14 @@ function OrderDetailsModal({ order, clientStats, globalClientStats, onClose, onS
         {order.comment && <p style={{ margin: '4px 0', fontSize: '14px', color: '#666' }}><b>От клиента:</b> {order.comment}</p>}
 
         <p style={{ marginTop: '16px', marginBottom: '4px', fontWeight: 'bold', fontSize: '14px' }}>Статус</p>
-        <select value={status} onChange={e => setStatus(e.target.value)} style={{ width: '100%', padding: '8px', borderRadius: '8px', border: '1px solid #ddd', fontSize: '14px' }}>
+        <select value={status} onChange={e => setStatus(e.target.value)} style={{ width: '100%', padding: '8px', borderRadius: '8px', border: '1px solid #ddd', fontSize: '16px' }}>
           {Object.entries(STATUS_LABELS).map(([key, label]) => (
             <option key={key} value={key}>{label}</option>
           ))}
         </select>
 
         <p style={{ marginTop: '12px', marginBottom: '4px', fontWeight: 'bold', fontSize: '14px' }}>Комментарий исполнителя</p>
-        <textarea value={comment} onChange={e => setComment(e.target.value)} placeholder="Например: клиент опаздывает на 15 мин" style={{ width: '100%', padding: '8px', borderRadius: '8px', border: '1px solid #ddd', fontSize: '14px', minHeight: '60px', boxSizing: 'border-box', resize: 'vertical' }} />
+        <textarea value={comment} onChange={e => setComment(e.target.value)} placeholder="Например: клиент опаздывает на 15 мин" style={{ width: '100%', padding: '8px', borderRadius: '8px', border: '1px solid #ddd', fontSize: '16px', minHeight: '60px', boxSizing: 'border-box', resize: 'vertical' }} />
 
         <button onClick={save} disabled={saving} style={{ width: '100%', marginTop: '12px', padding: '12px', background: '#2481cc', color: 'white', border: 'none', borderRadius: '8px', fontSize: '15px', fontWeight: 'bold', cursor: 'pointer' }}>
           {saving ? 'Сохранение...' : 'Сохранить'}
