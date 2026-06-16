@@ -391,6 +391,9 @@ function BreakModal({ executor, day, orders, blocks, initialHour, initialMinute,
       busy.push({ from: sM, to })
     })
 
+    // Граница суток как виртуальный «занятый» блок — перерыв не должен переползать на следующий день
+    busy.push({ from: 1440, to: 1441 })
+
     // Есть ли пересечение с запрошенным интервалом?
     const conflict = busy.some(b => b.from < endMin && b.to > startMin)
     if (!conflict) return { ok: true }
