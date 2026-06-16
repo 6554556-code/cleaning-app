@@ -418,7 +418,7 @@ useEffect(() => {
               </button>
             )}
           </div>
-          <label style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
+          <label style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0, maxWidth: '160px', overflow: 'hidden' }}>
             <select
               value={selectedCity}
               onChange={(e) => {
@@ -426,7 +426,7 @@ useEffect(() => {
                 setSelectedCity(value)
                 localStorage.setItem('selectedCity', value)
               }}
-              style={{ width: '130px', padding: '4px 8px', borderRadius: '6px', border: '1px solid #ddd', fontSize: '13px' }}
+              style={{ width: '160px', minWidth: '160px', maxWidth: '160px', padding: '4px 8px', borderRadius: '6px', border: '1px solid #ddd', fontSize: '13px', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}
             >
               <option value="all">Все города</option>
               {cities.map((c) => (
