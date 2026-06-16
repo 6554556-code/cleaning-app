@@ -506,7 +506,7 @@ useEffect(() => {
                   {(executor.city || executor.subway_station) && (
   <div style={{ margin: '4px 0 0', color: '#666', fontSize: '13px', textAlign: 'center', width: '100%' }}>
     {executor.city && (
-      <div style={{ whiteSpace: 'nowrap' }}>📍&nbsp;{executor.city}</div>
+      <div style={{ wordBreak: 'break-word', overflowWrap: 'anywhere' }}>📍&nbsp;{executor.city}</div>
     )}
     {executor.subway_station && (
       <div style={{ wordBreak: 'break-word', overflowWrap: 'anywhere', marginTop: '2px' }}>
