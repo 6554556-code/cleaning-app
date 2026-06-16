@@ -546,10 +546,10 @@ useEffect(() => {
               {(executor.city || executor.subway_station) ? (
                 <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: '14px', minHeight: '92px', color: '#666', fontSize: '13px', textAlign: 'center', paddingRight: '104px' }}>
                 {executor.city && (
-                    <div>📍&nbsp;{executor.city}</div>
+                    <div style={{ wordBreak: 'break-word' }}>📍&nbsp;{executor.city}</div>
                   )}
                   {executor.subway_station && (
-                    <div>🚇&nbsp;{executor.subway_station}</div>
+                    <div style={{ wordBreak: 'break-word' }}>🚇&nbsp;{executor.subway_station}</div>
                   )}
               </div>
               ) : <div style={{ flex: 1 }} />}
