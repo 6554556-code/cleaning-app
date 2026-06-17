@@ -262,9 +262,11 @@ useEffect(() => {
         return { ...executor, todaySlots: todayFuture, tomorrowSlots: tomorrowFuture, services: executorServices }
       })
 
-      // Тянем отзывы для всех загруженных исполнителей и считаем статистику
-      const reviewsMap = await loadReviewsByExecutors(executorIds)
-      const ordersCountMap = await loadOrdersCountByExecutors(executorIds)
+      // Тянем отзывы и счётчики заказов параллельно — они не зависят друг от друга
+      const [reviewsMap, ordersCountMap] = await Promise.all([
+        loadReviewsByExecutors(executorIds),
+        loadOrdersCountByExecutors(executorIds)
+      ])
       const statsMap = {}
       executorIds.forEach(id => {
         statsMap[id] = calculateStats(reviewsMap[id] || [])

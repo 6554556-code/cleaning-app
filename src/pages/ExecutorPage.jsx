@@ -1145,52 +1145,46 @@ function ExecutorPage({ executorId }) {
       }
     }
 
-    const { data: executorData } = await supabase
-      .from('executors')
-      .select('*, users(full_name)')
-      .eq('id', realExecutorId)
-      .single()
+    // Эти 4 запроса не зависят друг от друга — гоним параллельно вместо цепочки await
+    const [
+      { data: executorData },
+      { data: ordersData },
+      { data: blocksData },
+      reviewsMap
+    ] = await Promise.all([
+      supabase.from('executors').select('*, users(full_name)').eq('id', realExecutorId).single(),
+      supabase.from('orders').select('*, client:client_id(full_name, phone, telegram_username)').eq('executor_id', realExecutorId).neq('is_deleted', true).order('created_at', { ascending: false }),
+      supabase.from('blocks').select('*').eq('executor_id', realExecutorId),
+      loadReviewsByExecutors([realExecutorId])
+    ])
+
     setExecutor(executorData)
-
-    const { data: ordersData } = await supabase
-    .from('orders')
-    .select('*, client:client_id(full_name, phone, telegram_username)')
-    .eq('executor_id', realExecutorId)
-    .neq('is_deleted', true)
-    .order('created_at', { ascending: false })
-
     setOrders(ordersData || [])
+    setBlocks(blocksData || [])
+    const stats = calculateStats(reviewsMap[realExecutorId] || [])
+    setRatingStats(stats)
+    setLoading(false)
 
-    // Подгружаем общую статистику клиентов по всей системе — без фильтра по executor_id.
-    // Берём только тех client_id, что у нас уже есть в заказах этого исполнителя.
-    const clientIds = [...new Set((ordersData || []).map(o => o.client_id).filter(Boolean))]
-    if (clientIds.length > 0) {
-      const { data: allClientOrders } = await supabase
-        .from('orders')
-        .select('client_id, status')
-        .in('client_id', clientIds)
-        .neq('is_deleted', true)
-      const statsMap = {}
-      ;(allClientOrders || []).forEach(o => {
-        if (!statsMap[o.client_id]) statsMap[o.client_id] = { done: 0, active: 0, cancelled: 0 }
-        if (o.status === 'done') statsMap[o.client_id].done++
-        else if (o.status === 'cancelled') statsMap[o.client_id].cancelled++
-        else statsMap[o.client_id].active++
-      })
-      setGlobalClientStats(statsMap)
-    }
+    // Статистика по клиентам — не блокирует первый рендер, подгружается после
+    loadGlobalClientStats(ordersData || [])
+  }
 
-    const { data: blocksData } = await supabase
-        .from('blocks')
-        .select('*')
-        .eq('executor_id', realExecutorId)
-      setBlocks(blocksData || [])
-      // Считаем рейтинг из реальных отзывов
-      const reviewsMap = await loadReviewsByExecutors([realExecutorId])
-      const stats = calculateStats(reviewsMap[realExecutorId] || [])
-      setRatingStats(stats)
-  
-      setLoading(false)
+  async function loadGlobalClientStats(ordersData) {
+    const clientIds = [...new Set(ordersData.map(o => o.client_id).filter(Boolean))]
+    if (clientIds.length === 0) return
+    const { data: allClientOrders } = await supabase
+      .from('orders')
+      .select('client_id, status')
+      .in('client_id', clientIds)
+      .neq('is_deleted', true)
+    const statsMap = {}
+    ;(allClientOrders || []).forEach(o => {
+      if (!statsMap[o.client_id]) statsMap[o.client_id] = { done: 0, active: 0, cancelled: 0 }
+      if (o.status === 'done') statsMap[o.client_id].done++
+      else if (o.status === 'cancelled') statsMap[o.client_id].cancelled++
+      else statsMap[o.client_id].active++
+    })
+    setGlobalClientStats(statsMap)
   }
 
   useEffect(() => {
