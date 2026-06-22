@@ -63,6 +63,7 @@ export default function MapPage() {
   const [reviewStats, setReviewStats] = useState({});
   const { professions } = useProfessions();
   const [mapCenter, setMapCenter] = useState(MOSCOW_CENTER);
+  const [expandedBios, setExpandedBios] = useState([]);
   useEffect(() => {
     supabase
       .from("executors")
@@ -196,7 +197,39 @@ useEffect(() => {
                 {minPrice(ex.services) != null && (
                   <p style={{ margin: "2px 0" }}>от {minPrice(ex.services)} ₽</p>
                 )}
-                {ex.bio && <p style={{ color: "#666", fontSize: 12, marginTop: 6 }}>{ex.bio}</p>}
+                {ex.bio && (() => {
+                  const LIMIT = 150
+                  const isOpen = expandedBios.includes(ex.id)
+                  const isLong = ex.bio.length > LIMIT
+                  const shown = isOpen || !isLong ? ex.bio : ex.bio.slice(0, LIMIT).trimEnd() + '…'
+                  return (
+                    <div
+                      style={{
+                        color: "#666",
+                        fontSize: 12,
+                        marginTop: 6,
+                        whiteSpace: 'pre-wrap',
+                        maxHeight: isOpen ? 180 : 'none',
+                        overflowY: isOpen ? 'auto' : 'visible',
+                      }}
+                    >
+                      {shown}
+                      {isLong && (
+                        <span
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            setExpandedBios(prev =>
+                              isOpen ? prev.filter(id => id !== ex.id) : [...prev, ex.id]
+                            )
+                          }}
+                          style={{ color: '#2481cc', cursor: 'pointer', marginLeft: 4 }}
+                        >
+                          {isOpen ? ' Свернуть ▴' : ' Развернуть ▾'}
+                        </span>
+                      )}
+                    </div>
+                  )
+                })()}
                  <a
                   href={`/?executor_id=${ex.id}&book=1&from=map`}
                   style={{

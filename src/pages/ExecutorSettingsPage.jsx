@@ -600,8 +600,20 @@ for (const s of group) {
               onChange={e => setBio(e.target.value)}
               placeholder="Несколько слов о себе для клиентов"
               rows={3}
-              style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #ddd', marginBottom: '12px', boxSizing: 'border-box', fontFamily: 'inherit', resize: 'vertical' }}
+              maxLength={1500}
+              style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid ' + (bio.length > 1500 ? '#ef4444' : '#ddd'), marginBottom: '4px', boxSizing: 'border-box', fontFamily: 'inherit', resize: 'vertical' }}
             />
+            <div
+              style={{
+                fontSize: '12px',
+                textAlign: 'right',
+                marginBottom: '12px',
+                color: bio.length > 1500 ? '#ef4444' : bio.length > 1400 ? '#f59e0b' : '#999',
+              }}
+            >
+              {bio.length} / 1500
+              {bio.length > 1500 && ' — сократите описание'}
+            </div>
 
             <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px', color: '#666' }}>Часовой пояс</label>
             <select
