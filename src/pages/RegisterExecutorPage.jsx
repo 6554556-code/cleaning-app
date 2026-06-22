@@ -4,6 +4,7 @@ import { useProfessions } from "../hooks/useProfessions.js";
 import { getLocationFromCoords, getSubwayFromCoords } from "../geocoding.js";
 import { getTelegramUser } from '../telegram'
 import LocationPicker from '../components/LocationPicker'
+import { LEGAL_DOCS } from '../legalDocs'
 
 function RegisterExecutorPage() {
   const { professions } = useProfessions();
@@ -27,6 +28,8 @@ function RegisterExecutorPage() {
   const [serviceLocationType, setServiceLocationType] = useState('both')
 
   const [saving, setSaving] = useState(false)
+  const [agreedToTerms, setAgreedToTerms] = useState(false)
+  const [legalModal, setLegalModal] = useState(null) // 'consent' | 'terms' | 'privacy' | null
 
   const dayLabels = [
     { num: 1, label: 'Пн' },
@@ -76,7 +79,11 @@ if (endMinutes === startMinutes) {
   alert('Время начала и окончания совпадают — мастер станет невидимым для клиентов.\n\n🕐 Для круглосуточной работы укажите 00:00–23:59.')
   return
 }
-    setSaving(true)
+if (!agreedToTerms) {
+  alert('Чтобы продолжить, поставьте галочку — согласие с документами обязательно.')
+  return
+}
+setSaving(true)
     
 
     // 1. Создаём пользователя
@@ -408,6 +415,68 @@ const subway = await getSubwayFromCoords(Number(latitude), Number(longitude));
         </button>
       </div>
 
+      {/* Согласие с документами */}
+      <div
+        onClick={() => setAgreedToTerms(v => !v)}
+        style={{
+          display: 'flex',
+          alignItems: 'flex-start',
+          gap: '10px',
+          padding: '12px',
+          marginTop: '20px',
+          borderRadius: '8px',
+          border: '2px solid ' + (agreedToTerms ? '#22c55e' : '#ef4444'),
+          background: agreedToTerms ? '#f0fdf4' : '#fef2f2',
+          cursor: 'pointer',
+          transition: 'all 0.2s ease',
+          userSelect: 'none',
+        }}
+      >
+        <div
+          style={{
+            width: '22px',
+            height: '22px',
+            minWidth: '22px',
+            borderRadius: '4px',
+            border: '2px solid ' + (agreedToTerms ? '#22c55e' : '#ef4444'),
+            background: agreedToTerms ? '#22c55e' : 'white',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            color: 'white',
+            fontWeight: 'bold',
+            fontSize: '14px',
+            marginTop: '1px',
+          }}
+        >
+          {agreedToTerms ? '✓' : ''}
+        </div>
+        <div style={{ fontSize: '13px', lineHeight: '1.4', color: '#333' }}>
+          Я согласен с{' '}
+          <span
+            onClick={(e) => { e.stopPropagation(); setLegalModal('consent') }}
+            style={{ color: '#2481cc', textDecoration: 'underline' }}
+          >
+            обработкой персональных данных
+          </span>
+          ,{' '}
+          <span
+            onClick={(e) => { e.stopPropagation(); setLegalModal('terms') }}
+            style={{ color: '#2481cc', textDecoration: 'underline' }}
+          >
+            условиями использования
+          </span>
+          {' '}и{' '}
+          <span
+            onClick={(e) => { e.stopPropagation(); setLegalModal('privacy') }}
+            style={{ color: '#2481cc', textDecoration: 'underline' }}
+          >
+            политикой конфиденциальности
+          </span>
+          .
+        </div>
+      </div>
+
       <button
         onClick={handleSubmit}
         disabled={saving}
@@ -415,6 +484,48 @@ const subway = await getSubwayFromCoords(Number(latitude), Number(longitude));
       >
         {saving ? 'Создаём...' : 'Создать профиль'}
       </button>
+
+      {/* Модалка с текстом документа */}
+      {legalModal && (
+        <div
+          onClick={() => setLegalModal(null)}
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(0,0,0,0.5)',
+            zIndex: 1000,
+            display: 'flex',
+            alignItems: 'flex-end',
+            justifyContent: 'center',
+          }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              width: '100%',
+              maxHeight: '85vh',
+              background: 'white',
+              borderRadius: '16px 16px 0 0',
+              display: 'flex',
+              flexDirection: 'column',
+              overflow: 'hidden',
+            }}
+          >
+            <div style={{ padding: '16px', borderBottom: '1px solid #eee', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <h3 style={{ margin: 0, fontSize: '16px' }}>{LEGAL_DOCS[legalModal].title}</h3>
+              <button
+                onClick={() => setLegalModal(null)}
+                style={{ background: 'none', border: 'none', fontSize: '22px', cursor: 'pointer', color: '#666', padding: 0, lineHeight: 1 }}
+              >
+                ✕
+              </button>
+            </div>
+            <div style={{ padding: '16px', overflowY: 'auto', fontSize: '13px', lineHeight: '1.5', color: '#333', whiteSpace: 'pre-wrap' }}>
+              {LEGAL_DOCS[legalModal].body}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
