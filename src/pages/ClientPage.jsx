@@ -21,6 +21,7 @@ function ClientPage() {
   const [myUserId, setMyUserId] = useState(null)
   const [myExecutorId, setMyExecutorId] = useState(null)
   const [expandedServices, setExpandedServices] = useState([])
+  const [expandedBios, setExpandedBios] = useState([])
   // Строка поиска по имени, услугам, описанию, метро (фильтрация на клиенте, без запросов к БД)
   const [search, setSearch] = useState('')
   // Статистика отзывов по исполнителю: { executor_id: { avgRating, count, onTimePercent, alwaysOnTime } }
@@ -565,7 +566,37 @@ useEffect(() => {
               {executor.is_verified && <span title="Проверенный исполнитель">✅</span>}
             </h3>
             
-            <p style={{ color: '#666', margin: '8px 0', fontSize: '14px' }}>{executor.bio}</p>
+            {executor.bio && (() => {
+              const LIMIT = 200
+              const isOpen = expandedBios.includes(executor.id)
+              const isLong = executor.bio.length > LIMIT
+              const shown = isOpen || !isLong ? executor.bio : executor.bio.slice(0, LIMIT).trimEnd() + '…'
+              return (
+                <p style={{ color: '#666', margin: '8px 0', fontSize: '14px', whiteSpace: 'pre-wrap' }}>
+                  {shown}
+                  {isLong && (
+                    <span
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      const pEl = e.currentTarget.parentElement
+                      const wasOpen = isOpen
+                      setExpandedBios(prev =>
+                        wasOpen ? prev.filter(id => id !== executor.id) : [...prev, executor.id]
+                      )
+                      if (wasOpen && pEl) {
+                        setTimeout(() => {
+                          pEl.scrollIntoView({ block: 'start', behavior: 'smooth' })
+                        }, 0)
+                      }
+                    }}
+                      style={{ color: '#5b8def', cursor: 'pointer', marginLeft: 4 }}
+                    >
+                      {isOpen ? ' Свернуть ▴' : ' Развернуть ▾'}
+                    </span>
+                  )}
+                </p>
+              )
+            })()}
             {executor.services && executor.services.length > 0 && (() => {
   const isExpanded = expandedServices.includes(executor.id)
   const allMain = executor.services.filter(s => s.is_main)
