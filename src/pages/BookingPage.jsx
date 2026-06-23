@@ -1,14 +1,37 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { supabase } from '../supabase'
 import { getTelegramUser } from '../telegram'
 import { generateSlots } from '../utils/slotGenerator'
 import Avatar from '../components/Avatar'
 import MiniCalendar from '../components/MiniCalendar'
+import { MapContainer, TileLayer, Marker } from 'react-leaflet'
+import 'leaflet/dist/leaflet.css'
+import L from 'leaflet'
+
+delete L.Icon.Default.prototype._getIconUrl
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
+  iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
+  shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
+})
 
 function BookingPage({ executor, stats, reviews, slot, onBack, onSuccess }) {
   // Автоскролл наверх при открытии страницы
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'instant' })
+  }, [])
+
+  // Перерасчёт размера leaflet-карты, когда меняется ширина её контейнера
+  // (контент догружается асинхронно — отзывы, услуги — и сдвигает раскладку)
+  const mapRef = useRef(null)
+  const mapBoxRef = useRef(null)
+  useEffect(() => {
+    if (!mapBoxRef.current) return
+    const observer = new ResizeObserver(() => {
+      mapRef.current?.invalidateSize()
+    })
+    observer.observe(mapBoxRef.current)
+    return () => observer.disconnect()
   }, [])
   const [name, setName] = useState('')
   const [phone, setPhone] = useState('')
@@ -416,6 +439,33 @@ function toggleExtra(extra) {
           : null
         }
       </div>
+
+{/* Где находится мастер */}
+{executor.latitude != null && executor.longitude != null && (
+        <div style={{ marginBottom: '16px' }}>
+          <div ref={mapBoxRef} style={{ borderRadius: '12px', overflow: 'hidden', border: '1px solid #eee' }}>
+            <MapContainer
+              ref={mapRef}
+              center={[executor.latitude, executor.longitude]}
+              zoom={14}
+              scrollWheelZoom={false}
+              style={{ height: '180px', width: '100%' }}
+              attributionControl={false}
+            >
+        <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+        <Marker position={[executor.latitude, executor.longitude]} />
+      </MapContainer>
+    </div>
+    {(executor.subway_station || executor.address) && (
+      <p style={{ margin: '8px 0 0', fontSize: '13px', color: '#666' }}>
+        {executor.subway_station && <>🚇 {executor.subway_station}</>}
+        {executor.subway_station && executor.address && ' · '}
+        {executor.address && <>📍 {executor.address}</>}
+      </p>
+    )}
+  </div>
+)}
+
 {/* Выбор времени если пришёл не со слота */}
 {!fromSlot && (
         <div style={{ marginBottom: '16px' }}>
