@@ -1,6 +1,8 @@
 import { useState, useEffect, useRef } from 'react'
 import { supabase } from '../supabase'
 import { getTelegramUser } from '../telegram'
+import { getSession, saveSession } from '../session'
+import LoginPage from './LoginPage'
 import { generateSlots } from '../utils/slotGenerator'
 import Avatar from '../components/Avatar'
 import MiniCalendar from '../components/MiniCalendar'
@@ -38,6 +40,7 @@ function BookingPage({ executor, stats, reviews, slot, onBack, onSuccess }) {
   const [address, setAddress] = useState('')
   const [comment, setComment] = useState('')
   const [loading, setLoading] = useState(false)
+  const [showLogin, setShowLogin] = useState(false)
   const [services, setServices] = useState([])
   const [selectedService, setSelectedService] = useState(null)
   const [selectedExtras, setSelectedExtras] = useState([])
@@ -187,17 +190,24 @@ function toggleExtra(extra) {
       return
     }
 
+    // Веб-юзер без Telegram и без сессии → сперва просим войти по телефону,
+    // а сам заказ дошлём сразу после успешного входа (см. onSuccess у LoginPage).
+    const tgUser = getTelegramUser()
+    const session = getSession()
+    if (!tgUser?.telegram_id && !session?.id) {
+      setShowLogin(true)
+      return
+    }
+
     setLoading(true)
 
-    // Берём данные пользователя из Telegram
-    const tgUser = getTelegramUser()
     const tgId = tgUser?.telegram_id || 0
     const tgUsername = tgUser?.username ? tgUser.username.toLowerCase() : null
 
     let user = null
 
-    // Ищем существующего КЛИЕНТА (берём самого раннего, не давимся на дублях)
-    if (tgId) {
+    if (tgUser?.telegram_id) {
+      // Внутри Telegram — как раньше: ищем клиента по telegram_id
       const { data: existing } = await supabase
         .from('users')
         .select('*')
@@ -206,6 +216,9 @@ function toggleExtra(extra) {
         .order('id', { ascending: true })
         .limit(1)
       user = existing && existing[0] ? existing[0] : null
+    } else if (session?.id) {
+      // Веб по телефону — берём клиента прямо из сессии, ничего не создаём заново
+      user = session
     }
 
     if (user) {
@@ -346,6 +359,17 @@ function toggleExtra(extra) {
     if (isTomorrow) return `Завтра ${time}`
     return time
   }
+
+  if (showLogin) {
+    return (
+      <LoginPage
+        title="Вход по телефону"
+        onBack={() => setShowLogin(false)}
+        onSuccess={() => { setShowLogin(false); handleSubmit() }}
+      />
+    )
+  }
+
   return (
     <div style={{ padding: '16px', maxWidth: '600px', margin: '0 auto' }}>
 
