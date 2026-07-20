@@ -380,13 +380,19 @@ useEffect(() => {
         >
           {myExecutorId ? '👷 Кабинет исполнителя' : '👷 Стать исполнителем'}
         </a>
-        {myUserId && (
+        {myUserId ? (
           <a href={`?client=${myUserId}`}
             style={{ fontSize: '12px', color: 'white', background: '#2481cc', textDecoration: 'none', padding: '5px 8px', borderRadius: '8px', whiteSpace: 'nowrap' }}
           >
             👤 Кабинет
           </a>
-        )}
+        ) : (!getTelegramUser()?.telegram_id && (
+          <a href="?client=0"
+            style={{ fontSize: '12px', color: 'white', background: '#2481cc', textDecoration: 'none', padding: '5px 8px', borderRadius: '8px', whiteSpace: 'nowrap' }}
+          >
+            👤 Войти
+          </a>
+        ))}
       </div>
       {cities.length > 0 && (
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', fontSize: '13px', color: '#666', gap: '8px' }}>
