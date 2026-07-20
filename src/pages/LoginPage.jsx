@@ -2,6 +2,8 @@ import { useState, useRef, useEffect } from 'react'
 import { supabase } from '../supabase'
 import { saveSession } from '../session'
 
+const TG_BOT = 'ebookee777_bot' // @ebookee777_bot, домен привязан в BotFather -> app.ebookee.app
+
 const CSS = `
 .eblogin-screen{position:fixed;inset:0;z-index:1000;overflow:auto;background:#FBFAF7;
   display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px;
@@ -37,6 +39,10 @@ const CSS = `
 .eblogin-msg{margin-top:16px;font-size:13.5px;line-height:1.45;padding:11px 13px;border-radius:11px}
 .eblogin-msg.err{background:#FCEBE7;color:#C0341D}
 .eblogin-fine{margin:18px 4px 0;font-size:11.5px;color:#9A9A9A;text-align:center;line-height:1.5}
+.eblogin-tg{display:flex;justify-content:center;min-height:46px;margin:20px 0 0}
+.eblogin-tghint{margin:16px 0 0;font-size:12px;color:#9A9A9A;text-align:center;line-height:1.4}
+.eblogin-or{display:flex;align-items:center;gap:12px;margin:20px 0 24px;color:#9A9A9A;font-size:12.5px;font-weight:600}
+.eblogin-or::before,.eblogin-or::after{content:"";flex:1;height:1px;background:#ECECEC}
 `
 
 function fmt(v) {
@@ -67,8 +73,37 @@ export default function LoginPage({ onSuccess, onBack, title = 'Вход по т
   const [left, setLeft] = useState(0)
   const cells = useRef([])
   const timer = useRef(null)
+  const tgBox = useRef(null)
 
   useEffect(() => () => clearInterval(timer.current), [])
+
+  // Telegram Login Widget: рисуется только на домене, привязанном в BotFather.
+  // Поэтому вне app.ebookee.app скрипт не вставляем — телефон остаётся рабочим.
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    if (window.location.hostname !== 'app.ebookee.app') return
+    const box = tgBox.current
+    if (!box) return
+    window.onTelegramAuth = (user) => onTgAuth(user)
+    const s = document.createElement('script')
+    s.src = 'https://telegram.org/js/telegram-widget.js?22'
+    s.async = true
+    s.setAttribute('data-telegram-login', TG_BOT)
+    s.setAttribute('data-size', 'large')
+    s.setAttribute('data-radius', '12')
+    s.setAttribute('data-request-access', 'write')
+    s.setAttribute('data-onauth', 'onTelegramAuth(user)')
+    box.appendChild(s)
+    return () => { box.innerHTML = ''; try { delete window.onTelegramAuth } catch (_) {} }
+  }, [])
+
+  async function onTgAuth(user) {
+    setBusy(true); setErr('')
+    const r = await invoke('verify-tg', user)
+    if (r.ok) { saveSession(r.user); onSuccess?.(r.user); return }
+    setBusy(false)
+    setErr('Не удалось войти через Telegram. Попробуйте по номеру.')
+  }
 
   function onPhone(e) {
     const { d, o } = fmt(e.target.value)
@@ -146,6 +181,10 @@ export default function LoginPage({ onSuccess, onBack, title = 'Вход по т
         {step === 'phone' && (
           <div className="eblogin-card">
             <h1 className="eblogin-h1">{title}</h1>
+            {typeof window !== 'undefined' && window.location.hostname === 'app.ebookee.app'
+              ? <div className="eblogin-tg" ref={tgBox} />
+              : <div className="eblogin-tghint">Вход через Telegram доступен на app.ebookee.app</div>}
+            <div className="eblogin-or">или по номеру телефона</div>
             <p className="eblogin-lead">Введите номер — пришлём код в SMS. Пароль не нужен.</p>
             <label className="eblogin-label">Номер телефона</label>
             <div className="eblogin-phone">
