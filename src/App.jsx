@@ -132,6 +132,12 @@ function App() {
     return <ClientCabinetPage clientId={clientId} />
   }
   if (executorMatch) {
+    const tgUser = getTelegramUser()
+    const session = getSession()
+    // Веб без Telegram и без сессии-исполнителя — вход только по Telegram
+    if (!tgUser?.telegram_id && session?.role !== 'executor') {
+      return <LoginPage title="Вход для исполнителей" role="executor" onSuccess={() => window.location.reload()} />
+    }
     return <ExecutorPage executorId={Number(executorMatch[1])} />
   }
 

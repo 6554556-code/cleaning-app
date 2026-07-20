@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../supabase'
 import { getTelegramUser } from '../telegram'
+import { getSession } from '../session'
 import AddOrderPage from './AddOrderPage'
 import MiniCalendar from '../components/MiniCalendar'
 import { loadReviewsByExecutors, calculateStats } from '../reviewsUtils'
@@ -1141,9 +1142,21 @@ function ExecutorPage({ executorId }) {
           .eq('user_id', user.id)
           .maybeSingle()
 
-        if (myExec) realExecutorId = myExec.id
+          if (myExec) realExecutorId = myExec.id
+        }
+      } else {
+        // Веб: свой кабинет по сессии-исполнителю (session.id = users.id),
+        // а не по числу из ?executor=… — иначе открывается чужой ЛК.
+        const session = getSession()
+        if (session?.id) {
+          const { data: myExec } = await supabase
+            .from('executors')
+            .select('id')
+            .eq('user_id', session.id)
+            .maybeSingle()
+          if (myExec) realExecutorId = myExec.id
+        }
       }
-    }
 
     // Эти 4 запроса не зависят друг от друга — гоним параллельно вместо цепочки await
     const [

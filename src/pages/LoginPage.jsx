@@ -64,7 +64,7 @@ async function invoke(fn, body) {
   return data || { ok: false, error: 'server' }
 }
 
-export default function LoginPage({ onSuccess, onBack, title = 'Вход по телефону' }) {
+export default function LoginPage({ onSuccess, onBack, title = 'Вход по телефону', role = 'client' }) {
   const [step, setStep] = useState('phone')
   const [raw, setRaw] = useState('')
   const [display, setDisplay] = useState('')
@@ -100,9 +100,22 @@ export default function LoginPage({ onSuccess, onBack, title = 'Вход по т
   async function onTgAuth(user) {
     setBusy(true); setErr('')
     const r = await invoke('verify-tg', user)
-    if (r.ok) { saveSession(r.user); onSuccess?.(r.user); return }
+    if (r.ok) {
+      // Исполнителю нужна именно executor-строка этого telegram_id.
+      const pick = role === 'executor'
+        ? (r.profiles || []).find(p => p.role === 'executor')
+        : r.user
+      if (!pick) {
+        setBusy(false)
+        setErr('Этот Telegram не привязан к аккаунту исполнителя.')
+        return
+      }
+      saveSession(pick); onSuccess?.(pick); return
+    }
     setBusy(false)
-    setErr('Не удалось войти через Telegram. Попробуйте по номеру.')
+    setErr(role === 'executor'
+      ? 'Не удалось войти через Telegram.'
+      : 'Не удалось войти через Telegram. Попробуйте по номеру.')
   }
 
   function onPhone(e) {
@@ -184,18 +197,20 @@ export default function LoginPage({ onSuccess, onBack, title = 'Вход по т
             {typeof window !== 'undefined' && window.location.hostname === 'app.ebookee.app'
               ? <div className="eblogin-tg" ref={tgBox} />
               : <div className="eblogin-tghint">Вход через Telegram доступен на app.ebookee.app</div>}
-            <div className="eblogin-or">или по номеру телефона</div>
-            <p className="eblogin-lead">Введите номер — пришлём код в SMS. Пароль не нужен.</p>
-            <label className="eblogin-label">Номер телефона</label>
-            <div className="eblogin-phone">
-              <span className="eblogin-cc">+7</span>
-              <input value={display} onChange={onPhone} type="tel" inputMode="numeric"
-                placeholder="900 000-00-00" maxLength={15} autoComplete="tel"
-                onKeyDown={e => { if (e.key === 'Enter') sendCode() }} />
-            </div>
-            <button className="eblogin-btn" onClick={sendCode} disabled={busy}>
-              {busy ? 'Отправляю…' : 'Получить код'}
-            </button>
+            {role !== 'executor' && (<>
+              <div className="eblogin-or">или по номеру телефона</div>
+              <p className="eblogin-lead">Введите номер — пришлём код в SMS. Пароль не нужен.</p>
+              <label className="eblogin-label">Номер телефона</label>
+              <div className="eblogin-phone">
+                <span className="eblogin-cc">+7</span>
+                <input value={display} onChange={onPhone} type="tel" inputMode="numeric"
+                  placeholder="900 000-00-00" maxLength={15} autoComplete="tel"
+                  onKeyDown={e => { if (e.key === 'Enter') sendCode() }} />
+              </div>
+              <button className="eblogin-btn" onClick={sendCode} disabled={busy}>
+                {busy ? 'Отправляю…' : 'Получить код'}
+              </button>
+            </>)}
             {err && <div className="eblogin-msg err">{err}</div>}
             {onBack && <button className="eblogin-link" style={{ marginTop: 14 }} onClick={onBack}>← Назад</button>}
             <p className="eblogin-fine">Продолжая, вы соглашаетесь с условиями сервиса и политикой обработки данных.</p>
