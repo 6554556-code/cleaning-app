@@ -7,6 +7,8 @@ import ExecutorSettingsPage from './pages/ExecutorSettingsPage'
 import { useEffect, useState } from 'react'
 import { initTelegram, getTelegramUser, syncTelegramUsername } from './telegram'
 import { supabase } from './supabase'
+import { getSession } from './session'
+import LoginPage from './pages/LoginPage'
 
 function App() {
   // 'checking' пока ждём ответа БД, 'blocked' если в blocked_users, 'ok' во всех остальных случаях
@@ -118,7 +120,16 @@ function App() {
     return <ExecutorSettingsPage />
   }
   if (clientMatch) {
-    return <ClientCabinetPage clientId={Number(clientMatch[1])} />
+    const tgUser = getTelegramUser()
+    const session = getSession()
+    // На вебе без Telegram и без сессии — сперва вход
+    if (!tgUser?.telegram_id && !session?.id) {
+      return <LoginPage title="Вход в кабинет" onSuccess={() => window.location.reload()} />
+    }
+    // Веб-клиент видит СВОЙ кабинет (id из сессии), а не любой из адреса —
+    // иначе на открытом вебе можно подставить чужой ?client=…
+    const clientId = (!tgUser?.telegram_id && session?.id) ? session.id : Number(clientMatch[1])
+    return <ClientCabinetPage clientId={clientId} />
   }
   if (executorMatch) {
     return <ExecutorPage executorId={Number(executorMatch[1])} />

@@ -5,6 +5,7 @@ import { loadReviewsByExecutors, calculateStats } from "../reviewsUtils.js";
 import { loadOrdersCountByExecutors } from "../ordersUtils.js";
 import { useCities } from "../hooks/useCities.js";
 import { getTelegramUser } from '../telegram'
+import { getSession } from '../session'
 import BookingPage from './BookingPage'
 import { generateSlots } from '../utils/slotGenerator'
 import { getLocationIcon } from '../utils/locationIcon'
@@ -100,7 +101,12 @@ function ClientPage() {
 useEffect(() => {
   async function checkUser() {
     const tgUser = getTelegramUser()
-    if (!tgUser?.telegram_id) return
+    if (!tgUser?.telegram_id) {
+      // Веб-юзер: личность из сохранённой сессии (вошёл по телефону)
+      const session = getSession()
+      if (session?.id) setMyUserId(session.id)
+      return
+    }
 
     // --- Исполнитель: ищем строго по роли ---
     const { data: execUser } = await supabase
