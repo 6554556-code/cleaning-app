@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../supabase'
+import { getSession, clearSession } from '../session'
 import ReviewModal from "../components/ReviewModal.jsx";
 import { canLeaveReview } from "../reviewsUtils.js";
 // Статусы и их подписи
@@ -158,9 +159,19 @@ const [reviewModalOrder, setReviewModalOrder] = useState(null)
 
   return (
     <div style={{ padding: '16px', maxWidth: '600px', margin: '0 auto' }}>
-      <a href="/" style={{ display: 'inline-block', marginBottom: '8px', fontSize: '14px', color: '#2481cc', textDecoration: 'none' }}>
-        🏠 На главную
-      </a>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+        <a href="/" style={{ fontSize: '14px', color: '#2481cc', textDecoration: 'none' }}>
+          🏠 На главную
+        </a>
+        {getSession()?.id && (
+          <button
+            onClick={() => { clearSession(); window.location.href = '/' }}
+            style={{ background: 'none', border: 0, color: '#C0341D', fontSize: '14px', fontWeight: 600, cursor: 'pointer', padding: '4px 0' }}
+          >
+            Выйти
+          </button>
+        )}
+      </div>
       <h2 style={{ textAlign: 'center', marginTop: 0 }}>Мои заказы</h2>
 
       {/* Табы */}

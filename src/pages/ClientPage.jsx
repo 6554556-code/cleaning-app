@@ -338,9 +338,9 @@ useEffect(() => {
             setShowBooking(false)
           }
         }}
-        onSuccess={() => {
-          setShowBooking(false)
+        onSuccess={(clientId) => {
           alert('Заявка принята! Мы свяжемся с вами.')
+          window.location.href = '/?client=' + clientId
         }}
       />
     )

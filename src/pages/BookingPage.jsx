@@ -345,7 +345,7 @@ function toggleExtra(extra) {
     }
 
     setLoading(false)
-    onSuccess()
+    onSuccess(user.id)
   }
   function formatSlot(start) {
     const date = new Date(start)
