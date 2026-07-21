@@ -101,16 +101,16 @@ export default function LoginPage({ onSuccess, onBack, title = 'Вход по т
     setBusy(true); setErr('')
     const r = await invoke('verify-tg', user)
     if (r.ok) {
-      // Исполнителю нужна именно executor-строка этого telegram_id.
-      const pick = role === 'executor'
-        ? (r.profiles || []).find(p => p.role === 'executor')
-        : r.user
-      if (!pick) {
-        setBusy(false)
-        setErr('Этот Telegram не привязан к аккаунту исполнителя.')
+      if (role === 'executor') {
+        const exec = (r.profiles || []).find(p => p.role === 'executor')
+        if (exec) { saveSession(exec); onSuccess?.(exec); return }
+        // Новый работник — как в мини-аппе: запоминаем личность (с ником из виджета) и ведём на регистрацию
+        const base = r.user || {}
+        saveSession({ ...base, telegram_username: base.telegram_username || (user.username ? user.username.toLowerCase() : null) })
+        window.location.href = '?register=executor'
         return
       }
-      saveSession(pick); onSuccess?.(pick); return
+      saveSession(r.user); onSuccess?.(r.user); return
     }
     setBusy(false)
     setErr(role === 'executor'

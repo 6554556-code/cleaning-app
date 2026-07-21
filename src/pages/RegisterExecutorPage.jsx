@@ -3,6 +3,7 @@ import { supabase } from '../supabase'
 import { useProfessions } from "../hooks/useProfessions.js";
 import { getLocationFromCoords, getSubwayFromCoords } from "../geocoding.js";
 import { getTelegramUser } from '../telegram'
+import { getSession, saveSession } from '../session'
 import LocationPicker from '../components/LocationPicker'
 import { LEGAL_DOCS } from '../legalDocs'
 
@@ -89,8 +90,11 @@ setSaving(true)
     // 1. Создаём пользователя
     // Берём telegram_id из Telegram
     const tgUser = getTelegramUser()
-    const tgId = tgUser?.telegram_id || null
-    const tgUsername = tgUser?.username ? tgUser.username.toLowerCase() : null
+    const session = getSession()
+    const tgId = tgUser?.telegram_id || session?.telegram_id || null
+    const tgUsername = (tgUser?.username || session?.telegram_username)
+      ? (tgUser?.username || session?.telegram_username).toLowerCase()
+      : null
 
     // Защита: на боевом сайте регистрация без Telegram-данных запрещена
     if (!tgId) {
@@ -102,7 +106,7 @@ setSaving(true)
     // Не плодим: если у этого telegram_id уже есть профиль исполнителя — ведём в кабинет
     const { data: existingUser } = await supabase
       .from('users')
-      .select('id')
+      .select('*')
       .eq('telegram_id', tgId)
       .eq('role', 'executor')
       .maybeSingle()
@@ -115,6 +119,7 @@ setSaving(true)
         .maybeSingle()
       if (existingExec) {
         setSaving(false)
+        saveSession(existingUser) // веб-сессия -> исполнитель, иначе гейт не пустит в кабинет
         alert('У вас уже есть профиль исполнителя — открываю кабинет.')
         window.location.href = '/?executor=1'
         return
@@ -195,6 +200,7 @@ const subway = await getSubwayFromCoords(Number(latitude), Number(longitude));
       return
     }
 
+    saveSession(user) // веб-сессия -> исполнитель, иначе гейт не пустит в кабинет
     alert('Профиль создан! Сейчас откроется ваш кабинет.')
     window.location.href = '/?executor=1'
   }
@@ -204,7 +210,7 @@ const subway = await getSubwayFromCoords(Number(latitude), Number(longitude));
 
   // ── Гард: без @username клиенты не смогут с нами связаться. Блокируем регистрацию.
   const tgUserCheck = getTelegramUser()
-  const hasUsername = !!tgUserCheck?.username
+  const hasUsername = !!(tgUserCheck?.username || getSession()?.telegram_username)
   if (!hasUsername) {
     return (
       <div style={{ padding: '16px', maxWidth: '500px', margin: '0 auto' }}>
