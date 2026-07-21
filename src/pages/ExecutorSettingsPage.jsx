@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { supabase } from '../supabase'
 import { getLocationFromCoords, getSubwayFromCoords } from "../geocoding.js";
 import { getTelegramUser } from '../telegram'
+import { getSession } from '../session'
 import LocationPicker from '../components/LocationPicker'
 
 function ExecutorSettingsPage() {
@@ -56,15 +57,19 @@ function ExecutorSettingsPage() {
               .maybeSingle()
             exec = data
           }
-      } else {
-        // Запасной вход для localhost — берём исполнителя с id = 1
-        const { data } = await supabase
-          .from('executors')
-          .select('*, users(full_name, phone)')
-          .eq('id', 1)
-          .maybeSingle()
-        exec = data
-      }
+        } else {
+          // Веб: свой профиль по сессии-исполнителю (session.id = users.id),
+          // не хардкод id=1 — иначе открываются чужие настройки.
+          const session = getSession()
+          if (session?.id) {
+            const { data } = await supabase
+              .from('executors')
+              .select('*, users(full_name, phone)')
+              .eq('user_id', session.id)
+              .maybeSingle()
+            exec = data
+          }
+        }
 
       setExecutor(exec)
       if (exec) {

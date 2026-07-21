@@ -117,6 +117,12 @@ function App() {
     return <RegisterExecutorPage />
   }
   if (isSettings) {
+    const tgUser = getTelegramUser()
+    const session = getSession()
+    // Веб без Telegram и без сессии-исполнителя — сперва вход по Telegram
+    if (!tgUser?.telegram_id && session?.role !== 'executor') {
+      return <LoginPage title="Вход для исполнителей" role="executor" onSuccess={() => window.location.reload()} />
+    }
     return <ExecutorSettingsPage />
   }
   if (clientMatch) {
