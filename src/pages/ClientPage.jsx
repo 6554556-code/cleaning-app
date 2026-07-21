@@ -384,7 +384,7 @@ useEffect(() => {
           <a href={`?client=${myUserId}`}
             style={{ fontSize: '12px', color: 'white', background: '#2481cc', textDecoration: 'none', padding: '5px 8px', borderRadius: '8px', whiteSpace: 'nowrap' }}
           >
-            👤 Кабинет
+           👤 Я клиент
           </a>
         ) : (!getTelegramUser()?.telegram_id && (
           <a href="?client=0"
