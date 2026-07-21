@@ -375,10 +375,10 @@ useEffect(() => {
         >
           🗺 Карта
         </a>
-        <a href={myExecutorId ? '?executor=1' : '?register=executor'}
+        <a href="?executor=1"
           style={{ fontSize: '12px', color: '#2481cc', textDecoration: 'none', padding: '5px 8px', borderRadius: '8px', border: '1px solid #e0e0e0', whiteSpace: 'nowrap', flex: 1, textAlign: 'center' }}
         >
-          {myExecutorId ? '👷 Кабинет исполнителя' : '👷 Стать исполнителем'}
+          👷 Я исполнитель
         </a>
         {myUserId ? (
           <a href={`?client=${myUserId}`}

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../supabase'
 import { getTelegramUser } from '../telegram'
-import { getSession } from '../session'
+import { getSession, clearSession } from '../session'
 import AddOrderPage from './AddOrderPage'
 import MiniCalendar from '../components/MiniCalendar'
 import { loadReviewsByExecutors, calculateStats } from '../reviewsUtils'
@@ -1267,6 +1267,14 @@ function ExecutorPage({ executorId }) {
           <a href="/?settings=1" style={{ fontSize: '14px', color: '#2481cc', textDecoration: 'none' }}>
             ⚙️ Настройки
           </a>
+          {getSession()?.id && (
+            <button
+              onClick={() => { clearSession(); window.location.href = '/' }}
+              style={{ background: 'none', border: 'none', fontSize: '14px', color: '#C0341D', cursor: 'pointer', padding: 0 }}
+            >
+              Выйти
+            </button>
+          )}
         </div>
       </div>
 
