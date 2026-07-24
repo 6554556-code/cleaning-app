@@ -21,6 +21,12 @@ export function getTelegramUser() {
     username: user.username || ''
   }
 }
+// true, если приложение открыто НЕ в Telegram (обычный браузер / веб).
+// Используется, чтобы показать веб-вёрстку (ClientPageWeb), не трогая мини-апп.
+export function isWeb() {
+  return !window.Telegram?.WebApp?.initDataUnsafe?.user
+}
+
 // Синхронизирует username Telegram с базой данных.
 // Вызывается один раз при старте приложения, если юзер открыл его в Telegram.
 import { supabase } from './supabase'
