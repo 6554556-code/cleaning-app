@@ -1,11 +1,12 @@
 import { useState, useEffect, useRef } from 'react'
 import { supabase } from '../supabase'
-import { getTelegramUser } from '../telegram'
+import { getTelegramUser, isWeb } from '../telegram'
 import { getSession, saveSession } from '../session'
 import LoginPage from './LoginPage'
 import { generateSlots } from '../utils/slotGenerator'
 import Avatar from '../components/Avatar'
 import MiniCalendar from '../components/MiniCalendar'
+import BookingPageWeb from './BookingPageWeb'
 import { MapContainer, TileLayer, Marker } from 'react-leaflet'
 import 'leaflet/dist/leaflet.css'
 import L from 'leaflet'
@@ -110,41 +111,48 @@ useEffect(() => {
   }
   loadSlots()
 }, [executor.id, selectedService, selectedExtras, locationType])
-// Генерируем слоты для даты, выбранной в календарике
-async function loadPickedDateSlots(dateStr) {
-  if (!dateStr) {
-    setPickedSlots([])
-    return
+// Слоты выбранной в календаре даты пересобираем на тех же условиях, что
+// «сегодня» и «завтра»: сменилась услуга, допы или тип визита — сменилась
+// длительность, а значит и сетка свободного времени.
+useEffect(() => {
+  // Генерируем слоты для даты, выбранной в календарике
+  async function loadPickedDateSlots(dateStr) {
+    if (!dateStr) {
+      setPickedSlots([])
+      return
+    }
+    const { data: existingOrders } = await supabase
+      .from('orders')
+      .select('scheduled_at, total_duration, location_type')
+      .eq('executor_id', executor.id)
+      .neq('status', 'cancelled')
+      .neq('is_deleted', true)
+
+    const { data: existingBlocks } = await supabase
+      .from('blocks')
+      .select('start_at, duration')
+      .eq('executor_id', executor.id)
+
+    const newOrder = {
+      duration: calcDuration(),
+      locationType: locationType
+    }
+
+    const pickedDay = new Date(dateStr)
+    let gen = generateSlots(executor, existingOrders || [], pickedDay, newOrder, existingBlocks || [])
+
+    // Если выбран сегодняшний день — убираем прошедшие слоты
+    const now = new Date()
+    if (pickedDay.toDateString() === now.toDateString()) {
+      gen = gen.filter(s => new Date(s.start) > now)
+    }
+
+    setPickedSlots(gen)
   }
-  const { data: existingOrders } = await supabase
-    .from('orders')
-    .select('scheduled_at, total_duration, location_type')
-    .eq('executor_id', executor.id)
-    .neq('status', 'cancelled')
-    .neq('is_deleted', true)
+  loadPickedDateSlots(pickedDate)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+}, [pickedDate, selectedService, selectedExtras, locationType])
 
-  const { data: existingBlocks } = await supabase
-    .from('blocks')
-    .select('start_at, duration')
-    .eq('executor_id', executor.id)
-
-  const newOrder = {
-    duration: calcDuration(),
-    locationType: locationType
-  }
-
-  const pickedDay = new Date(dateStr)
-  let gen = generateSlots(executor, existingOrders || [], pickedDay, newOrder, existingBlocks || [])
-
-  // Если выбран сегодняшний день — убираем прошедшие слоты
-  const now = new Date()
-  if (pickedDay.toDateString() === now.toDateString()) {
-    gen = gen.filter(s => new Date(s.start) > now)
-  }
-
-  setPickedSlots(gen)
-  setShowAllPicked(false)
-}
 function toggleExtra(extra) {
   if (selectedService?.id !== extra.parent_service_id) {
     const parent = services.find(s => s.id === extra.parent_service_id)
@@ -178,6 +186,15 @@ function toggleExtra(extra) {
   async function handleSubmit() {
     if (!selectedSlot) {
       alert('Пожалуйста выберите время визита')
+      return
+    }
+    // Слот мог «сгореть»: пока заполняли форму, выбрали услугу подлиннее — и
+    // время перестало помещаться в расписание. В плитках оно уже исчезло,
+    // но в стейте ещё лежит, поэтому проверяем перед отправкой.
+    const slotStillFree = fromSlot || [...todaySlots, ...tomorrowSlots, ...pickedSlots]
+      .some(s => new Date(s.start).getTime() === new Date(selectedSlot.start).getTime())
+    if (!slotStillFree) {
+      alert('Выбранное время больше недоступно — выберите другое')
       return
     }
     if (!name || !phone || !selectedService) {
@@ -366,6 +383,55 @@ function toggleExtra(extra) {
         title="Вход по телефону"
         onBack={() => setShowLogin(false)}
         onSuccess={() => { setShowLogin(false); handleSubmit() }}
+      />
+    )
+  }
+
+  // ── ВЕБ (открыто вне Telegram) — отдельная десктоп-вёрстка.
+  // Логика и состояние остаются здесь, ниже мобильная разметка мини-аппа — её не трогаем. ──
+  if (isWeb()) {
+    return (
+      <BookingPageWeb
+        executor={executor}
+        stats={stats}
+        reviews={reviews}
+        fromSlot={fromSlot}
+        onBack={onBack}
+        services={services}
+        selectedService={selectedService}
+        onServiceSelect={handleServiceSelect}
+        selectedExtras={selectedExtras}
+        onToggleExtra={toggleExtra}
+        servicesExpanded={servicesExpanded}
+        setServicesExpanded={setServicesExpanded}
+        locationType={locationType}
+        setLocationType={setLocationType}
+        selectedSlot={selectedSlot}
+        setSelectedSlot={setSelectedSlot}
+        todaySlots={todaySlots}
+        tomorrowSlots={tomorrowSlots}
+        showAllToday={showAllToday}
+        setShowAllToday={setShowAllToday}
+        showAllTomorrow={showAllTomorrow}
+        setShowAllTomorrow={setShowAllTomorrow}
+        pickedDate={pickedDate}
+        pickedSlots={pickedSlots}
+        showAllPicked={showAllPicked}
+        setShowAllPicked={setShowAllPicked}
+        onPickDate={(dateStr) => { setPickedDate(dateStr); setShowAllPicked(false) }}
+        name={name} setName={setName}
+        phone={phone} setPhone={setPhone}
+        address={address} setAddress={setAddress}
+        comment={comment} setComment={setComment}
+        showAllReviews={showAllReviews}
+        setShowAllReviews={setShowAllReviews}
+        loading={loading}
+        onSubmit={handleSubmit}
+        total={calcTotal()}
+        duration={calcDuration()}
+        formatSlot={formatSlot}
+        mapRef={mapRef}
+        mapBoxRef={mapBoxRef}
       />
     )
   }
@@ -574,7 +640,7 @@ function toggleExtra(extra) {
             minDate={new Date().toISOString().split('T')[0]}
             onChange={(dateStr) => {
               setPickedDate(dateStr)
-              loadPickedDateSlots(dateStr)
+              setShowAllPicked(false)
             }}
           />
 
