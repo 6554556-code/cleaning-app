@@ -20,6 +20,9 @@ const CARD = {
 }
 const H = { fontSize: 19, fontWeight: 800, margin: '0 0 16px', color: INK }
 const LABEL = { margin: '0 0 6px', fontSize: 13, fontWeight: 700, color: '#5E5E5E' }
+// Ссылки на правовые документы под кнопкой отправки. Открываются в новой
+// вкладке — иначе заполненная форма потеряется.
+const LEGAL_LINK = { color: Y_DARK, textDecoration: 'underline', textUnderlineOffset: 2 }
 const INPUT = {
   width: '100%', padding: '12px 14px', borderRadius: 12, border: '1px solid #E7E3DA',
   fontSize: 15, boxSizing: 'border-box', background: '#fff', color: INK, outline: 'none',
@@ -433,7 +436,12 @@ export default function BookingPageWeb({
               </button>
 
               <p style={{ margin: '12px 0 0', fontSize: 12, color: MUTED, lineHeight: 1.5 }}>
-                Нажимая кнопку, вы соглашаетесь с условиями оферты и политикой конфиденциальности.
+                Нажимая кнопку, вы принимаете{' '}
+                <a href="/terms" target="_blank" rel="noopener noreferrer" style={LEGAL_LINK}>пользовательское соглашение</a>
+                {' '}и даёте{' '}
+                <a href="/consent" target="_blank" rel="noopener noreferrer" style={LEGAL_LINK}>согласие на обработку персональных данных</a>
+                {' '}на условиях{' '}
+                <a href="/privacy" target="_blank" rel="noopener noreferrer" style={LEGAL_LINK}>политики конфиденциальности</a>.
               </p>
             </div>
           </aside>

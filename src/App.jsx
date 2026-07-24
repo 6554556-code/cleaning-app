@@ -9,6 +9,8 @@ import { initTelegram, getTelegramUser, syncTelegramUsername } from './telegram'
 import { supabase } from './supabase'
 import { getSession } from './session'
 import LoginPage from './pages/LoginPage'
+import LegalPage from './pages/LegalPage'
+import { LEGAL_ROUTES } from './legalDocs'
 
 function App() {
   // 'checking' пока ждём ответа БД, 'blocked' если в blocked_users, 'ok' во всех остальных случаях
@@ -62,6 +64,13 @@ function App() {
         setBlockStatus(data ? 'blocked' : 'ok')
       })
   }, [])
+
+  // Правовые документы — единственные страницы с адресом в пути, а не в query.
+  // Отдаём их сразу: они публичные, не зависят от Telegram и проверки блокировок.
+  const legalKey = LEGAL_ROUTES[window.location.pathname.replace(/\/+$/, '')]
+  if (legalKey) {
+    return <LegalPage docKey={legalKey} />
+  }
 
   // Пока идёт проверка — не рендерим ничего (мгновение)
   if (blockStatus === 'checking') {

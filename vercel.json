@@ -1,8 +1,12 @@
 {
-    "rewrites": [
-      {
-        "source": "/supabase/:path*",
-        "destination": "https://cdoxkdzajtdsehrhjfjp.supabase.co/:path*"
-      }
-    ]
-  }
+  "rewrites": [
+    {
+      "source": "/supabase/:path*",
+      "destination": "https://cdoxkdzajtdsehrhjfjp.supabase.co/:path*"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
+  ]
+}

@@ -30,7 +30,7 @@ function RegisterExecutorPage() {
 
   const [saving, setSaving] = useState(false)
   const [agreedToTerms, setAgreedToTerms] = useState(false)
-  const [legalModal, setLegalModal] = useState(null) // 'consent' | 'terms' | 'privacy' | null
+  const [legalModal, setLegalModal] = useState(null) // 'consent' | 'terms' | 'privacy' | 'offer' | null
 
   const dayLabels = [
     { num: 1, label: 'Пн' },
@@ -472,12 +472,19 @@ const subway = await getSubwayFromCoords(Number(latitude), Number(longitude));
           >
             условиями использования
           </span>
-          {' '}и{' '}
+          ,{' '}
           <span
             onClick={(e) => { e.stopPropagation(); setLegalModal('privacy') }}
             style={{ color: '#2481cc', textDecoration: 'underline' }}
           >
             политикой конфиденциальности
+          </span>
+          {' '}и{' '}
+          <span
+            onClick={(e) => { e.stopPropagation(); setLegalModal('offer') }}
+            style={{ color: '#2481cc', textDecoration: 'underline' }}
+          >
+            публичной офертой
           </span>
           .
         </div>
