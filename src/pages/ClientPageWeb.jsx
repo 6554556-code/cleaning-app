@@ -1,11 +1,12 @@
 import { useState, useMemo, useRef } from 'react'
-import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet'
+import { MapContainer, TileLayer, Marker, Popup, useMap, useMapEvents } from 'react-leaflet'
 import 'leaflet/dist/leaflet.css'
 import L from 'leaflet'
 import { useEffect } from 'react'
 import Avatar from '../components/Avatar'
 import ExecutorCard from '../components/ExecutorCard'
-import { BrandMark, WebFooter } from '../components/WebShell'
+import { BrandMark, WebFooter, WebBaseStyles } from '../components/WebShell'
+import useIsMobile from '../hooks/useIsMobile'
 import { Y, YP } from '../webTheme'
 
 const MOSCOW_CENTER = [55.7558, 37.6173]
@@ -30,6 +31,26 @@ const BANNERS = [
 // Пин с иконкой категории (белый кружок + «хвостик»).
 // Иконка берётся из professions.icon; когда будут свои картинки —
 // достаточно подменить содержимое .eb-pin-head на <img src=...>.
+// Стили жёлтого пина — общие для десктопной и мобильной раскладки
+const PIN_CSS = `
+  .eb-pin-head{width:40px;height:40px;background:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:19px;line-height:1;color:${Y};box-shadow:0 4px 10px rgba(30,25,10,.28);position:relative}
+  .eb-pin-head img{width:22px;height:22px;object-fit:contain}
+  .eb-pin-head::after{content:"";position:absolute;bottom:-6px;left:50%;transform:translateX(-50%) rotate(45deg);width:14px;height:14px;background:#fff;border-radius:0 0 3px 0}
+`
+
+// Компактные кнопки ролей в мобильной шапке
+const ROLE_M = {
+  display: 'flex', alignItems: 'center', gap: 5, padding: '0 11px', height: 38,
+  borderRadius: 11, fontSize: 13, fontWeight: 700, background: '#F4F2ED',
+  color: '#3E3E3E', textDecoration: 'none', whiteSpace: 'nowrap',
+}
+
+// Тап по пустому месту карты — закрыть нижнюю карточку
+function MapTapCatcher({ onTap }) {
+  useMapEvents({ click: onTap })
+  return null
+}
+
 const pinCache = new Map()
 function pinIcon(glyph) {
   const key = glyph || 'e'
@@ -78,11 +99,11 @@ function minPrice(services) {
 }
 
 // Небольшая карточка исполнителя для карусели «Свободны сегодня и завтра»
-function MiniCard({ ex, prof, stats, onBook }) {
+function MiniCard({ ex, prof, stats, onBook, width = 340 }) {
   const price = minPrice(ex.services)
   return (
     <div style={{
-      position: 'relative', flex: '0 0 340px', background: '#fff', border: '1px solid #F0EDE6',
+      position: 'relative', flex: `0 0 ${width}px`, background: '#fff', border: '1px solid #F0EDE6',
       borderRadius: 16, boxShadow: '0 1px 2px rgba(30,25,10,.05)', overflow: 'hidden',
       display: 'flex', gap: 14, padding: 16, alignItems: 'flex-start',
     }}>
@@ -198,6 +219,185 @@ export default function ClientPageWeb({
   })
 
   const isListMode = view === 'list'
+  const isMobile = useIsMobile()
+
+  // Тап по пину на телефоне открывает нижнюю карточку (шторку).
+  // Скроллить к карточке в списке нельзя: при подгрузке порциями нужного
+  // исполнителя в отрисованном списке может просто не оказаться.
+  const [sheetId, setSheetId] = useState(null)
+  const sheetEx = useMemo(() => visibleExecutors.find(e => e.id === sheetId) || null, [visibleExecutors, sheetId])
+
+
+  // ─────────────────────────────────────────────────────────────
+  //  МОБИЛЬНАЯ РАСКЛАДКА ВЕБА
+  //  Тот же код и те же данные, другая подача: одна колонка,
+  //  низкая карта, категории чипами, карточки на всю ширину.
+  //  В Telegram сюда не попадаем — там работает мини-апп.
+  // ─────────────────────────────────────────────────────────────
+  if (isMobile) {
+    return (
+      <div className="eb-web eb-m" style={{ background: '#FBFAF7', minHeight: '100vh', color: '#1A1A1A', colorScheme: 'light', textAlign: 'left' }}>
+        <WebBaseStyles />
+        <style>{`
+          body{overflow-x:hidden}
+          ${PIN_CSS}
+          .eb-m-chip{display:inline-flex;align-items:center;gap:7px;padding:10px 13px;border-radius:14px;font-size:14px;font-weight:600;border:1px solid #EDEAE2;background:#fff;color:#1A1A1A;cursor:pointer;line-height:1.1}
+          .eb-m-chip[data-on="1"]{background:${Y};border-color:${Y}}
+          .eb-m-track{display:flex;gap:12px;overflow-x:auto;scroll-snap-type:x mandatory;padding:2px 12px 12px;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+          .eb-m-track::-webkit-scrollbar{display:none}
+          .eb-m-track > *{scroll-snap-align:start}
+          .eb-m input,.eb-m select{font-size:16px}
+          .leaflet-container{border-radius:14px}
+          .eb-m-sheet{animation:eb-up .18s ease-out}
+          @keyframes eb-up{from{transform:translateY(100%)}to{transform:translateY(0)}}
+        `}</style>
+
+        {/* ─── ШАПКА ─── */}
+        <header style={{ position: 'sticky', top: 0, zIndex: 1000, background: '#fff', borderBottom: '1px solid #ECECEC' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 12px' }}>
+            <a href="/" style={{ display: 'flex', alignItems: 'center', gap: 7, textDecoration: 'none', color: '#1A1A1A', flex: 'none' }}>
+              <BrandMark size={30} />
+              <span style={{ fontSize: 18, fontWeight: 800, letterSpacing: '-.02em' }}>ebookee</span>
+            </a>
+            <div style={{ flex: 1 }} />
+            <a href="?executor=1" style={ROLE_M}>👷 Исполнитель</a>
+            <a href={myUserId ? `?client=${myUserId}` : '?client=0'} style={{ ...ROLE_M, background: '#1A1A1A', color: '#fff' }}>🧑 Клиент</a>
+          </div>
+        </header>
+
+        <div style={{ padding: '12px 12px 0' }}>
+          {/* ─── КАРТА ─── */}
+          <div style={{ position: 'relative', zIndex: 0, isolation: 'isolate', height: 170, borderRadius: 14, overflow: 'hidden', border: '1px solid #E6E1D6' }}>
+            <MapContainer center={MOSCOW_CENTER} zoom={11} style={{ height: '100%' }} attributionControl={false}>
+              <AttributionNoFlag />
+              <MapFocus points={points} pointsKey={pointsKey} />
+              <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+              <MapTapCatcher onTap={() => setSheetId(null)} />
+              {withCoords.map(ex => (
+                <Marker key={ex.id} position={[ex.latitude, ex.longitude]} icon={pinIcon(profOf(ex)?.icon)}
+                  eventHandlers={{ click: () => setSheetId(ex.id) }} />
+              ))}
+            </MapContainer>
+          </div>
+
+          {/* ─── ПОИСК + ГОРОД ─── */}
+          <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
+            <div style={{ flex: 1, minWidth: 0, display: 'flex', alignItems: 'center', gap: 9, background: '#fff', border: '1px solid #EDEAE2', borderRadius: 13, padding: '0 13px', height: 46 }}>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" style={{ flex: 'none', opacity: .5 }}><circle cx="11" cy="11" r="7" stroke="#8C8C8C" strokeWidth="2"/><path d="m20 20-3.2-3.2" stroke="#8C8C8C" strokeWidth="2" strokeLinecap="round"/></svg>
+              <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Поиск…"
+                style={{ flex: 1, minWidth: 0, border: 'none', outline: 'none', background: 'transparent', color: '#1A1A1A' }} />
+            </div>
+            {cities.length > 0 && (
+              <select value={selectedCity} onChange={e => { setSelectedCity(e.target.value); localStorage.setItem('selectedCity', e.target.value) }}
+                style={{ flex: 'none', maxWidth: 150, height: 46, borderRadius: 13, border: '1px solid #E7E3DA', background: '#fff', padding: '0 10px', color: '#2E2E2E', fontWeight: 600 }}>
+                <option value="all">Все города</option>
+                {cities.map(c => <option key={c} value={c}>{c}</option>)}
+              </select>
+            )}
+          </div>
+
+          {/* ─── КАТЕГОРИИ ─── */}
+          <h2 style={{ fontSize: 21, fontWeight: 800, textAlign: 'center', margin: '22px 0 14px' }}>Выберите услугу</h2>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, justifyContent: 'center' }}>
+            <button className="eb-m-chip" data-on={selectedService === 'all' ? '1' : '0'} onClick={() => setSelectedService('all')}>
+              <span style={{ fontSize: 17 }}>✨</span>Все
+            </button>
+            {professions.map(p => (
+              <button key={p.code} className="eb-m-chip" data-on={selectedService === p.code ? '1' : '0'} onClick={() => setSelectedService(p.code)}>
+                <span style={{ fontSize: 17 }}>{p.icon}</span>{p.name}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* ─── СВОБОДНЫ СЕГОДНЯ И ЗАВТРА ─── */}
+        {!loading && freeSoon.length > 0 && (
+          <section style={{ marginTop: 24 }}>
+            <h3 style={{ fontSize: 18, fontWeight: 800, margin: '0 12px 12px' }}>Свободны сегодня и завтра</h3>
+            <div className="eb-m-track">
+              {freeSoon.map(ex => (
+                <MiniCard key={ex.id} ex={ex} prof={profOf(ex)} stats={reviewStats[ex.id]} width={288} onBook={() => onBook(ex)} />
+              ))}
+            </div>
+          </section>
+        )}
+
+        {/* ─── СПИСОК ИСПОЛНИТЕЛЕЙ ─── */}
+        <section style={{ padding: '8px 12px 0' }}>
+          <h3 style={{ fontSize: 18, fontWeight: 800, margin: '0 0 12px' }}>
+            Специалисты {!loading && visibleExecutors.length > 0 && <span style={{ color: '#8C8C8C' }}>{visibleExecutors.length}</span>}
+          </h3>
+          {loading ? (
+            <p style={{ color: '#888' }}>Загружаем исполнителей…</p>
+          ) : visibleExecutors.length === 0 ? (
+            <p style={{ color: '#888' }}>Исполнители не найдены</p>
+          ) : (
+            visibleExecutors.map(ex => <ExecutorCard key={ex.id} {...cardProps(ex)} />)
+          )}
+        </section>
+
+        <WebFooter />
+
+        {/* ─── НИЖНЯЯ КАРТОЧКА ПО ТАПУ НА ПИН ─── */}
+        {sheetEx && (
+          <>
+            <div onClick={() => setSheetId(null)}
+              style={{ position: 'fixed', inset: 0, background: 'rgba(20,17,10,.28)', zIndex: 1190 }} />
+            <div className="eb-m-sheet" style={{
+              position: 'fixed', left: 0, right: 0, bottom: 0, zIndex: 1200, background: '#fff',
+              borderRadius: '20px 20px 0 0', boxShadow: '0 -8px 30px rgba(30,25,10,.25)',
+              padding: '10px 16px calc(16px + env(safe-area-inset-bottom))',
+            }}>
+              <div style={{ width: 40, height: 4, borderRadius: 4, background: '#E4E0D6', margin: '0 auto 14px' }} />
+
+              <div style={{ display: 'flex', gap: 14, alignItems: 'flex-start' }}>
+                <Avatar url={sheetEx.avatar_url} name={sheetEx.users?.full_name} size={58} />
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <span style={{ fontSize: 17, fontWeight: 800, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {sheetEx.users?.full_name || 'Исполнитель'}
+                    </span>
+                    {sheetEx.is_verified && <span style={{ flex: 'none' }}>✅</span>}
+                  </div>
+                  <div style={{ marginTop: 4, display: 'flex', alignItems: 'center', gap: 9, flexWrap: 'wrap', fontSize: 13 }}>
+                    {reviewStats[sheetEx.id]?.count > 0 ? (
+                      <>
+                        <span style={{ color: Y, fontWeight: 800 }}>★ {reviewStats[sheetEx.id].avgRating}</span>
+                        <span style={{ color: '#8C8C8C' }}>{reviewStats[sheetEx.id].count} отз.</span>
+                      </>
+                    ) : (
+                      <span style={{ color: '#8C8C8C' }}>Новый исполнитель</span>
+                    )}
+                    <span style={{ color: '#8C8C8C' }}>{profOf(sheetEx)?.name}</span>
+                  </div>
+                  {(sheetEx.subway_station || sheetEx.city) && (
+                    <div style={{ marginTop: 3, fontSize: 13, color: '#8C8C8C', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {sheetEx.subway_station ? `🚇 ${sheetEx.subway_station}` : `📍 ${sheetEx.city}`}
+                    </div>
+                  )}
+                </div>
+                <button onClick={() => setSheetId(null)} aria-label="Закрыть"
+                  style={{ flex: 'none', width: 30, height: 30, borderRadius: 15, border: 'none', background: '#F4F2ED', color: '#6B6B6B', fontSize: 16, cursor: 'pointer', lineHeight: 1 }}>×</button>
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 14 }}>
+                {minPrice(sheetEx.services) != null && (
+                  <div style={{ flex: 'none' }}>
+                    <div style={{ fontSize: 12, color: '#8C8C8C', lineHeight: 1.2 }}>Услуги</div>
+                    <div style={{ fontSize: 18, fontWeight: 800, whiteSpace: 'nowrap' }}>от {minPrice(sheetEx.services)} ₽</div>
+                  </div>
+                )}
+                <button onClick={() => { setSheetId(null); onBook(sheetEx) }} className="eb-book"
+                  style={{ flex: 1, height: 48, borderRadius: 13, border: 'none', background: Y, color: '#1A1A1A', fontSize: 16, fontWeight: 800, cursor: 'pointer' }}>
+                  Записаться
+                </button>
+              </div>
+            </div>
+          </>
+        )}
+      </div>
+    )
+  }
 
   return (
     <div className="eb-web" style={{ background: '#FBFAF7', minHeight: '100vh', color: '#1A1A1A', colorScheme: 'light', textAlign: 'left' }}>
@@ -207,9 +407,7 @@ export default function ClientPageWeb({
         #root{max-width:none !important;width:100% !important;margin:0 !important;padding:0 !important;text-align:left !important;word-break:normal !important;font-size:15px}
         body{overflow-x:auto}
         .eb-web *{overflow-wrap:normal;word-break:normal}
-        .eb-pin-head{width:40px;height:40px;background:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:19px;line-height:1;color:${Y};box-shadow:0 4px 10px rgba(30,25,10,.28);position:relative}
-        .eb-pin-head img{width:22px;height:22px;object-fit:contain}
-        .eb-pin-head::after{content:"";position:absolute;bottom:-6px;left:50%;transform:translateX(-50%) rotate(45deg);width:14px;height:14px;background:#fff;border-radius:0 0 3px 0}
+        ${PIN_CSS}
         .eb-cat:hover{background:#F4F2ED}
         .eb-role:hover{background:#EEEBE4 !important}
         .eb-chip:hover{transform:translateY(-1px)}

@@ -9,11 +9,16 @@ export default defineConfig({
     VitePWA({
       registerType: 'autoUpdate',
       manifest: {
-        name: 'Ebookee',
+        name: 'Ebookee — бытовые услуги рядом',
         short_name: 'Ebookee',
-        description: 'Сервис для исполнителей услуг и их клиентов',
-        theme_color: '#2481cc',
-        background_color: '#ffffff',
+        description: 'Клининг, красота, массаж, няни, мастер на час — найти исполнителя и записаться',
+        lang: 'ru',
+        start_url: '/',
+        scope: '/',
+        // Жёлтый — цвет веб-версии: именно её видит установленное приложение.
+        // Синий #2481cc остаётся только внутри мини-аппа в Telegram.
+        theme_color: '#FDB813',
+        background_color: '#FBFAF7',
         display: 'standalone',
         icons: [
           { src: '/icon-192.png', sizes: '192x192', type: 'image/png' },

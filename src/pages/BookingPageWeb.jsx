@@ -133,11 +133,20 @@ export default function BookingPageWeb({
           .ebb-layout{grid-template-columns:1fr !important}
           .ebb-summary{position:static !important}
         }
+        @media(max-width:640px){
+          body{overflow-x:hidden}
+          .ebb-wrap{padding:14px 12px 28px !important}
+          .ebb-head{padding:10px 12px !important}
+          .ebb-title{font-size:24px !important;margin-bottom:16px !important}
+          .ebb-card{padding:16px !important}
+          .ebb-master{flex-wrap:wrap}
+          input,textarea,select{font-size:16px}
+        }
       `}</style>
 
       {/* ─── ШАПКА ─── */}
       <header style={{ position: 'sticky', top: 0, zIndex: 1000, background: '#fff', borderBottom: `1px solid ${LINE}` }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '12px 24px', maxWidth: 1240, margin: '0 auto' }}>
+        <div className="ebb-head" style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '12px 24px', maxWidth: 1240, margin: '0 auto' }}>
           <a href="/" style={{ display: 'flex', alignItems: 'center', gap: 11, textDecoration: 'none', color: INK, flex: 'none' }}>
             <BrandMark size={40} />
             <span style={{ fontSize: 24, fontWeight: 800, letterSpacing: '-.02em' }}>ebookee</span>
@@ -150,12 +159,12 @@ export default function BookingPageWeb({
         </div>
       </header>
 
-      <div style={{ maxWidth: 1240, margin: '0 auto', padding: '20px 24px 40px' }}>
+      <div className="ebb-wrap" style={{ maxWidth: 1240, margin: '0 auto', padding: '20px 24px 40px' }}>
         <button onClick={onBack} className="ebb-link"
           style={{ background: 'none', border: 'none', fontSize: 15, fontWeight: 600, color: Y_DARK, cursor: 'pointer', padding: 0, marginBottom: 12 }}>
           ← Назад к списку
         </button>
-        <h1 style={{ fontSize: 30, fontWeight: 800, margin: '0 0 22px', letterSpacing: '-.02em' }}>Оформление заявки</h1>
+        <h1 className="ebb-title" style={{ fontSize: 30, fontWeight: 800, margin: '0 0 22px', letterSpacing: '-.02em' }}>Оформление заявки</h1>
 
         <div className="ebb-layout" style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) 400px', gap: 24, alignItems: 'start' }}>
 
@@ -163,7 +172,7 @@ export default function BookingPageWeb({
           <div>
 
             {/* Мастер */}
-            <div style={{ ...CARD, display: 'flex', gap: 20, alignItems: 'flex-start' }}>
+            <div className="ebb-card ebb-master" style={{ ...CARD, display: 'flex', gap: 20, alignItems: 'flex-start' }}>
               <Avatar url={executor.avatar_url} name={executor.users?.full_name} size={96} />
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 7, flexWrap: 'wrap' }}>
@@ -360,7 +369,7 @@ export default function BookingPageWeb({
 
           {/* ─────────── ПРАВАЯ КОЛОНКА: заявка ─────────── */}
           <aside className="ebb-summary" style={{ position: 'sticky', top: 86 }}>
-            <div style={{ ...CARD, marginBottom: 0, padding: 24 }}>
+            <div className="ebb-card" style={{ ...CARD, marginBottom: 0, padding: 24 }}>
               <h3 style={{ ...H, marginBottom: 18 }}>Ваша заявка</h3>
 
               {/* Услуга и время */}
