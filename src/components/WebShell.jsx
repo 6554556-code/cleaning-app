@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { LOGO_SRC, FOOTER, Y, MUTED, LINE, LINE_2 } from '../webTheme'
+import { LOGO_SRC, FOOTER, Y, LINE, LINE_2 } from '../webTheme'
 
 // Общие блоки веб-версии: логотип, подвал, базовые стили.
 // Настройки (реквизиты, палитра, путь к логотипу) — в src/webTheme.js
@@ -25,57 +25,60 @@ export function BrandMark({ size = 40 }) {
 }
 
 // Подвал сайта. Данные — из FOOTER выше.
+// Компактный подвал. Две колонки (Документы / Контакты) со строками-ссылками,
+// под ними тонкий разделитель и строка с логотипом и реквизитами.
+// На узких экранах колонки сужаются, реквизиты уезжают под логотип — всё
+// управляется классами в WebBaseStyles, отдельной мобильной вёрстки не нужно.
 export function WebFooter() {
+  const linkRow = { display: 'flex', alignItems: 'center', color: '#2E2E2E', textDecoration: 'none', fontSize: 14, padding: '7px 0' }
+  const head = { fontSize: 15, fontWeight: 800, marginBottom: 6 }
   return (
     <footer style={{ borderTop: `1px solid ${LINE}`, background: '#fff', marginTop: 32 }}>
-      <div style={{ maxWidth: 1560, margin: '0 auto', padding: '32px 24px' }}>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 40, justifyContent: 'space-between' }}>
+      <div className="eb-foot" style={{ maxWidth: 1120, margin: '0 auto', padding: '28px 20px 22px' }}>
 
-          <div style={{ minWidth: 260, flex: '1 1 300px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
-              <BrandMark size={32} />
-              <span style={{ fontSize: 19, fontWeight: 800 }}>ebookee</span>
-            </div>
-            <div style={{ fontSize: 13, color: MUTED, lineHeight: 1.7 }}>
-              {FOOTER.company && <div>{FOOTER.company}</div>}
-              {FOOTER.inn && <div>ИНН {FOOTER.inn}</div>}
-              {FOOTER.ogrn && <div>ОГРНИП {FOOTER.ogrn}</div>}
-              {FOOTER.address && <div>{FOOTER.address}</div>}
-            </div>
-          </div>
-
-          <div style={{ minWidth: 200 }}>
-            <div style={{ fontSize: 15, fontWeight: 800, marginBottom: 12 }}>Контакты</div>
-            <div style={{ fontSize: 14, lineHeight: 2 }}>
-              {FOOTER.phone && FOOTER.phone.trim() && <div><a href={`tel:${FOOTER.phone.replace(/[^+\d]/g, '')}`} style={{ color: '#3E3E3E', textDecoration: 'none' }}>{FOOTER.phone}</a></div>}
-              {FOOTER.email && <div><a href={`mailto:${FOOTER.email}`} style={{ color: '#3E3E3E', textDecoration: 'none' }}>{FOOTER.email}</a></div>}
-              {FOOTER.socials?.map((sc, i) => (
-                <div key={i}><a href={sc.href} target="_blank" rel="noopener noreferrer" style={{ color: '#3E3E3E', textDecoration: 'none' }}>{sc.label}</a></div>
-              ))}
-            </div>
-          </div>
-
+        <div className="eb-foot-cols" style={{ display: 'flex', gap: 64 }}>
           {FOOTER.legal?.length > 0 && (
-            <div style={{ minWidth: 240 }}>
-              <div style={{ fontSize: 15, fontWeight: 800, marginBottom: 12 }}>Документы</div>
-              <div style={{ fontSize: 14, lineHeight: 2 }}>
-                {FOOTER.legal.map((l, i) => (
-                  <div key={i}><a href={l.href} style={{ color: '#3E3E3E', textDecoration: 'none' }}>{l.label}</a></div>
-                ))}
-              </div>
+            <div style={{ flex: '1 1 0', minWidth: 0 }}>
+              <div style={head}>Документы</div>
+              {FOOTER.legal.map((l, i) => (
+                <a key={i} href={l.href} className="eb-foot-link" style={{ ...linkRow, justifyContent: 'space-between' }}>
+                  <span>{l.label}</span>
+                  <span style={{ color: '#C9C4B8', flex: 'none', marginLeft: 12 }}>›</span>
+                </a>
+              ))}
             </div>
           )}
 
-          <div style={{ minWidth: 200 }}>
-            <div style={{ fontSize: 15, fontWeight: 800, marginBottom: 12 }}>Исполнителям</div>
-            <div style={{ fontSize: 14, lineHeight: 2 }}>
-              <div><a href="?executor=1" style={{ color: '#3E3E3E', textDecoration: 'none' }}>Стать исполнителем</a></div>
-            </div>
+          <div style={{ flex: '1 1 0', minWidth: 0 }}>
+            <div style={head}>Контакты</div>
+            {FOOTER.phone && FOOTER.phone.trim() && (
+              <a href={`tel:${FOOTER.phone.replace(/[^+\d]/g, '')}`} className="eb-foot-link" style={{ ...linkRow, gap: 10 }}>
+                <span style={{ flex: 'none', opacity: .55 }}>✆</span>{FOOTER.phone}
+              </a>
+            )}
+            {FOOTER.email && (
+              <a href={`mailto:${FOOTER.email}`} className="eb-foot-link" style={{ ...linkRow, gap: 10 }}>
+                <span style={{ flex: 'none', opacity: .55 }}>✉</span>{FOOTER.email}
+              </a>
+            )}
+            {FOOTER.socials?.map((sc, i) => (
+              <a key={i} href={sc.href} target="_blank" rel="noopener noreferrer" className="eb-foot-link" style={{ ...linkRow, gap: 10 }}>
+                <span style={{ flex: 'none', opacity: .55 }}>➤</span>{sc.label}
+              </a>
+            ))}
           </div>
         </div>
 
-        <div style={{ borderTop: `1px solid ${LINE_2}`, marginTop: 26, paddingTop: 18, fontSize: 13, color: '#A0A0A0' }}>
-          © {new Date().getFullYear()} TM ebookee. Сервис бронирования услуг. Онлайн расписание для исполнителей.
+        <div className="eb-foot-req" style={{ borderTop: `1px solid ${LINE_2}`, marginTop: 20, paddingTop: 18, display: 'flex', alignItems: 'center', gap: 18 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 9, flex: 'none' }}>
+            <BrandMark size={30} />
+            <span style={{ fontSize: 19, fontWeight: 800 }}>ebookee</span>
+          </div>
+          <div style={{ fontSize: 12, color: '#9A958C', lineHeight: 1.6 }}>
+            {[FOOTER.company, FOOTER.inn && `ИНН ${FOOTER.inn}`].filter(Boolean).join('  •  ')}
+            {(FOOTER.ogrn || FOOTER.address) && <br />}
+            {[FOOTER.ogrn && `ОГРНИП ${FOOTER.ogrn}`, FOOTER.address].filter(Boolean).join('  •  ')}
+          </div>
         </div>
       </div>
     </footer>
@@ -92,7 +95,13 @@ export function WebBaseStyles() {
       body{overflow-x:auto}
       .eb-web *{overflow-wrap:normal;word-break:normal}
       .eb-role:hover{background:#EEEBE4 !important}
+      .eb-foot-link:hover{color:#7A5A0A !important}
       .leaflet-container{border-radius:16px;font-family:inherit}
+      @media(max-width:640px){
+        .eb-foot{padding:22px 14px 18px !important}
+        .eb-foot-cols{gap:28px !important}
+        .eb-foot-req{flex-direction:column;align-items:flex-start !important;gap:12px !important}
+      }
     `}</style>
   )
 }

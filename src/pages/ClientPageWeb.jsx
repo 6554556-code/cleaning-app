@@ -1,8 +1,7 @@
-import { useState, useMemo, useRef } from 'react'
+import { useState, useMemo, useRef, useEffect } from 'react'
 import { MapContainer, TileLayer, Marker, Popup, useMap, useMapEvents } from 'react-leaflet'
 import 'leaflet/dist/leaflet.css'
 import L from 'leaflet'
-import { useEffect } from 'react'
 import Avatar from '../components/Avatar'
 import ExecutorCard from '../components/ExecutorCard'
 import { BrandMark, WebFooter, WebBaseStyles } from '../components/WebShell'
@@ -50,6 +49,7 @@ function MapTapCatcher({ onTap }) {
   useMapEvents({ click: onTap })
   return null
 }
+
 
 const pinCache = new Map()
 function pinIcon(glyph) {
@@ -225,6 +225,7 @@ export default function ClientPageWeb({
   // Скроллить к карточке в списке нельзя: при подгрузке порциями нужного
   // исполнителя в отрисованном списке может просто не оказаться.
   const [sheetId, setSheetId] = useState(null)
+  const [mapFull, setMapFull] = useState(false)  // мобильная карта во весь экран
   const sheetEx = useMemo(() => visibleExecutors.find(e => e.id === sheetId) || null, [visibleExecutors, sheetId])
 
 
@@ -241,8 +242,9 @@ export default function ClientPageWeb({
         <style>{`
           body{overflow-x:hidden}
           ${PIN_CSS}
-          .eb-m-chip{display:inline-flex;align-items:center;gap:7px;padding:10px 13px;border-radius:14px;font-size:14px;font-weight:600;border:1px solid #EDEAE2;background:#fff;color:#1A1A1A;cursor:pointer;line-height:1.1}
-          .eb-m-chip[data-on="1"]{background:${Y};border-color:${Y}}
+          .eb-m-chip{display:inline-flex;align-items:center;gap:5px;padding:7px 12px;border-radius:16px;font-size:13px;font-weight:600;border:none;background:#EFECE6;color:#1A1A1A;cursor:pointer;line-height:1.15}
+          .eb-m-chip .eb-m-ico{font-size:14px}
+          .eb-m-chip[data-on="1"]{background:${Y};color:#1A1A1A}
           .eb-m-track{display:flex;gap:12px;overflow-x:auto;scroll-snap-type:x mandatory;padding:2px 12px 12px;scrollbar-width:none;-webkit-overflow-scrolling:touch}
           .eb-m-track::-webkit-scrollbar{display:none}
           .eb-m-track > *{scroll-snap-align:start}
@@ -261,12 +263,14 @@ export default function ClientPageWeb({
             </a>
             <div style={{ flex: 1 }} />
             <a href="?executor=1" style={ROLE_M}>👷 Исполнитель</a>
-            <a href={myUserId ? `?client=${myUserId}` : '?client=0'} style={{ ...ROLE_M, background: '#1A1A1A', color: '#fff' }}>🧑 Клиент</a>
+            <a href={myUserId ? `?client=${myUserId}` : '?client=0'} style={{ ...ROLE_M, background: Y, color: '#1A1A1A' }}>🧑 Клиент</a>
           </div>
         </header>
 
         <div style={{ padding: '12px 12px 0' }}>
           {/* ─── КАРТА ─── */}
+          {/* Обычная карта 170px (как было). Кнопка «во весь экран» разворачивает
+              её в полноэкранный оверлей — там удобно двигать и зумить. */}
           <div style={{ position: 'relative', zIndex: 0, isolation: 'isolate', height: 170, borderRadius: 14, overflow: 'hidden', border: '1px solid #E6E1D6' }}>
             <MapContainer center={MOSCOW_CENTER} zoom={11} style={{ height: '100%' }} attributionControl={false}>
               <AttributionNoFlag />
@@ -278,6 +282,15 @@ export default function ClientPageWeb({
                   eventHandlers={{ click: () => setSheetId(ex.id) }} />
               ))}
             </MapContainer>
+
+            <button onClick={() => setMapFull(true)} aria-label="Открыть карту на весь экран"
+              style={{
+                position: 'absolute', right: 10, bottom: 10, zIndex: 500, height: 34, padding: '0 13px',
+                borderRadius: 17, border: 'none', background: '#fff', color: '#1A1A1A', fontSize: 13, fontWeight: 700,
+                boxShadow: '0 2px 8px rgba(30,25,10,.22)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6,
+              }}>
+              ⛶ На весь экран
+            </button>
           </div>
 
           {/* ─── ПОИСК + ГОРОД ─── */}
@@ -297,14 +310,14 @@ export default function ClientPageWeb({
           </div>
 
           {/* ─── КАТЕГОРИИ ─── */}
-          <h2 style={{ fontSize: 21, fontWeight: 800, textAlign: 'center', margin: '22px 0 14px' }}>Выберите услугу</h2>
+          <h2 style={{ fontSize: 20, fontWeight: 800, textAlign: 'center', margin: '20px 0 12px' }}>Выберите услугу</h2>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, justifyContent: 'center' }}>
             <button className="eb-m-chip" data-on={selectedService === 'all' ? '1' : '0'} onClick={() => setSelectedService('all')}>
-              <span style={{ fontSize: 17 }}>✨</span>Все
+              <span className="eb-m-ico">✨</span>Все
             </button>
             {professions.map(p => (
               <button key={p.code} className="eb-m-chip" data-on={selectedService === p.code ? '1' : '0'} onClick={() => setSelectedService(p.code)}>
-                <span style={{ fontSize: 17 }}>{p.icon}</span>{p.name}
+                <span className="eb-m-ico">{p.icon}</span>{p.name}
               </button>
             ))}
           </div>
@@ -335,6 +348,68 @@ export default function ClientPageWeb({
             visibleExecutors.map(ex => <ExecutorCard key={ex.id} {...cardProps(ex)} />)
           )}
         </section>
+
+        {/* ─── КАРТА ВО ВЕСЬ ЭКРАН ─── */}
+        {mapFull && (
+          <div style={{ position: 'fixed', inset: 0, zIndex: 2000, background: '#fff' }}>
+            <MapContainer center={MOSCOW_CENTER} zoom={11} style={{ height: '100%', width: '100%' }} attributionControl={false}>
+              <AttributionNoFlag />
+              <MapFocus points={points} pointsKey={pointsKey} />
+              <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+              <MapTapCatcher onTap={() => setSheetId(null)} />
+              {withCoords.map(ex => (
+                <Marker key={ex.id} position={[ex.latitude, ex.longitude]} icon={pinIcon(profOf(ex)?.icon)}
+                  eventHandlers={{ click: () => setSheetId(ex.id) }} />
+              ))}
+            </MapContainer>
+
+            <button onClick={() => setMapFull(false)} aria-label="Закрыть карту"
+              style={{
+                position: 'absolute', right: 14, top: 'calc(14px + env(safe-area-inset-top))', zIndex: 500,
+                height: 42, padding: '0 18px', borderRadius: 21, border: 'none', background: '#fff', color: '#1A1A1A',
+                fontSize: 15, fontWeight: 800, boxShadow: '0 3px 12px rgba(30,25,10,.28)', cursor: 'pointer',
+                display: 'flex', alignItems: 'center', gap: 7,
+              }}>
+              ✕ Закрыть
+            </button>
+
+            {/* Нижняя карточка по тапу на пин — работает и на полном экране */}
+            {sheetEx && (
+              <div style={{ position: 'absolute', left: 12, right: 12, bottom: 'calc(16px + env(safe-area-inset-bottom))', zIndex: 510 }}>
+                <div style={{ background: '#fff', borderRadius: 18, boxShadow: '0 8px 30px rgba(30,25,10,.3)', padding: '12px 14px' }}>
+                  <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+                    <Avatar url={sheetEx.avatar_url} name={sheetEx.users?.full_name} size={50} />
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <span style={{ fontSize: 16, fontWeight: 800, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{sheetEx.users?.full_name || 'Исполнитель'}</span>
+                        {sheetEx.is_verified && <span style={{ flex: 'none' }}>✅</span>}
+                      </div>
+                      <div style={{ marginTop: 3, display: 'flex', alignItems: 'center', gap: 8, fontSize: 13 }}>
+                        {reviewStats[sheetEx.id]?.count > 0 ? (
+                          <><span style={{ color: Y, fontWeight: 800 }}>★ {reviewStats[sheetEx.id].avgRating}</span>
+                          <span style={{ color: '#8C8C8C' }}>{reviewStats[sheetEx.id].count} отз.</span></>
+                        ) : <span style={{ color: '#8C8C8C' }}>Новый исполнитель</span>}
+                        <span style={{ color: '#8C8C8C' }}>{profOf(sheetEx)?.name}</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 12 }}>
+                    {minPrice(sheetEx.services) != null && (
+                      <div style={{ flex: 'none' }}>
+                        <div style={{ fontSize: 11, color: '#8C8C8C', lineHeight: 1.2 }}>Услуги</div>
+                        <div style={{ fontSize: 17, fontWeight: 800, whiteSpace: 'nowrap' }}>от {minPrice(sheetEx.services)} ₽</div>
+                      </div>
+                    )}
+                    <button onClick={() => { setMapFull(false); onBook(sheetEx) }} className="eb-book"
+                      style={{ flex: 1, height: 46, borderRadius: 13, border: 'none', background: Y, color: '#1A1A1A', fontSize: 15, fontWeight: 800, cursor: 'pointer' }}>
+                      Записаться
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
 
         <WebFooter />
 
