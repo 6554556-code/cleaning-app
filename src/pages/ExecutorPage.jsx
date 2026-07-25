@@ -1071,6 +1071,7 @@ function ExecutorPage({ executorId }) {
   const [orders, setOrders] = useState([])
   const [blocks, setBlocks] = useState([])
   const [executor, setExecutor] = useState(null)
+  const [notMyCabinet, setNotMyCabinet] = useState(false)  // зашли в ЛК, не будучи исполнителем
   const [loading, setLoading] = useState(true)
   const [ratingStats, setRatingStats] = useState(null)
   const [activeTab, setActiveTab] = useState('schedule')
@@ -1121,8 +1122,11 @@ function ExecutorPage({ executorId }) {
   }
   async function loadData() {
     
-    // Определяем, чей это кабинет
+    // Определяем, чей это кабинет.
+    // resolved = удалось ли найти ИМЕННО профиль этого пользователя.
+    // Если нет — НЕ показываем чужой ЛК (раньше сваливались на executorId=1 → Анна).
     let realExecutorId = executorId  // запасной вариант (тест через ?executor=1)
+    let resolved = false
 
     const tgUser = getTelegramUser()
     if (tgUser?.telegram_id) {
@@ -1142,21 +1146,34 @@ function ExecutorPage({ executorId }) {
           .eq('user_id', user.id)
           .maybeSingle()
 
-          if (myExec) realExecutorId = myExec.id
-        }
-      } else {
-        // Веб: свой кабинет по сессии-исполнителю (session.id = users.id),
-        // а не по числу из ?executor=… — иначе открывается чужой ЛК.
-        const session = getSession()
-        if (session?.id) {
-          const { data: myExec } = await supabase
-            .from('executors')
-            .select('id')
-            .eq('user_id', session.id)
-            .maybeSingle()
-          if (myExec) realExecutorId = myExec.id
+        if (myExec) {
+          realExecutorId = myExec.id
+          resolved = true
         }
       }
+    } else {
+      // Веб: свой кабинет по сессии-исполнителю (session.id = users.id),
+      // а не по числу из ?executor=… — иначе открывается чужой ЛК.
+      const session = getSession()
+      if (session?.id) {
+        const { data: myExec } = await supabase
+          .from('executors')
+          .select('id')
+          .eq('user_id', session.id)
+          .maybeSingle()
+        if (myExec) {
+          realExecutorId = myExec.id
+          resolved = true
+        }
+      }
+    }
+
+    // Свой профиль исполнителя не найден — показываем заглушку, а не чужой кабинет.
+    if (!resolved) {
+      setNotMyCabinet(true)
+      setLoading(false)
+      return
+    }
 
     // Эти 4 запроса не зависят друг от друга — гоним параллельно вместо цепочки await
     const [
@@ -1233,6 +1250,28 @@ function ExecutorPage({ executorId }) {
   }
 
   if (loading) return <p style={{ padding: '20px' }}>Загружаем данные...</p>
+
+  // Пользователь не зарегистрирован как исполнитель — не открываем чужой кабинет.
+  if (notMyCabinet) {
+    return (
+      <div style={{ padding: '32px 20px', maxWidth: '600px', margin: '0 auto', textAlign: 'center' }}>
+        <div style={{ fontSize: '40px', marginBottom: '12px' }}>👷</div>
+        <h2 style={{ margin: '0 0 8px', fontSize: '20px' }}>Вы ещё не исполнитель</h2>
+        <p style={{ margin: '0 0 24px', color: '#666', fontSize: '15px', lineHeight: 1.5 }}>
+          Этот раздел — личный кабинет исполнителя. Чтобы принимать заказы,
+          зарегистрируйте профиль.
+        </p>
+        <a href="/?register=executor"
+          style={{ display: 'inline-block', padding: '13px 26px', borderRadius: '12px', background: '#2481cc', color: '#fff', textDecoration: 'none', fontSize: '16px', fontWeight: 700 }}>
+          Стать исполнителем
+        </a>
+        <div style={{ marginTop: '16px' }}>
+          <a href="/" style={{ color: '#2481cc', textDecoration: 'none', fontSize: '14px' }}>← На главную</a>
+        </div>
+      </div>
+    )
+  }
+
   if (showAddOrder) {
     return (
       <AddOrderPage
