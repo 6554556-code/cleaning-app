@@ -233,7 +233,7 @@ function MiniCard({ ex, prof, stats, onBook, width = 340 }) {
     <div style={{
       position: 'relative', flex: `0 0 ${width}px`, background: '#fff', border: '1px solid #F0EDE6',
       borderRadius: 16, boxShadow: '0 1px 2px rgba(30,25,10,.05)', overflow: 'hidden',
-      display: 'flex', gap: 14, padding: 16, alignItems: 'flex-start',
+      display: 'flex', flexDirection: 'column', padding: 16,
     }}>
       {/* мягкий жёлтый узор в углу */}
       <svg width="150" height="120" viewBox="0 0 150 120" style={{ position: 'absolute', right: 0, bottom: 0, pointerEvents: 'none' }}>
@@ -241,36 +241,55 @@ function MiniCard({ ex, prof, stats, onBook, width = 340 }) {
         <path d="M62 120c14-30 44-24 62-52 10-16 12-30 12-38h14v90H62Z" fill="#FDB813" opacity=".10" />
       </svg>
 
-      <div style={{ flex: 'none', position: 'relative', zIndex: 1 }}>
-        <Avatar url={ex.avatar_url} name={ex.users?.full_name} size={76} />
+      {/* верхний ряд: аватар + инфо (профессия, рейтинг, город, метро) */}
+      <div style={{ display: 'flex', gap: 14, alignItems: 'flex-start', position: 'relative', zIndex: 1 }}>
+        <div style={{ flex: 'none' }}>
+          <Avatar url={ex.avatar_url} name={ex.users?.full_name} size={76} />
+        </div>
+
+        <div style={{ flex: 1, minWidth: 0 }}>
+          {/* профессия слева, рейтинг справа */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+            {prof ? (
+              <span style={{ display: 'inline-block', padding: '3px 10px', background: '#FBF0D2', color: '#7A5A0A', borderRadius: '12px', fontSize: '11px', whiteSpace: 'nowrap' }}>
+                {prof.icon} {prof.name}
+              </span>
+            ) : <span />}
+            <span style={{ whiteSpace: 'nowrap', flexShrink: 0, display: 'inline-flex', alignItems: 'baseline', gap: 4 }}>
+              {stats && stats.count > 0
+                ? <>
+                    <span style={{ color: '#f5a623', fontSize: '18px' }}>★</span>
+                    <span style={{ color: '#1A1A1A', fontWeight: 800, fontSize: '22px' }}>{stats.avgRating}</span>
+                    <span style={{ color: '#9A9A9A', fontSize: '13px' }}>({stats.count})</span>
+                  </>
+                : <span style={{ color: '#9A9A9A', fontSize: '13px' }}>Новый</span>}
+            </span>
+          </div>
+
+          {/* город и метро */}
+          {ex.city && <div style={{ fontSize: '13px', color: '#666', marginTop: 8 }}>📍 {ex.city}</div>}
+          {ex.subway_station && <div style={{ fontSize: '13px', color: '#666', marginTop: 3 }}>🚇 {ex.subway_station}</div>}
+        </div>
       </div>
 
-      <div style={{ flex: 1, minWidth: 0, position: 'relative', zIndex: 1 }}>
-        {prof && (
-          <span style={{ display: 'inline-block', padding: '3px 10px', background: '#FBF0D2', color: '#7A5A0A', borderRadius: '12px', fontSize: '11px', marginBottom: 8 }}>
-            {prof.icon} {prof.name}
-          </span>
-        )}
-        <h3 style={{ margin: 0, fontSize: '17px', display: 'flex', alignItems: 'center', gap: 4, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-          <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{ex.users?.full_name || 'Исполнитель'}</span>
-          {ex.is_verified && <span title="Проверенный исполнитель">✅</span>}
-        </h3>
-        {ex.city && <div style={{ fontSize: '13px', color: '#666', marginTop: 5 }}>📍 {ex.city}</div>}
-
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, margin: '10px 0 12px' }}>
-          <span style={{ whiteSpace: 'nowrap' }}>
-            {stats && stats.count > 0
-              ? <><span style={{ color: '#f5a623', fontWeight: 'bold', fontSize: '16px' }}>★ {stats.avgRating}</span> <span style={{ color: '#666', fontSize: '13px' }}>({stats.count})</span></>
-              : <span style={{ color: '#666', fontSize: '13px' }}>Новый</span>}
-          </span>
+      {/* низ на всю ширину карточки, прижат к нижнему краю (уровень совпадает у всех карточек) */}
+      <div style={{ marginTop: 'auto', position: 'relative', zIndex: 1 }}>
+        {/* имя (у левого края карточки) + цена (у правого) */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, margin: '14px 0 12px' }}>
+          <h3 style={{ margin: 0, fontSize: '18px', fontWeight: 700, color: '#1A1A1A', display: 'flex', alignItems: 'center', gap: 4, flex: 1, minWidth: 0 }}>
+            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{ex.users?.full_name || 'Исполнитель'}</span>
+            {ex.is_verified && <span title="Проверенный исполнитель">✅</span>}
+          </h3>
           {price != null && (
-            <span style={{ fontSize: '16px', fontWeight: 'bold', whiteSpace: 'nowrap' }}>
-              от {price} <span style={{ fontSize: '13px', color: '#666' }}>₽</span>
+            <span style={{ whiteSpace: 'nowrap', flexShrink: 0, display: 'inline-flex', alignItems: 'baseline', gap: 3 }}>
+              <span style={{ fontSize: '12px', color: '#8C8C8C', fontWeight: 500 }}>от</span>
+              <span style={{ fontSize: '20px', fontWeight: 800, color: '#1A1A1A' }}>{price.toLocaleString('ru-RU')}</span>
+              <span style={{ fontSize: '12px', color: '#8C8C8C', fontWeight: 500 }}>₽</span>
             </span>
           )}
         </div>
 
-        <button onClick={onBook} className="eb-book" style={{ width: '100%', padding: '11px', borderRadius: 11, background: Y, fontWeight: 'bold', fontSize: '16px', color: '#1A1A1A', border: 'none', cursor: 'pointer' }}>
+        <button onClick={onBook} className="eb-book" style={{ width: '100%', padding: '11px', borderRadius: 11, background: Y, fontWeight: 'bold', fontSize: '16px', color: '#1A1A1A', border: 'none', cursor: 'pointer', textAlign: 'center' }}>
           Записаться
         </button>
       </div>
