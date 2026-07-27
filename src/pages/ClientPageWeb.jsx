@@ -122,6 +122,24 @@ const VISIT_OPTS = [
   { v: 'incall', label: '🏠 Приём у себя' },
 ]
 
+// Компактный фильтр рейтинга: одна кнопка-звезда. Тап циклит порог:
+// любой → 4,5+ → 4,8+ → любой. Когда включён — лёгкая жёлтая подсветка.
+function RatingButton({ value, onChange, style }) {
+  const next = value === 0 ? 4.5 : value === 4.5 ? 4.8 : 0
+  const label = value === 0 ? '⭐' : `⭐ ${String(value).replace('.', ',')}+`
+  return (
+    <button onClick={() => onChange(next)} aria-label="Фильтр по рейтингу"
+      style={{
+        height: 46, borderRadius: 13, border: '1px solid #E7E3DA',
+        background: value ? '#FFF7E0' : '#fff', padding: '0 13px', fontSize: 14, fontWeight: 700,
+        color: '#1A1A1A', cursor: 'pointer', whiteSpace: 'nowrap', flex: 'none',
+        display: 'inline-flex', alignItems: 'center', ...style,
+      }}>
+      {label}
+    </button>
+  )
+}
+
 // Нативный <select> в стиле «пилюли». Стрелку оставляем браузерную —
 // как у селекта городов, чтобы вид был единый.
 function FilterSelect({ value, onChange, options, style }) {
@@ -465,14 +483,13 @@ export default function ClientPageWeb({
             )}
           </div>
 
-          {/* ─── ФИЛЬТРЫ: услуги + оценка + место ─── */}
+          {/* ─── ФИЛЬТРЫ: услуги + место + компактный рейтинг ─── */}
           <div style={{ display: 'flex', gap: 8, padding: '4px 12px 0' }}>
             <FilterSelect style={{ flex: 1, minWidth: 0 }} options={serviceOpts}
               value={selectedService} onChange={e => setSelectedService(e.target.value)} />
-            <FilterSelect style={{ flex: 1, minWidth: 0 }} options={RATING_OPTS}
-              value={String(minRating)} onChange={e => setMinRating(Number(e.target.value))} />
             <FilterSelect style={{ flex: 1, minWidth: 0 }} options={VISIT_OPTS}
               value={visitType} onChange={e => setVisitType(e.target.value)} />
+            <RatingButton value={minRating} onChange={setMinRating} />
           </div>
         </div>
 
@@ -521,10 +538,9 @@ export default function ClientPageWeb({
             <div style={{ position: 'absolute', top: 'calc(12px + env(safe-area-inset-top))', left: 0, right: 0, zIndex: 520, display: 'flex', gap: 8, paddingLeft: 54, paddingRight: 66 }}>
               <FilterSelect style={{ flex: 1, minWidth: 0 }} options={serviceOpts}
                 value={selectedService} onChange={e => setSelectedService(e.target.value)} />
-              <FilterSelect style={{ flex: 1, minWidth: 0 }} options={RATING_OPTS}
-                value={String(minRating)} onChange={e => setMinRating(Number(e.target.value))} />
               <FilterSelect style={{ flex: 1, minWidth: 0 }} options={VISIT_OPTS}
                 value={visitType} onChange={e => setVisitType(e.target.value)} />
+              <RatingButton value={minRating} onChange={setMinRating} />
             </div>
 
             <button onClick={() => setMapFull(false)} aria-label="Закрыть карту"
