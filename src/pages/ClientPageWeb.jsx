@@ -108,44 +108,31 @@ function visitCaps(services) {
   }
 }
 
-// ─── ФИЛЬТРЫ КАРТЫ (рейтинг + тип визита) ───────────────────────
-// Один список вариантов на все места (мобилка / десктоп / полный экран).
+// ─── ФИЛЬТРЫ (нативные выпадашки) ───────────────────────────────
+// Варианты для «оценки» и «места». Значения — строки (нативный <select>
+// отдаёт строку); рейтинг приводим к числу при чтении.
 const RATING_OPTS = [
-  { v: 0, label: 'Любой рейтинг' },
-  { v: 4.5, label: '★ 4,5+' },
-  { v: 4.8, label: '★ 4,8+' },
+  { v: '0', label: '⭐ Любая оценка' },
+  { v: '4.5', label: '⭐ 4,5+' },
+  { v: '4.8', label: '⭐ 4,8+' },
 ]
 const VISIT_OPTS = [
-  { v: 'any', label: 'Везде' },
+  { v: 'any', label: '🚗🏠 Везде' },
   { v: 'outcall', label: '🚗 Выезд' },
   { v: 'incall', label: '🏠 Приём у себя' },
 ]
 
-// Одна «таблетка» фильтра. Инлайн-стили, чтобы работать в любой ветке без
-// зависимости от локального <style>.
-function FilterChip({ on, onClick, children }) {
+// Нативный <select> в стиле «пилюли». Стрелку оставляем браузерную —
+// как у селекта городов, чтобы вид был единый.
+function FilterSelect({ value, onChange, options, style }) {
   return (
-    <button onClick={onClick} style={{
-      display: 'inline-flex', alignItems: 'center', gap: 5, padding: '7px 13px', height: 34,
-      borderRadius: 17, fontSize: 13, fontWeight: 700, lineHeight: 1, whiteSpace: 'nowrap',
-      border: on ? `1.5px solid ${Y}` : '1.5px solid #E7E3DA',
-      background: on ? Y : '#fff', color: '#1A1A1A', cursor: 'pointer', flex: 'none',
-    }}>{children}</button>
-  )
-}
-
-// Ряд фильтров: сначала рейтинг, потом тип визита (через тонкий разделитель).
-function MapFilters({ minRating, setMinRating, visitType, setVisitType, style }) {
-  return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', ...style }}>
-      {RATING_OPTS.map(o => (
-        <FilterChip key={`r${o.v}`} on={minRating === o.v} onClick={() => setMinRating(o.v)}>{o.label}</FilterChip>
-      ))}
-      <span style={{ width: 1, height: 22, background: '#E4E0D6', flex: 'none' }} />
-      {VISIT_OPTS.map(o => (
-        <FilterChip key={`v${o.v}`} on={visitType === o.v} onClick={() => setVisitType(o.v)}>{o.label}</FilterChip>
-      ))}
-    </div>
+    <select value={value} onChange={onChange} style={{
+      height: 46, borderRadius: 13, border: '1px solid #E7E3DA', background: '#fff',
+      padding: '0 14px', fontSize: 14, fontWeight: 700, color: '#1A1A1A',
+      cursor: 'pointer', outline: 'none', ...style,
+    }}>
+      {options.map(o => <option key={String(o.v)} value={o.v}>{o.label}</option>)}
+    </select>
   )
 }
 
@@ -364,6 +351,9 @@ export default function ClientPageWeb({
   )
   const profOf = ex => professions.find(p => p.code === ex.service_type)
 
+  // Опции для выпадашки услуг (мобилка): «Все услуги» + категории
+  const serviceOpts = [{ v: 'all', label: '✨ Все услуги' }, ...professions.map(p => ({ v: p.code, label: `${p.icon} ${p.name}` }))]
+
   // Свободные сегодня/завтра — для карусели
   const freeSoon = filtered.filter(
     e => (e.todaySlots && e.todaySlots.length) || (e.tomorrowSlots && e.tomorrowSlots.length)
@@ -475,23 +465,15 @@ export default function ClientPageWeb({
             )}
           </div>
 
-          {/* ─── КАТЕГОРИИ ─── */}
-          <h2 style={{ fontSize: 20, fontWeight: 800, textAlign: 'center', margin: '20px 0 12px' }}>Выберите услугу</h2>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, justifyContent: 'center' }}>
-            <button className="eb-m-chip" data-on={selectedService === 'all' ? '1' : '0'} onClick={() => setSelectedService('all')}>
-              <span className="eb-m-ico">✨</span>Все
-            </button>
-            {professions.map(p => (
-              <button key={p.code} className="eb-m-chip" data-on={selectedService === p.code ? '1' : '0'} onClick={() => setSelectedService(p.code)}>
-                <span className="eb-m-ico">{p.icon}</span>{p.name}
-              </button>
-            ))}
+          {/* ─── ФИЛЬТРЫ: услуги + оценка + место ─── */}
+          <div style={{ display: 'flex', gap: 8, padding: '4px 12px 0' }}>
+            <FilterSelect style={{ flex: 1, minWidth: 0 }} options={serviceOpts}
+              value={selectedService} onChange={e => setSelectedService(e.target.value)} />
+            <FilterSelect style={{ flex: 1, minWidth: 0 }} options={RATING_OPTS}
+              value={String(minRating)} onChange={e => setMinRating(Number(e.target.value))} />
+            <FilterSelect style={{ flex: 1, minWidth: 0 }} options={VISIT_OPTS}
+              value={visitType} onChange={e => setVisitType(e.target.value)} />
           </div>
-
-          {/* ─── ФИЛЬТРЫ (рейтинг + тип визита) ─── */}
-          <MapFilters minRating={minRating} setMinRating={setMinRating}
-            visitType={visitType} setVisitType={setVisitType}
-            style={{ justifyContent: 'center', marginTop: 14 }} />
         </div>
 
         {/* ─── СВОБОДНЫ СЕГОДНЯ И ЗАВТРА ─── */}
@@ -534,31 +516,25 @@ export default function ClientPageWeb({
               ))}
             </MapContainer>
 
-            {/* Верхняя панель: скролл профессий (как в мини-аппе) + фильтры */}
-            <div style={{ position: 'absolute', top: 'calc(10px + env(safe-area-inset-top))', left: 0, right: 0, zIndex: 520, display: 'flex', flexDirection: 'column', gap: 8 }}>
-              <div className="eb-m-track" style={{ paddingRight: 120 }}>
-                <button className="eb-m-chip" data-on={selectedService === 'all' ? '1' : '0'} onClick={() => setSelectedService('all')}>
-                  <span className="eb-m-ico">✨</span>Все
-                </button>
-                {professions.map(p => (
-                  <button key={p.code} className="eb-m-chip" data-on={selectedService === p.code ? '1' : '0'} onClick={() => setSelectedService(p.code)}>
-                    <span className="eb-m-ico">{p.icon}</span>{p.name}
-                  </button>
-                ))}
-              </div>
-              <MapFilters minRating={minRating} setMinRating={setMinRating}
-                visitType={visitType} setVisitType={setVisitType}
-                style={{ flexWrap: 'nowrap', overflowX: 'auto', padding: '0 12px 2px', scrollbarWidth: 'none' }} />
+            {/* Верхняя панель: выпадашки услуги + оценка + место
+                (слева отступ под зум +/-, справа — под крестик) */}
+            <div style={{ position: 'absolute', top: 'calc(12px + env(safe-area-inset-top))', left: 0, right: 0, zIndex: 520, display: 'flex', gap: 8, paddingLeft: 54, paddingRight: 66 }}>
+              <FilterSelect style={{ flex: 1, minWidth: 0 }} options={serviceOpts}
+                value={selectedService} onChange={e => setSelectedService(e.target.value)} />
+              <FilterSelect style={{ flex: 1, minWidth: 0 }} options={RATING_OPTS}
+                value={String(minRating)} onChange={e => setMinRating(Number(e.target.value))} />
+              <FilterSelect style={{ flex: 1, minWidth: 0 }} options={VISIT_OPTS}
+                value={visitType} onChange={e => setVisitType(e.target.value)} />
             </div>
 
             <button onClick={() => setMapFull(false)} aria-label="Закрыть карту"
               style={{
-                position: 'absolute', right: 14, top: 'calc(10px + env(safe-area-inset-top))', zIndex: 540,
-                height: 38, padding: '0 15px', borderRadius: 19, border: 'none', background: '#fff', color: '#1A1A1A',
-                fontSize: 14, fontWeight: 800, boxShadow: '0 3px 12px rgba(30,25,10,.28)', cursor: 'pointer',
-                display: 'flex', alignItems: 'center', gap: 6,
+                position: 'absolute', right: 14, top: 'calc(12px + env(safe-area-inset-top))', zIndex: 540,
+                width: 44, height: 44, borderRadius: '50%', border: 'none', background: '#fff', color: '#1A1A1A',
+                fontSize: 18, fontWeight: 800, boxShadow: '0 3px 12px rgba(30,25,10,.28)', cursor: 'pointer',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
               }}>
-              ✕ Закрыть
+              ✕
             </button>
 
             {/* Богатая карточка по тапу на пин — работает и на полном экране */}
@@ -695,18 +671,19 @@ export default function ClientPageWeb({
 
         {/* CENTER */}
         <section className="eb-center">
-          {/* view switch */}
-          <div style={{ display: 'inline-flex', background: '#F0EDE6', borderRadius: 13, padding: 4, gap: 4, marginBottom: 16 }}>
-            {[['map', '🗺 Карта'], ['list', '☰ Список']].map(([v, label]) => (
-              <button key={v} onClick={() => setView(v)}
-                style={{ padding: '9px 18px', borderRadius: 10, fontSize: 14, fontWeight: 700, border: 'none', cursor: 'pointer', color: view === v ? '#1A1A1A' : '#6B6B6B', background: view === v ? '#fff' : 'transparent', boxShadow: view === v ? '0 1px 2px rgba(30,25,10,.05)' : 'none' }}>{label}</button>
-            ))}
+          {/* view switch + фильтры (оценка, место) в одну строку */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16, flexWrap: 'wrap' }}>
+            <div style={{ display: 'inline-flex', background: '#F0EDE6', borderRadius: 13, padding: 4, gap: 4 }}>
+              {[['map', '🗺 Карта'], ['list', '☰ Список']].map(([v, label]) => (
+                <button key={v} onClick={() => setView(v)}
+                  style={{ padding: '9px 18px', borderRadius: 10, fontSize: 14, fontWeight: 700, border: 'none', cursor: 'pointer', color: view === v ? '#1A1A1A' : '#6B6B6B', background: view === v ? '#fff' : 'transparent', boxShadow: view === v ? '0 1px 2px rgba(30,25,10,.05)' : 'none' }}>{label}</button>
+              ))}
+            </div>
+            <FilterSelect style={{ flex: 'none', minWidth: 168 }} options={RATING_OPTS}
+              value={String(minRating)} onChange={e => setMinRating(Number(e.target.value))} />
+            <FilterSelect style={{ flex: 'none', minWidth: 168 }} options={VISIT_OPTS}
+              value={visitType} onChange={e => setVisitType(e.target.value)} />
           </div>
-
-          {/* Фильтры карты: рейтинг + тип визита */}
-          <MapFilters minRating={minRating} setMinRating={setMinRating}
-            visitType={visitType} setVisitType={setVisitType}
-            style={{ marginBottom: 16 }} />
 
           {(
             <>
