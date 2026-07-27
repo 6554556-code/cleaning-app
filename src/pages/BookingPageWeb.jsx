@@ -129,17 +129,26 @@ export default function BookingPageWeb({
         .ebb-link:hover{text-decoration:underline}
         .ebb-rating:hover span:last-child{text-decoration:underline}
         .ebb-input:focus{border-color:${Y} !important;box-shadow:0 0 0 3px rgba(253,184,19,.18)}
+        /* Отзывы — 3-й элемент грида: на десктопе под левой колонкой,
+           справа заявка тянется на два ряда. На мобиле (ниже) placement сбрасываем,
+           и по порядку в DOM отзывы оказываются ПОСЛЕ заявки. */
+        .ebb-summary{grid-column:2;grid-row:1 / span 2}
+        .ebb-col-reviews{grid-column:1}
         @media(max-width:1080px){
           .ebb-layout{grid-template-columns:1fr !important}
-          .ebb-summary{position:static !important}
+          .ebb-summary{position:static !important;grid-column:auto !important;grid-row:auto !important}
+          .ebb-col-reviews{grid-column:auto !important}
         }
         @media(max-width:640px){
           body{overflow-x:hidden}
           .ebb-wrap{padding:14px 12px 28px !important}
-          .ebb-head{padding:10px 12px !important}
+          .ebb-head{padding:10px 12px !important;gap:10px !important}
           .ebb-title{font-size:24px !important;margin-bottom:16px !important}
           .ebb-card{padding:16px !important}
           .ebb-master{flex-wrap:wrap}
+          .ebb-brand-txt{font-size:20px !important}
+          .ebb-role{height:38px !important;padding:0 12px !important;font-size:13px !important;border-radius:11px !important;gap:5px !important}
+          .ebb-role-txt{display:none}
           input,textarea,select{font-size:16px}
         }
       `}</style>
@@ -149,12 +158,12 @@ export default function BookingPageWeb({
         <div className="ebb-head" style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '12px 24px', maxWidth: 1240, margin: '0 auto' }}>
           <a href="/" style={{ display: 'flex', alignItems: 'center', gap: 11, textDecoration: 'none', color: INK, flex: 'none' }}>
             <BrandMark size={40} />
-            <span style={{ fontSize: 24, fontWeight: 800, letterSpacing: '-.02em' }}>ebookee</span>
+            <span className="ebb-brand-txt" style={{ fontSize: 24, fontWeight: 800, letterSpacing: '-.02em' }}>ebookee</span>
           </a>
           <div style={{ flex: 1 }} />
           <div style={{ display: 'flex', gap: 10, flex: 'none' }}>
-            <a href="?executor=1" className="eb-role" style={ROLE_BTN}>👷 Я исполнитель</a>
-            <a href={session?.id ? `?client=${session.id}` : '?client=0'} className="eb-role" style={ROLE_BTN}>🧑 Я клиент</a>
+            <a href="?executor=1" className="eb-role ebb-role" style={ROLE_BTN}>👷 <span className="ebb-role-txt">Я исполнитель</span></a>
+            <a href={session?.id ? `?client=${session.id}` : '?client=0'} className="eb-role ebb-role" style={ROLE_BTN}>🧑 <span className="ebb-role-txt">Я клиент</span></a>
           </div>
         </div>
       </header>
@@ -339,32 +348,6 @@ export default function BookingPageWeb({
               )}
             </div>
 
-            {/* Отзывы */}
-            {reviews && reviews.length > 0 && (
-              <div ref={reviewsRef} style={{ ...CARD, scrollMarginTop: 90 }}>
-                <h3 style={H}>Отзывы <span style={{ color: MUTED, fontWeight: 700 }}>{reviews.length}</span></h3>
-                {(showAllReviews ? reviews : reviews.slice(0, 3)).map(r => {
-                  const monthName = new Date(r.created_at).toLocaleDateString('ru-RU', { month: 'long', year: 'numeric' })
-                  return (
-                    <div key={r.id} style={{ padding: '12px 0', borderBottom: `1px solid ${LINE_2}` }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-                        <Stars n={r.rating} />
-                        <span style={{ color: '#A0A0A0', fontSize: 12 }}>{monthName}</span>
-                        {r.on_time === true && <span style={{ color: '#1B7F3B', fontSize: 12 }}>✓ Вовремя</span>}
-                        {r.on_time === false && <span style={{ color: '#C97A16', fontSize: 12 }}>⚠️ Опоздал</span>}
-                      </div>
-                      {r.comment && <p style={{ margin: '6px 0 0', fontSize: 14, color: '#444', lineHeight: 1.5 }}>{r.comment}</p>}
-                    </div>
-                  )
-                })}
-                {reviews.length > 3 && (
-                  <button onClick={() => setShowAllReviews(!showAllReviews)}
-                    style={{ marginTop: 12, background: 'none', border: 'none', color: Y_DARK, cursor: 'pointer', fontSize: 14, fontWeight: 700, padding: 0 }}>
-                    {showAllReviews ? '▲ Скрыть' : `▼ Показать все (${reviews.length})`}
-                  </button>
-                )}
-              </div>
-            )}
           </div>
 
           {/* ─────────── ПРАВАЯ КОЛОНКА: заявка ─────────── */}
@@ -454,6 +437,35 @@ export default function BookingPageWeb({
               </p>
             </div>
           </aside>
+
+          {/* ─────────── ОТЗЫВЫ ─────────── */}
+          {/* Отдельный элемент грида: на десктопе встаёт под левой колонкой,
+              на мобиле — в самом низу, после «Ваша заявка». */}
+          {reviews && reviews.length > 0 && (
+            <div className="ebb-col-reviews" ref={reviewsRef} style={{ ...CARD, scrollMarginTop: 90, marginBottom: 0 }}>
+              <h3 style={H}>Отзывы <span style={{ color: MUTED, fontWeight: 700 }}>{reviews.length}</span></h3>
+              {(showAllReviews ? reviews : reviews.slice(0, 3)).map(r => {
+                const monthName = new Date(r.created_at).toLocaleDateString('ru-RU', { month: 'long', year: 'numeric' })
+                return (
+                  <div key={r.id} style={{ padding: '12px 0', borderBottom: `1px solid ${LINE_2}` }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+                      <Stars n={r.rating} />
+                      <span style={{ color: '#A0A0A0', fontSize: 12 }}>{monthName}</span>
+                      {r.on_time === true && <span style={{ color: '#1B7F3B', fontSize: 12 }}>✓ Вовремя</span>}
+                      {r.on_time === false && <span style={{ color: '#C97A16', fontSize: 12 }}>⚠️ Опоздал</span>}
+                    </div>
+                    {r.comment && <p style={{ margin: '6px 0 0', fontSize: 14, color: '#444', lineHeight: 1.5 }}>{r.comment}</p>}
+                  </div>
+                )
+              })}
+              {reviews.length > 3 && (
+                <button onClick={() => setShowAllReviews(!showAllReviews)}
+                  style={{ marginTop: 12, background: 'none', border: 'none', color: Y_DARK, cursor: 'pointer', fontSize: 14, fontWeight: 700, padding: 0 }}>
+                  {showAllReviews ? '▲ Скрыть' : `▼ Показать все (${reviews.length})`}
+                </button>
+              )}
+            </div>
+          )}
         </div>
       </div>
 

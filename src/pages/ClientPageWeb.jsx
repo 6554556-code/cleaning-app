@@ -98,6 +98,134 @@ function minPrice(services) {
   return prices.length ? Math.min(...prices) : null
 }
 
+// Что умеет исполнитель по типу визита (из его услуг):
+//   inc — принимает у себя (🏠), out — выезжает (🚗).
+function visitCaps(services) {
+  const active = (services || []).filter(s => !s.is_archived)
+  return {
+    inc: active.some(s => s.location_type === 'incall' || s.location_type === 'both'),
+    out: active.some(s => s.location_type === 'outcall' || s.location_type === 'both'),
+  }
+}
+
+// ─── ФИЛЬТРЫ КАРТЫ (рейтинг + тип визита) ───────────────────────
+// Один список вариантов на все места (мобилка / десктоп / полный экран).
+const RATING_OPTS = [
+  { v: 0, label: 'Любой рейтинг' },
+  { v: 4.5, label: '★ 4,5+' },
+  { v: 4.8, label: '★ 4,8+' },
+]
+const VISIT_OPTS = [
+  { v: 'any', label: 'Везде' },
+  { v: 'outcall', label: '🚗 Выезд' },
+  { v: 'incall', label: '🏠 Приём у себя' },
+]
+
+// Одна «таблетка» фильтра. Инлайн-стили, чтобы работать в любой ветке без
+// зависимости от локального <style>.
+function FilterChip({ on, onClick, children }) {
+  return (
+    <button onClick={onClick} style={{
+      display: 'inline-flex', alignItems: 'center', gap: 5, padding: '7px 13px', height: 34,
+      borderRadius: 17, fontSize: 13, fontWeight: 700, lineHeight: 1, whiteSpace: 'nowrap',
+      border: on ? `1.5px solid ${Y}` : '1.5px solid #E7E3DA',
+      background: on ? Y : '#fff', color: '#1A1A1A', cursor: 'pointer', flex: 'none',
+    }}>{children}</button>
+  )
+}
+
+// Ряд фильтров: сначала рейтинг, потом тип визита (через тонкий разделитель).
+function MapFilters({ minRating, setMinRating, visitType, setVisitType, style }) {
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', ...style }}>
+      {RATING_OPTS.map(o => (
+        <FilterChip key={`r${o.v}`} on={minRating === o.v} onClick={() => setMinRating(o.v)}>{o.label}</FilterChip>
+      ))}
+      <span style={{ width: 1, height: 22, background: '#E4E0D6', flex: 'none' }} />
+      {VISIT_OPTS.map(o => (
+        <FilterChip key={`v${o.v}`} on={visitType === o.v} onClick={() => setVisitType(o.v)}>{o.label}</FilterChip>
+      ))}
+    </div>
+  )
+}
+
+// ─── БОГАТАЯ КАРТОЧКА ПО ТАПУ НА ПИН ────────────────────────────
+// Общая для обычной мобильной шторки и для полноэкранной карты.
+// Показывает: аватар, имя, статус ✅, рейтинг, метро/город, плашки
+// (профессия, тип визита, «всегда вовремя»), описание, цену и «Записаться».
+function SheetCard({ ex, prof, stats, onBook, onClose }) {
+  const caps = visitCaps(ex.services)
+  const price = minPrice(ex.services)
+  const rated = stats && stats.count > 0
+  const bio = (ex.bio || '').trim()
+  return (
+    <div>
+      <div style={{ display: 'flex', gap: 13, alignItems: 'flex-start' }}>
+        <Avatar url={ex.avatar_url} name={ex.users?.full_name} size={56} />
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <span style={{ fontSize: 17, fontWeight: 800, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              {ex.users?.full_name || 'Исполнитель'}
+            </span>
+            {ex.is_verified && <span title="Проверенный исполнитель" style={{ flex: 'none' }}>✅</span>}
+          </div>
+          <div style={{ marginTop: 4, display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, flexWrap: 'wrap' }}>
+            {rated
+              ? <span><span style={{ color: '#E8A200', fontWeight: 800 }}>★ {stats.avgRating}</span> <span style={{ color: '#8C8C8C' }}>· {stats.count} отз.</span></span>
+              : <span style={{ color: '#8C8C8C' }}>Новый исполнитель</span>}
+            {(ex.subway_station || ex.city) && (
+              <span style={{ color: '#8C8C8C', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 170 }}>
+                {ex.subway_station ? `🚇 ${ex.subway_station}` : `📍 ${ex.city}`}
+              </span>
+            )}
+          </div>
+        </div>
+        {onClose && (
+          <button onClick={onClose} aria-label="Закрыть"
+            style={{ flex: 'none', width: 30, height: 30, borderRadius: 15, border: 'none', background: '#F4F2ED', color: '#6B6B6B', fontSize: 16, cursor: 'pointer', lineHeight: 1 }}>×</button>
+        )}
+      </div>
+
+      {/* Плашки: профессия · тип визита · статус */}
+      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 11 }}>
+        {prof && (
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '4px 10px', background: '#FBF0D2', color: '#7A5A0A', borderRadius: 11, fontSize: 12, fontWeight: 700 }}>
+            {prof.icon} {prof.name}
+          </span>
+        )}
+        {(caps.inc || caps.out) && (
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '4px 10px', background: '#EEF3FF', color: '#3B5BA5', borderRadius: 11, fontSize: 12, fontWeight: 700 }}>
+            {caps.inc && caps.out ? '🚗 выезд · 🏠 приём' : caps.out ? '🚗 выезд' : '🏠 приём у себя'}
+          </span>
+        )}
+        {rated && stats.alwaysOnTime && (
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '4px 10px', background: '#EAF7EE', color: '#1B7F3B', borderRadius: 11, fontSize: 12, fontWeight: 700 }}>✓ Всегда вовремя</span>
+        )}
+      </div>
+
+      {/* Описание — не больше трёх строк */}
+      {bio && (
+        <p style={{ margin: '11px 0 0', fontSize: 13, color: '#5E5E5E', lineHeight: 1.45, display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+          {bio}
+        </p>
+      )}
+
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 14 }}>
+        {price != null && (
+          <div style={{ flex: 'none' }}>
+            <div style={{ fontSize: 12, color: '#8C8C8C', lineHeight: 1.2 }}>Услуги</div>
+            <div style={{ fontSize: 18, fontWeight: 800, whiteSpace: 'nowrap' }}>от {price} ₽</div>
+          </div>
+        )}
+        <button onClick={onBook} className="eb-book"
+          style={{ flex: 1, height: 48, borderRadius: 13, border: 'none', background: Y, color: '#1A1A1A', fontSize: 16, fontWeight: 800, cursor: 'pointer' }}>
+          Записаться
+        </button>
+      </div>
+    </div>
+  )
+}
+
 // Небольшая карточка исполнителя для карусели «Свободны сегодня и завтра»
 function MiniCard({ ex, prof, stats, onBook, width = 340 }) {
   const price = minPrice(ex.services)
@@ -160,6 +288,8 @@ export default function ClientPageWeb({
 }) {
   const [view, setView] = useState('map')            // 'map' | 'list'
   const [selectedId, setSelectedId] = useState(null)
+  const [minRating, setMinRating] = useState(0)       // 0 = любой, 4.5, 4.8
+  const [visitType, setVisitType] = useState('any')   // 'any' | 'outcall' | 'incall'
   const trackRef = useRef(null)
   const rafRef = useRef(null)
   const dirRef = useRef(0)
@@ -191,21 +321,38 @@ export default function ClientPageWeb({
   }
   useEffect(() => () => { if (rafRef.current) cancelAnimationFrame(rafRef.current) }, [])
 
+  // ФИЛЬТРЫ КАРТЫ: рейтинг + тип визита. Применяем поверх visibleExecutors
+  // (там уже отработали город, категория и поиск). Всё, что видно на карте,
+  // в списке и в карусели, идёт из filtered.
+  const filtered = useMemo(() => visibleExecutors.filter(ex => {
+    if (minRating > 0) {
+      const st = reviewStats[ex.id]
+      const r = st && st.count > 0 ? parseFloat(st.avgRating) : 0
+      if (r < minRating) return false        // «новые» (без отзывов) при фильтре по рейтингу прячем
+    }
+    if (visitType !== 'any') {
+      const { inc, out } = visitCaps(ex.services)
+      if (visitType === 'outcall' && !out) return false
+      if (visitType === 'incall' && !inc) return false
+    }
+    return true
+  }), [visibleExecutors, reviewStats, minRating, visitType])
+
   // Выбранный исполнитель для правой колонки: явно выбранный либо первый в списке
   const selected = useMemo(
-    () => visibleExecutors.find(e => e.id === selectedId) || visibleExecutors[0] || null,
-    [visibleExecutors, selectedId]
+    () => filtered.find(e => e.id === selectedId) || filtered[0] || null,
+    [filtered, selectedId]
   )
   const profOf = ex => professions.find(p => p.code === ex.service_type)
 
   // Свободные сегодня/завтра — для карусели
-  const freeSoon = visibleExecutors.filter(
+  const freeSoon = filtered.filter(
     e => (e.todaySlots && e.todaySlots.length) || (e.tomorrowSlots && e.tomorrowSlots.length)
   )
-  const withCoords = visibleExecutors.filter(e => e.latitude != null && e.longitude != null)
-  // точки для авто-центрирования карты (город/категория поменялись → подлетаем к выборке)
+  const withCoords = filtered.filter(e => e.latitude != null && e.longitude != null)
+  // точки для авто-центрирования карты (город/категория/фильтр поменялись → подлетаем к выборке)
   const points = useMemo(() => withCoords.map(e => [e.latitude, e.longitude]), [withCoords])
-  const pointsKey = `${selectedCity}|${selectedService}|${points.length}|${points[0] || ''}`
+  const pointsKey = `${selectedCity}|${selectedService}|${minRating}|${visitType}|${points.length}|${points[0] || ''}`
 
   const cardProps = ex => ({
     executor: ex,
@@ -321,6 +468,11 @@ export default function ClientPageWeb({
               </button>
             ))}
           </div>
+
+          {/* ─── ФИЛЬТРЫ (рейтинг + тип визита) ─── */}
+          <MapFilters minRating={minRating} setMinRating={setMinRating}
+            visitType={visitType} setVisitType={setVisitType}
+            style={{ justifyContent: 'center', marginTop: 14 }} />
         </div>
 
         {/* ─── СВОБОДНЫ СЕГОДНЯ И ЗАВТРА ─── */}
@@ -338,14 +490,14 @@ export default function ClientPageWeb({
         {/* ─── СПИСОК ИСПОЛНИТЕЛЕЙ ─── */}
         <section style={{ padding: '8px 12px 0' }}>
           <h3 style={{ fontSize: 18, fontWeight: 800, margin: '0 0 12px' }}>
-            Специалисты {!loading && visibleExecutors.length > 0 && <span style={{ color: '#8C8C8C' }}>{visibleExecutors.length}</span>}
+            Специалисты {!loading && filtered.length > 0 && <span style={{ color: '#8C8C8C' }}>{filtered.length}</span>}
           </h3>
           {loading ? (
             <p style={{ color: '#888' }}>Загружаем исполнителей…</p>
-          ) : visibleExecutors.length === 0 ? (
-            <p style={{ color: '#888' }}>Исполнители не найдены</p>
+          ) : filtered.length === 0 ? (
+            <p style={{ color: '#888' }}>Под фильтры никто не подошёл — попробуйте ослабить условия</p>
           ) : (
-            visibleExecutors.map(ex => <ExecutorCard key={ex.id} {...cardProps(ex)} />)
+            filtered.map(ex => <ExecutorCard key={ex.id} {...cardProps(ex)} />)
           )}
         </section>
 
@@ -363,48 +515,40 @@ export default function ClientPageWeb({
               ))}
             </MapContainer>
 
+            {/* Верхняя панель: скролл профессий (как в мини-аппе) + фильтры */}
+            <div style={{ position: 'absolute', top: 'calc(10px + env(safe-area-inset-top))', left: 0, right: 0, zIndex: 520, display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <div className="eb-m-track" style={{ paddingRight: 120 }}>
+                <button className="eb-m-chip" data-on={selectedService === 'all' ? '1' : '0'} onClick={() => setSelectedService('all')}>
+                  <span className="eb-m-ico">✨</span>Все
+                </button>
+                {professions.map(p => (
+                  <button key={p.code} className="eb-m-chip" data-on={selectedService === p.code ? '1' : '0'} onClick={() => setSelectedService(p.code)}>
+                    <span className="eb-m-ico">{p.icon}</span>{p.name}
+                  </button>
+                ))}
+              </div>
+              <MapFilters minRating={minRating} setMinRating={setMinRating}
+                visitType={visitType} setVisitType={setVisitType}
+                style={{ flexWrap: 'nowrap', overflowX: 'auto', padding: '0 12px 2px', scrollbarWidth: 'none' }} />
+            </div>
+
             <button onClick={() => setMapFull(false)} aria-label="Закрыть карту"
               style={{
-                position: 'absolute', right: 14, top: 'calc(14px + env(safe-area-inset-top))', zIndex: 500,
-                height: 42, padding: '0 18px', borderRadius: 21, border: 'none', background: '#fff', color: '#1A1A1A',
-                fontSize: 15, fontWeight: 800, boxShadow: '0 3px 12px rgba(30,25,10,.28)', cursor: 'pointer',
-                display: 'flex', alignItems: 'center', gap: 7,
+                position: 'absolute', right: 14, top: 'calc(10px + env(safe-area-inset-top))', zIndex: 540,
+                height: 38, padding: '0 15px', borderRadius: 19, border: 'none', background: '#fff', color: '#1A1A1A',
+                fontSize: 14, fontWeight: 800, boxShadow: '0 3px 12px rgba(30,25,10,.28)', cursor: 'pointer',
+                display: 'flex', alignItems: 'center', gap: 6,
               }}>
               ✕ Закрыть
             </button>
 
-            {/* Нижняя карточка по тапу на пин — работает и на полном экране */}
+            {/* Богатая карточка по тапу на пин — работает и на полном экране */}
             {sheetEx && (
               <div style={{ position: 'absolute', left: 12, right: 12, bottom: 'calc(16px + env(safe-area-inset-bottom))', zIndex: 510 }}>
-                <div style={{ background: '#fff', borderRadius: 18, boxShadow: '0 8px 30px rgba(30,25,10,.3)', padding: '12px 14px' }}>
-                  <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-                    <Avatar url={sheetEx.avatar_url} name={sheetEx.users?.full_name} size={50} />
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                        <span style={{ fontSize: 16, fontWeight: 800, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{sheetEx.users?.full_name || 'Исполнитель'}</span>
-                        {sheetEx.is_verified && <span style={{ flex: 'none' }}>✅</span>}
-                      </div>
-                      <div style={{ marginTop: 3, display: 'flex', alignItems: 'center', gap: 8, fontSize: 13 }}>
-                        {reviewStats[sheetEx.id]?.count > 0 ? (
-                          <><span style={{ color: Y, fontWeight: 800 }}>★ {reviewStats[sheetEx.id].avgRating}</span>
-                          <span style={{ color: '#8C8C8C' }}>{reviewStats[sheetEx.id].count} отз.</span></>
-                        ) : <span style={{ color: '#8C8C8C' }}>Новый исполнитель</span>}
-                        <span style={{ color: '#8C8C8C' }}>{profOf(sheetEx)?.name}</span>
-                      </div>
-                    </div>
-                  </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 12 }}>
-                    {minPrice(sheetEx.services) != null && (
-                      <div style={{ flex: 'none' }}>
-                        <div style={{ fontSize: 11, color: '#8C8C8C', lineHeight: 1.2 }}>Услуги</div>
-                        <div style={{ fontSize: 17, fontWeight: 800, whiteSpace: 'nowrap' }}>от {minPrice(sheetEx.services)} ₽</div>
-                      </div>
-                    )}
-                    <button onClick={() => { setMapFull(false); onBook(sheetEx) }} className="eb-book"
-                      style={{ flex: 1, height: 46, borderRadius: 13, border: 'none', background: Y, color: '#1A1A1A', fontSize: 15, fontWeight: 800, cursor: 'pointer' }}>
-                      Записаться
-                    </button>
-                  </div>
+                <div style={{ background: '#fff', borderRadius: 18, boxShadow: '0 8px 30px rgba(30,25,10,.3)', padding: '14px 16px' }}>
+                  <SheetCard ex={sheetEx} prof={profOf(sheetEx)} stats={reviewStats[sheetEx.id]}
+                    onClose={() => setSheetId(null)}
+                    onBook={() => { setMapFull(false); onBook(sheetEx) }} />
                 </div>
               </div>
             )}
@@ -425,48 +569,9 @@ export default function ClientPageWeb({
             }}>
               <div style={{ width: 40, height: 4, borderRadius: 4, background: '#E4E0D6', margin: '0 auto 14px' }} />
 
-              <div style={{ display: 'flex', gap: 14, alignItems: 'flex-start' }}>
-                <Avatar url={sheetEx.avatar_url} name={sheetEx.users?.full_name} size={58} />
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                    <span style={{ fontSize: 17, fontWeight: 800, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                      {sheetEx.users?.full_name || 'Исполнитель'}
-                    </span>
-                    {sheetEx.is_verified && <span style={{ flex: 'none' }}>✅</span>}
-                  </div>
-                  <div style={{ marginTop: 4, display: 'flex', alignItems: 'center', gap: 9, flexWrap: 'wrap', fontSize: 13 }}>
-                    {reviewStats[sheetEx.id]?.count > 0 ? (
-                      <>
-                        <span style={{ color: Y, fontWeight: 800 }}>★ {reviewStats[sheetEx.id].avgRating}</span>
-                        <span style={{ color: '#8C8C8C' }}>{reviewStats[sheetEx.id].count} отз.</span>
-                      </>
-                    ) : (
-                      <span style={{ color: '#8C8C8C' }}>Новый исполнитель</span>
-                    )}
-                    <span style={{ color: '#8C8C8C' }}>{profOf(sheetEx)?.name}</span>
-                  </div>
-                  {(sheetEx.subway_station || sheetEx.city) && (
-                    <div style={{ marginTop: 3, fontSize: 13, color: '#8C8C8C', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                      {sheetEx.subway_station ? `🚇 ${sheetEx.subway_station}` : `📍 ${sheetEx.city}`}
-                    </div>
-                  )}
-                </div>
-                <button onClick={() => setSheetId(null)} aria-label="Закрыть"
-                  style={{ flex: 'none', width: 30, height: 30, borderRadius: 15, border: 'none', background: '#F4F2ED', color: '#6B6B6B', fontSize: 16, cursor: 'pointer', lineHeight: 1 }}>×</button>
-              </div>
-
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 14 }}>
-                {minPrice(sheetEx.services) != null && (
-                  <div style={{ flex: 'none' }}>
-                    <div style={{ fontSize: 12, color: '#8C8C8C', lineHeight: 1.2 }}>Услуги</div>
-                    <div style={{ fontSize: 18, fontWeight: 800, whiteSpace: 'nowrap' }}>от {minPrice(sheetEx.services)} ₽</div>
-                  </div>
-                )}
-                <button onClick={() => { setSheetId(null); onBook(sheetEx) }} className="eb-book"
-                  style={{ flex: 1, height: 48, borderRadius: 13, border: 'none', background: Y, color: '#1A1A1A', fontSize: 16, fontWeight: 800, cursor: 'pointer' }}>
-                  Записаться
-                </button>
-              </div>
+              <SheetCard ex={sheetEx} prof={profOf(sheetEx)} stats={reviewStats[sheetEx.id]}
+                onClose={() => setSheetId(null)}
+                onBook={() => { setSheetId(null); onBook(sheetEx) }} />
             </div>
           </>
         )}
@@ -579,6 +684,11 @@ export default function ClientPageWeb({
             ))}
           </div>
 
+          {/* Фильтры карты: рейтинг + тип визита */}
+          <MapFilters minRating={minRating} setMinRating={setMinRating}
+            visitType={visitType} setVisitType={setVisitType}
+            style={{ marginBottom: 16 }} />
+
           {(
             <>
               {!isListMode && (
@@ -635,11 +745,11 @@ export default function ClientPageWeb({
                 {!isListMode && <h3 style={{ fontSize: 20, fontWeight: 800, margin: '0 4px 14px' }}>Специалисты на карте</h3>}
                 {loading ? (
                   <p style={{ color: '#888' }}>Загружаем исполнителей…</p>
-                ) : visibleExecutors.length === 0 ? (
-                  <p style={{ color: '#888' }}>Исполнители не найдены</p>
+                ) : filtered.length === 0 ? (
+                  <p style={{ color: '#888' }}>Под фильтры никто не подошёл — попробуйте ослабить условия</p>
                 ) : (
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(332px,1fr))', gap: 20, alignItems: 'start' }}>
-                    {visibleExecutors.map(ex => (
+                    {filtered.map(ex => (
                       <div key={ex.id} onClick={() => setSelectedId(ex.id)} style={{ cursor: 'pointer' }}>
                         <ExecutorCard {...cardProps(ex)} />
                       </div>
