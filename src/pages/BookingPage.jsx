@@ -9,6 +9,7 @@ import MiniCalendar from '../components/MiniCalendar'
 import BookingPageWeb from './BookingPageWeb'
 import { MapContainer, TileLayer, Marker } from 'react-leaflet'
 import 'leaflet/dist/leaflet.css'
+import { DateTime } from 'luxon'
 import L from 'leaflet'
 
 delete L.Icon.Default.prototype._getIconUrl
@@ -365,15 +366,16 @@ function toggleExtra(extra) {
     onSuccess(user.id)
   }
   function formatSlot(start) {
-    const date = new Date(start)
-    const today = new Date()
-    const tomorrow = new Date()
-    tomorrow.setDate(tomorrow.getDate() + 1)
-    const isToday = date.toDateString() === today.toDateString()
-    const isTomorrow = date.toDateString() === tomorrow.toDateString()
-    const time = date.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })
-    if (isToday) return `Сегодня ${time}`
-    if (isTomorrow) return `Завтра ${time}`
+    // Всё считаем в TZ мастера: и "сегодня/завтра", и часы.
+    // Тогда клиент из любой TZ видит подпись, консистентную с временем мастера.
+    const tz = executor?.timezone || 'Europe/Moscow'
+    const slot = DateTime.fromJSDate(new Date(start), { zone: tz })
+    const nowInTz = DateTime.now().setZone(tz)
+    const time = new Date(start).toLocaleTimeString('ru-RU', {
+      hour: '2-digit', minute: '2-digit', timeZone: tz
+    })
+    if (slot.hasSame(nowInTz, 'day')) return `Сегодня ${time}`
+    if (slot.hasSame(nowInTz.plus({ days: 1 }), 'day')) return `Завтра ${time}`
     return time
   }
 

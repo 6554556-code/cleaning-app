@@ -1,3 +1,5 @@
+import { DateTime } from 'luxon'
+
 // Проверяет, пересекается ли новый заказ с существующими заказами и блоками.
 // Возвращает true, если есть пересечение.
 export function hasOverlap(executor, existingOrders, existingBlocks, newStart, newDurationTotal, newLocationType) {
@@ -95,19 +97,27 @@ function getBlockBusyRange(block) {
 export function generateSlots(executor, existingOrders, date, newOrder = {}, existingBlocks = []) {
   const slots = []
 
-  // Проверяем, рабочий ли это день недели
+  // === Таймзона исполнителя ===
+  // Все построения границ рабочего дня делаем в TZ мастера, а не браузера клиента.
+  // Fallback — Москва, для старых исполнителей у которых поле пустое.
+  const tz = executor.timezone || 'Europe/Moscow'
+
+  // День, к которому относится генерация — календарный день в TZ мастера.
+  // Если date = 23:45 МСК, а мастер в Омске (там уже 02:45 следующего дня),
+  // мы построим слоты для СЛЕДУЮЩЕГО календарного дня по календарю мастера.
+  const dayInTz = DateTime.fromJSDate(date, { zone: tz }).startOf('day')
+
+  // Проверяем, рабочий ли это день недели ПО КАЛЕНДАРЮ МАСТЕРА
   if (executor.work_days) {
-    // work_days хранит дни по-человечески: 1=Пн ... 7=Вс
-    // JS getDay(): 0=Вс, 1=Пн ... 6=Сб — переводим воскресенье из 0 в 7
-    const jsDay = new Date(date).getDay()
-    const humanDay = jsDay === 0 ? 7 : jsDay
+    // luxon.weekday: 1=Пн ... 7=Вс — уже совпадает с форматом work_days
+    const humanDay = dayInTz.weekday
     const workDays = executor.work_days.split(',').map(d => Number(d.trim()))
     if (!workDays.includes(humanDay)) {
       return [] // выходной — слотов нет
     }
   }
 
-  // Рабочее время исполнителя
+  // Рабочее время исполнителя (в его локальном времени)
   const [startHour, startMin] = (executor.work_start || '09:00').split(':').map(Number)
   const [endHour, endMin] = (executor.work_end || '21:00').split(':').map(Number)
 
@@ -120,11 +130,10 @@ export function generateSlots(executor, existingOrders, date, newOrder = {}, exi
   // Сколько времени нужно ДО приезда (дорога туда)
   const newTravelBefore = travel
 
-  const current = new Date(date)
-  current.setHours(startHour, startMin, 0, 0)
-
-  const end = new Date(date)
-  end.setHours(endHour, endMin, 0, 0)
+  // Границы рабочего дня — абсолютные моменты, полученные из
+  // "03:00 в Азии/Омск" (а не "03:00 в браузере клиента").
+  const current = dayInTz.set({ hour: startHour, minute: startMin }).toJSDate()
+  const end = dayInTz.set({ hour: endHour, minute: endMin }).toJSDate()
 
   // Фиксируем начало рабочего дня — current дальше мутирует в цикле
   const dayStart = new Date(current)
@@ -162,7 +171,8 @@ export function generateSlots(executor, existingOrders, date, newOrder = {}, exi
       slots.push({
         start: new Date(slotStart),
         end: slotEnd,
-        label: slotStart.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })
+        // Метка форматируется в TZ мастера — у всех клиентов надпись одинаковая
+        label: slotStart.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit', timeZone: tz })
       })
     }
 
@@ -200,7 +210,7 @@ export function generateSlots(executor, existingOrders, date, newOrder = {}, exi
     slots.push({
       start: new Date(slotStart),
       end: slotEnd,
-      label: slotStart.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })
+      label: slotStart.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit', timeZone: tz })
     })
     existingStartTimes.add(slotStart.getTime())
   }
