@@ -21,7 +21,7 @@ const ROLE_BTN = {
 // link можно не указывать — тогда баннер просто картинка без клика.
 // Пока список пуст — на его месте серая заглушка «рекламные баннеры».
 const BANNERS = [
-    { image: '/banners/ban1.png', link: 'https://partner.ru', alt: 'Скидка 20%' },
+    { image: '/banners/ban248.png', link: 'https://t.me/Ebookee777_bot/Ebookee', alt: 'приложение ебуки в телеграм' },
 ]
 
 // Логотип и подвал с реквизитами переехали в src/components/WebShell.jsx —
