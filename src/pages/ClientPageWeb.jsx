@@ -108,6 +108,74 @@ function visitCaps(services) {
   }
 }
 
+// Свободен ли исполнитель ближайшие 2 дня — тот же критерий, что у freeSoon-карусели.
+function isFreeSoon(ex) {
+  return (ex.todaySlots?.length > 0) || (ex.tomorrowSlots?.length > 0)
+}
+
+// Зелёный «неоновый» огонёк «свободен сегодня/завтра».
+// Постоянный мягкий glow + расходящееся пульсирующее кольцо.
+// На десктопе (>900px) при hover показывает подпись; на мобиле — только точка.
+// Стили инлайном через React 19 <style precedence> — дедуплицируется автоматически,
+// в мини-апп не утекает (класс уникальный, используется только тут).
+function FreeDot() {
+  return (
+    <span
+      className="eb-freedot-wrap"
+      data-label="Свободен сегодня/завтра"
+      aria-label="Свободен сегодня или завтра"
+      style={{ position: 'relative', display: 'inline-flex', alignItems: 'center', flex: 'none', marginLeft: 5 }}
+    >
+      <style precedence="default" href="eb-freedot">{`
+        .eb-freedot {
+          width: 8px;
+          height: 8px;
+          border-radius: 50%;
+          background: #22C55E;
+          box-shadow: 0 0 5px rgba(34,197,94,.65), 0 0 0 0 rgba(34,197,94,.7);
+          animation: eb-freedot-pulse 1.8s ease-out infinite;
+        }
+        @keyframes eb-freedot-pulse {
+          0%   { box-shadow: 0 0 5px rgba(34,197,94,.65), 0 0 0 0 rgba(34,197,94,.7); }
+          70%  { box-shadow: 0 0 5px rgba(34,197,94,.65), 0 0 0 4.5px rgba(34,197,94,0); }
+          100% { box-shadow: 0 0 5px rgba(34,197,94,.65), 0 0 0 0 rgba(34,197,94,0); }
+        }
+        @media (min-width: 901px) {
+          .eb-freedot-wrap[data-label]:hover::after {
+            content: attr(data-label);
+            position: absolute;
+            bottom: 100%;
+            left: 50%;
+            transform: translateX(-50%) translateY(-8px);
+            background: #1A1A1A;
+            color: #fff;
+            padding: 5px 9px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 500;
+            white-space: nowrap;
+            pointer-events: none;
+            z-index: 10;
+            box-shadow: 0 2px 8px rgba(0,0,0,.15);
+          }
+          .eb-freedot-wrap[data-label]:hover::before {
+            content: '';
+            position: absolute;
+            bottom: 100%;
+            left: 50%;
+            transform: translateX(-50%) translateY(-2px);
+            border: 4px solid transparent;
+            border-top-color: #1A1A1A;
+            pointer-events: none;
+            z-index: 10;
+          }
+        }
+      `}</style>
+      <span className="eb-freedot" />
+    </span>
+  )
+}
+
 // ─── ФИЛЬТРЫ (нативные выпадашки) ───────────────────────────────
 // Варианты для «оценки» и «места». Значения — строки (нативный <select>
 // отдаёт строку); рейтинг приводим к числу при чтении.
@@ -173,6 +241,7 @@ function SheetCard({ ex, prof, stats, onBook, onClose }) {
               {ex.users?.full_name || 'Исполнитель'}
             </span>
             {ex.is_verified && <span title="Проверенный исполнитель" style={{ flex: 'none' }}>✅</span>}
+            {isFreeSoon(ex) && <FreeDot />}
           </div>
           <div style={{ marginTop: 4, display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, flexWrap: 'wrap' }}>
             {rated
@@ -284,6 +353,7 @@ function MiniCard({ ex, prof, stats, onBook, width = 340 }) {
           <h3 style={{ margin: 0, fontSize: '18px', fontWeight: 700, color: '#1A1A1A', display: 'flex', alignItems: 'center', gap: 4, flex: 1, minWidth: 0 }}>
             <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{ex.users?.full_name || 'Исполнитель'}</span>
             {ex.is_verified && <span title="Проверенный исполнитель">✅</span>}
+            {isFreeSoon(ex) && <FreeDot />}
           </h3>
           {price != null && (
             <span style={{ whiteSpace: 'nowrap', flexShrink: 0, display: 'inline-flex', alignItems: 'baseline', gap: 3 }}>
