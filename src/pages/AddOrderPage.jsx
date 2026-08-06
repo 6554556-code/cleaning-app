@@ -309,10 +309,12 @@ function AddOrderPage({ executor, initialDay, initialHour, initialMinute, onBack
           onChange={e => setSelectedDate(e.target.value)}
           style={{
             flex: 1,
+            minWidth: 0,
             padding: '10px',
             borderRadius: '8px',
             border: '1px solid #ddd',
-            fontSize: '16px'
+            fontSize: '16px',
+            boxSizing: 'border-box'
           }}
         />
         <input
@@ -321,10 +323,12 @@ function AddOrderPage({ executor, initialDay, initialHour, initialMinute, onBack
           onChange={e => setSelectedTime(e.target.value)}
           style={{
             flex: 1,
+            minWidth: 0,
             padding: '10px',
             borderRadius: '8px',
             border: '1px solid #ddd',
-            fontSize: '16px'
+            fontSize: '16px',
+            boxSizing: 'border-box'
           }}
         />
       </div>
@@ -371,6 +375,7 @@ function AddOrderPage({ executor, initialDay, initialHour, initialMinute, onBack
                 display: 'flex',
                 justifyContent: 'space-between',
                 alignItems: 'center',
+                gap: 12,
                 padding: '12px',
                 borderRadius: '8px',
                 marginBottom: '4px',
@@ -379,8 +384,13 @@ function AddOrderPage({ executor, initialDay, initialHour, initialMinute, onBack
                 cursor: 'pointer'
               }}
             >
-              <span>⭐ {service.name} {service.location_type === 'outcall' ? '🚗' : service.location_type === 'incall' ? '🏠' : '🚗🏠'} · {service.duration} мин</span>
-              <span style={{ color: '#2481cc', fontWeight: 'bold' }}>{service.price} руб</span>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 3, minWidth: 0, flex: 1 }}>
+                <span>⭐ {service.name}</span>
+                <span style={{ fontSize: 12, color: '#888' }}>
+                  {service.location_type === 'outcall' ? '🚗' : service.location_type === 'incall' ? '🏠' : '🚗🏠'} · {service.duration} мин
+                </span>
+              </div>
+              <span style={{ color: '#2481cc', fontWeight: 'bold', whiteSpace: 'nowrap', flexShrink: 0 }}>{service.price} руб</span>
             </div>
 
             {/* Допы под своей основной */}

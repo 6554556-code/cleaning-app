@@ -1295,41 +1295,47 @@ function ExecutorPage({ executorId }) {
 
       {/* Верхняя панель: домик слева, помощь + настройки справа */}
       {web ? (
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, gap: 12, flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, gap: 8, flexWrap: 'wrap' }}>
           <a
             href="/"
             style={{
               display: 'inline-flex', alignItems: 'center',
-              padding: '10px 18px', borderRadius: 13,
+              padding: '4px 9px', borderRadius: 8,
               border: '2px solid #FDB813', color: '#B8860B',
               background: '#fff', textDecoration: 'none',
-              fontSize: 15, fontWeight: 700,
+              fontSize: 13, fontWeight: 700,
             }}
           >
-            🏠 На главную
+            Главная
           </a>
-          <div style={{ display: 'flex', gap: 16, alignItems: 'center', flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
             <button
               onClick={() => setShowHelpModal(true)}
-              style={{ background: 'none', border: 'none', fontSize: 15, color: '#B8860B', cursor: 'pointer', padding: 0, fontWeight: 600 }}
+              style={{ background: 'none', border: 'none', fontSize: 13, color: '#B8860B', cursor: 'pointer', padding: 0, fontWeight: 600 }}
             >
               ❓ Помощь
             </button>
-            <a href="/?settings=1" style={{ fontSize: 15, color: '#B8860B', textDecoration: 'none', fontWeight: 600 }}>
+            <a href="/?settings=1" style={{ fontSize: 13, color: '#B8860B', textDecoration: 'none', fontWeight: 600 }}>
               ⚙️ Настройки
             </a>
             {getSession()?.id && (
               <button
                 onClick={() => { clearSession(); window.location.href = '/' }}
+                aria-label="Выйти"
+                title="Выйти"
                 style={{
-                  display: 'inline-flex', alignItems: 'center',
-                  padding: '10px 18px', borderRadius: 13,
+                  display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                  padding: '4px 7px', borderRadius: 8,
                   border: '2px solid #EF4444', color: '#EF4444',
                   background: '#fff', cursor: 'pointer',
-                  fontSize: 15, fontWeight: 700,
+                  lineHeight: 0,
                 }}
               >
-                Выйти
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4" />
+                  <polyline points="10 17 15 12 10 7" />
+                  <line x1="15" y1="12" x2="3" y2="12" />
+                </svg>
               </button>
             )}
           </div>
@@ -1440,7 +1446,7 @@ function ExecutorPage({ executorId }) {
       </div>
 
       {/* Табы */}
-      <div style={{ display: 'flex', gap: '8px', marginBottom: '16px' }}>
+      <div style={{ display: 'flex', gap: '8px', marginBottom: '16px', justifyContent: web ? 'center' : 'flex-start' }}>
         {[
           { id: 'orders', label: '📋 Заявки' },
           { id: 'schedule', label: '📅 Расписание' },
@@ -1450,7 +1456,7 @@ function ExecutorPage({ executorId }) {
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}
             style={{
-              padding: '8px 16px',
+              padding: '6px 12px',
               borderRadius: '20px',
               border: 'none',
               background: activeTab === tab.id
@@ -1460,7 +1466,7 @@ function ExecutorPage({ executorId }) {
                 ? (web ? '#000' : 'white')
                 : 'black',
               cursor: 'pointer',
-              fontSize: '14px',
+              fontSize: '13px',
               fontWeight: activeTab === tab.id ? 700 : 400,
             }}
           >
