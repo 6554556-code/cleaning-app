@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../supabase'
-import { getTelegramUser } from '../telegram'
+import { getTelegramUser, isWeb } from '../telegram'
 import { getSession, clearSession } from '../session'
 import AddOrderPage from './AddOrderPage'
 import MiniCalendar from '../components/MiniCalendar'
@@ -1288,34 +1288,78 @@ function ExecutorPage({ executorId }) {
       />
     )
   }
+  const web = isWeb()
+
   return (
-    <div style={{ padding: '16px', maxWidth: '600px', margin: '0 auto' }}>
+    <div style={{ padding: web ? '20px 24px 40px' : '16px', maxWidth: web ? 1240 : 600, margin: '0 auto' }}>
 
       {/* Верхняя панель: домик слева, помощь + настройки справа */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px' }}>
-        <a href="/" style={{ fontSize: '14px', color: '#2481cc', textDecoration: 'none' }}>
-          🏠 На главную
-        </a>
-        <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-          <button
-            onClick={() => setShowHelpModal(true)}
-            style={{ background: 'none', border: 'none', fontSize: '14px', color: '#2481cc', cursor: 'pointer', padding: 0 }}
+      {web ? (
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, gap: 12, flexWrap: 'wrap' }}>
+          <a
+            href="/"
+            style={{
+              display: 'inline-flex', alignItems: 'center',
+              padding: '10px 18px', borderRadius: 13,
+              border: '2px solid #FDB813', color: '#B8860B',
+              background: '#fff', textDecoration: 'none',
+              fontSize: 15, fontWeight: 700,
+            }}
           >
-            ❓ Помощь
-          </button>
-          <a href="/?settings=1" style={{ fontSize: '14px', color: '#2481cc', textDecoration: 'none' }}>
-            ⚙️ Настройки
+            🏠 На главную
           </a>
-          {getSession()?.id && (
+          <div style={{ display: 'flex', gap: 16, alignItems: 'center', flexWrap: 'wrap' }}>
             <button
-              onClick={() => { clearSession(); window.location.href = '/' }}
-              style={{ background: 'none', border: 'none', fontSize: '14px', color: '#C0341D', cursor: 'pointer', padding: 0 }}
+              onClick={() => setShowHelpModal(true)}
+              style={{ background: 'none', border: 'none', fontSize: 15, color: '#B8860B', cursor: 'pointer', padding: 0, fontWeight: 600 }}
             >
-              Выйти
+              ❓ Помощь
             </button>
-          )}
+            <a href="/?settings=1" style={{ fontSize: 15, color: '#B8860B', textDecoration: 'none', fontWeight: 600 }}>
+              ⚙️ Настройки
+            </a>
+            {getSession()?.id && (
+              <button
+                onClick={() => { clearSession(); window.location.href = '/' }}
+                style={{
+                  display: 'inline-flex', alignItems: 'center',
+                  padding: '10px 18px', borderRadius: 13,
+                  border: '2px solid #EF4444', color: '#EF4444',
+                  background: '#fff', cursor: 'pointer',
+                  fontSize: 15, fontWeight: 700,
+                }}
+              >
+                Выйти
+              </button>
+            )}
+          </div>
         </div>
-      </div>
+      ) : (
+        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px' }}>
+          <a href="/" style={{ fontSize: '14px', color: '#2481cc', textDecoration: 'none' }}>
+            🏠 На главную
+          </a>
+          <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+            <button
+              onClick={() => setShowHelpModal(true)}
+              style={{ background: 'none', border: 'none', fontSize: '14px', color: '#2481cc', cursor: 'pointer', padding: 0 }}
+            >
+              ❓ Помощь
+            </button>
+            <a href="/?settings=1" style={{ fontSize: '14px', color: '#2481cc', textDecoration: 'none' }}>
+              ⚙️ Настройки
+            </a>
+            {getSession()?.id && (
+              <button
+                onClick={() => { clearSession(); window.location.href = '/' }}
+                style={{ background: 'none', border: 'none', fontSize: '14px', color: '#C0341D', cursor: 'pointer', padding: 0 }}
+              >
+                Выйти
+              </button>
+            )}
+          </div>
+        </div>
+      )}
 
       {showHelpModal && (
         <div onClick={() => setShowHelpModal(false)} style={{ position: 'fixed', inset: 0, height: '100dvh', background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '16px' }}>
@@ -1409,10 +1453,15 @@ function ExecutorPage({ executorId }) {
               padding: '8px 16px',
               borderRadius: '20px',
               border: 'none',
-              background: activeTab === tab.id ? '#2481cc' : '#f0f0f0',
-              color: activeTab === tab.id ? 'white' : 'black',
+              background: activeTab === tab.id
+                ? (web ? '#FDB813' : '#2481cc')
+                : '#f0f0f0',
+              color: activeTab === tab.id
+                ? (web ? '#000' : 'white')
+                : 'black',
               cursor: 'pointer',
-              fontSize: '14px'
+              fontSize: '14px',
+              fontWeight: activeTab === tab.id ? 700 : 400,
             }}
           >
             {tab.label}

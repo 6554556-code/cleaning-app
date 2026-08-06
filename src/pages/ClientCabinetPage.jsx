@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../supabase'
 import { getSession, clearSession } from '../session'
+import { isWeb } from '../telegram'
 import ReviewModal from "../components/ReviewModal.jsx";
 import { canLeaveReview } from "../reviewsUtils.js";
 // Статусы и их подписи
@@ -153,36 +154,90 @@ const [reviewModalOrder, setReviewModalOrder] = useState(null)
 
   const shown = tab === 'future' ? futureOrders : pastOrders
 
+  // На вебе — своя раскладка (широкий контейнер, крупная шапка, жёлтые табы).
+  // В мини-аппе всё как было: узкий контейнер 600px, синие кнопки-ссылки.
+  const web = isWeb()
+
   if (loading) {
     return <div style={{ padding: '16px', textAlign: 'center' }}>Загрузка...</div>
   }
 
   return (
-    <div style={{ padding: '16px', maxWidth: '600px', margin: '0 auto' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-        <a href="/" style={{ fontSize: '14px', color: '#2481cc', textDecoration: 'none' }}>
-          🏠 На главную
-        </a>
-        {getSession()?.id && (
-          <button
-            onClick={() => { clearSession(); window.location.href = '/' }}
-            style={{ background: 'none', border: 0, color: '#C0341D', fontSize: '14px', fontWeight: 600, cursor: 'pointer', padding: '4px 0' }}
-          >
-            Выйти
-          </button>
-        )}
-      </div>
-      <h2 style={{ textAlign: 'center', marginTop: 0 }}>Мои заказы</h2>
+    <div style={{ padding: web ? '20px 24px 40px' : '16px', maxWidth: web ? 1240 : 600, margin: '0 auto' }}>
+      {/* ─── ШАПКА ─── */}
+      {web ? (
+        <>
+          {/* Веб: сначала кнопки в правом верхнем углу, потом заголовок слева */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, marginBottom: 16, flexWrap: 'wrap' }}>
+            <a
+              href="/"
+              style={{
+                display: 'inline-flex', alignItems: 'center',
+                padding: '10px 18px', borderRadius: 13,
+                border: '2px solid #FDB813', color: '#B8860B',
+                background: '#fff', textDecoration: 'none',
+                fontSize: 15, fontWeight: 700,
+              }}
+            >
+              На главную
+            </a>
+            {getSession()?.id && (
+              <button
+                onClick={() => { clearSession(); window.location.href = '/' }}
+                style={{
+                  display: 'inline-flex', alignItems: 'center',
+                  padding: '10px 18px', borderRadius: 13,
+                  border: '2px solid #EF4444', color: '#EF4444',
+                  background: '#fff', cursor: 'pointer',
+                  fontSize: 15, fontWeight: 700,
+                }}
+              >
+                Выйти
+              </button>
+            )}
+          </div>
+          <h1 style={{ margin: '0 0 20px', fontSize: 24, fontWeight: 800, letterSpacing: '-0.01em' }}>Мои заказы</h1>
+        </>
+      ) : (
+        <>
+          {/* Мини-апп: как было — оставляем полностью прежний вид */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+            <a href="/" style={{ fontSize: '14px', color: '#2481cc', textDecoration: 'none' }}>
+              🏠 На главную
+            </a>
+            {getSession()?.id && (
+              <button
+                onClick={() => { clearSession(); window.location.href = '/' }}
+                style={{ background: 'none', border: 0, color: '#C0341D', fontSize: '14px', fontWeight: 600, cursor: 'pointer', padding: '4px 0' }}
+              >
+                Выйти
+              </button>
+            )}
+          </div>
+          <h2 style={{ textAlign: 'center', marginTop: 0 }}>Мои заказы</h2>
+        </>
+      )}
 
-      {/* Табы */}
-      <div style={{ display: 'flex', gap: '8px', marginBottom: '16px' }}>
+      {/* ─── ТАБЫ ─── */}
+      <div style={{ display: 'flex', gap: web ? 12 : 8, marginBottom: web ? 24 : 16 }}>
         <button
           onClick={() => setTab('future')}
           style={{
-            flex: 1, padding: '10px', borderRadius: '8px', cursor: 'pointer', fontSize: '14px',
-            border: tab === 'future' ? '2px solid #2481cc' : '2px solid #f0f0f0',
-            background: tab === 'future' ? '#f0f7ff' : 'white',
-            color: tab === 'future' ? '#2481cc' : '#888', fontWeight: 'bold'
+            flex: 1,
+            padding: web ? '12px 16px' : '10px',
+            borderRadius: web ? 13 : 8,
+            cursor: 'pointer',
+            fontSize: web ? 15 : 14,
+            border: web
+              ? (tab === 'future' ? '2px solid #FDB813' : '2px solid #F0F0F0')
+              : (tab === 'future' ? '2px solid #2481cc' : '2px solid #f0f0f0'),
+            background: web
+              ? (tab === 'future' ? '#FFF8DC' : 'white')
+              : (tab === 'future' ? '#f0f7ff' : 'white'),
+            color: web
+              ? (tab === 'future' ? '#B8860B' : '#888')
+              : (tab === 'future' ? '#2481cc' : '#888'),
+            fontWeight: web ? 800 : 'bold',
           }}
         >
           Будущие ({futureOrders.length})
@@ -190,10 +245,21 @@ const [reviewModalOrder, setReviewModalOrder] = useState(null)
         <button
           onClick={() => setTab('past')}
           style={{
-            flex: 1, padding: '10px', borderRadius: '8px', cursor: 'pointer', fontSize: '14px',
-            border: tab === 'past' ? '2px solid #2481cc' : '2px solid #f0f0f0',
-            background: tab === 'past' ? '#f0f7ff' : 'white',
-            color: tab === 'past' ? '#2481cc' : '#888', fontWeight: 'bold'
+            flex: 1,
+            padding: web ? '12px 16px' : '10px',
+            borderRadius: web ? 13 : 8,
+            cursor: 'pointer',
+            fontSize: web ? 15 : 14,
+            border: web
+              ? (tab === 'past' ? '2px solid #FDB813' : '2px solid #F0F0F0')
+              : (tab === 'past' ? '2px solid #2481cc' : '2px solid #f0f0f0'),
+            background: web
+              ? (tab === 'past' ? '#FFF8DC' : 'white')
+              : (tab === 'past' ? '#f0f7ff' : 'white'),
+            color: web
+              ? (tab === 'past' ? '#B8860B' : '#888')
+              : (tab === 'past' ? '#2481cc' : '#888'),
+            fontWeight: web ? 800 : 'bold',
           }}
         >
           Прошедшие ({pastOrders.length})
@@ -224,7 +290,7 @@ const [reviewModalOrder, setReviewModalOrder] = useState(null)
             {/* Адрес поездки — крупно, если incall. Берём снимок с момента брони,
                 а если его нет (старый заказ до миграции) — fallback на текущий адрес исполнителя. */}
             {order.location_type === 'incall' && (order.incall_address || order.executorAddress) && (
-              <p style={{ margin: '4px 0 8px', fontSize: '15px', fontWeight: 'bold', color: '#2481cc' }}>
+              <p style={{ margin: '4px 0 8px', fontSize: '15px', fontWeight: 'bold', color: web ? '#666' : '#2481cc' }}>
                 📍 {order.incall_address || order.executorAddress}
               </p>
             )}
@@ -362,7 +428,9 @@ const [reviewModalOrder, setReviewModalOrder] = useState(null)
                       onClick={() => setReviewModalOrder(order)}
                       style={{
                         marginTop: '4px', padding: '6px 12px',
-                        background: 'white', color: '#2481cc', border: '1px solid #2481cc',
+                        background: 'white',
+                        color: web ? '#B8860B' : '#2481cc',
+                        border: web ? '1px solid #FDB813' : '1px solid #2481cc',
                         borderRadius: '6px', cursor: 'pointer', fontSize: '12px'
                       }}
                     >
@@ -396,7 +464,9 @@ const [reviewModalOrder, setReviewModalOrder] = useState(null)
               href={'/?executor_id=' + order.executor_id + '&book=1'}
                 style={{
                   display: 'block', marginTop: '8px', width: '100%', padding: '8px',
-                  background: 'white', color: '#2481cc', border: '1px solid #2481cc',
+                  background: 'white',
+                  color: web ? '#B8860B' : '#2481cc',
+                  border: web ? '1px solid #FDB813' : '1px solid #2481cc',
                   borderRadius: '8px', fontSize: '13px',
                   textAlign: 'center', textDecoration: 'none', boxSizing: 'border-box'
                 }}
