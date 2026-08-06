@@ -7,6 +7,7 @@ import { generateSlots } from '../utils/slotGenerator'
 import Avatar from '../components/Avatar'
 import MiniCalendar from '../components/MiniCalendar'
 import BookingPageWeb from './BookingPageWeb'
+import { loadOrdersCountByExecutors } from '../ordersUtils'
 import { MapContainer, TileLayer, Marker } from 'react-leaflet'
 import 'leaflet/dist/leaflet.css'
 import { DateTime } from 'luxon'
@@ -37,6 +38,22 @@ function BookingPage({ executor, stats, reviews, slot, onBack, onSuccess }) {
     observer.observe(mapBoxRef.current)
     return () => observer.disconnect()
   }, [])
+
+  // Счётчик заказов исполнителя — показываем в шапке брони (веб).
+  // Та же логика, что на витрине: fromApp = done через 'booking' (без накрутки).
+  const [ordersCount, setOrdersCount] = useState(0)
+  useEffect(() => {
+    if (!executor?.id) return
+    let cancelled = false
+    async function loadOrders() {
+      const map = await loadOrdersCountByExecutors([executor.id])
+      if (cancelled) return
+      setOrdersCount(map[executor.id]?.fromApp || 0)
+    }
+    loadOrders()
+    return () => { cancelled = true }
+  }, [executor?.id])
+
   const [name, setName] = useState('')
   const [phone, setPhone] = useState('')
   const [address, setAddress] = useState('')
@@ -434,6 +451,7 @@ function toggleExtra(extra) {
         formatSlot={formatSlot}
         mapRef={mapRef}
         mapBoxRef={mapBoxRef}
+        ordersCount={ordersCount}
       />
     )
   }

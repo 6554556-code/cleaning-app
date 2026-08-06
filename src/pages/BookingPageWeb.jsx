@@ -4,6 +4,7 @@ import 'leaflet/dist/leaflet.css'
 import L from 'leaflet'
 import Avatar from '../components/Avatar'
 import MiniCalendar from '../components/MiniCalendar'
+import { useProfessions } from '../hooks/useProfessions'
 import { getSession } from '../session'
 import { BrandMark, WebFooter, WebBaseStyles } from '../components/WebShell'
 import { ROLE_BTN, rub, Y, YP, Y_SOFT, Y_TINT, Y_DARK, INK, MUTED, LINE, LINE_2, BG } from '../webTheme'
@@ -87,8 +88,12 @@ export default function BookingPageWeb({
   showAllReviews, setShowAllReviews,
   loading, onSubmit, total, duration, formatSlot,
   mapRef, mapBoxRef,
+  ordersCount = 0,
 }) {
   const session = getSession()
+  const { professions } = useProfessions()
+  const prof = professions.find(p => p.code === executor.service_type)
+  const bio = (executor.bio || '').trim()
   // Клик по рейтингу в карточке мастера — плавный скролл к списку отзывов
   const reviewsRef = useRef(null)
   const hasReviews = !!(reviews && reviews.length)
@@ -180,54 +185,90 @@ export default function BookingPageWeb({
           {/* ─────────── ЛЕВАЯ КОЛОНКА ─────────── */}
           <div>
 
-            {/* Мастер */}
-            <div className="ebb-card ebb-master" style={{ ...CARD, display: 'flex', gap: 20, alignItems: 'flex-start' }}>
-              <Avatar url={executor.avatar_url} name={executor.users?.full_name} size={96} />
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 7, flexWrap: 'wrap' }}>
-                  <h2 style={{ margin: 0, fontSize: 22, fontWeight: 800 }}>{executor.users?.full_name || 'Исполнитель'}</h2>
-                  {executor.is_verified && <span title="Проверенный исполнитель">✅</span>}
-                </div>
+            {/* Мастер — компоновка как в MiniCard: узор, плашка профессии, рейтинг,
+                счётчик заказов, метро/город, внизу имя+цена, ниже bio. */}
+            <div className="ebb-card ebb-master" style={{ ...CARD, position: 'relative', overflow: 'hidden' }}>
+              {/* Мягкий жёлтый узор в углу — как на карточке «Свободны сегодня и завтра» */}
+              <svg width="180" height="140" viewBox="0 0 150 120" style={{ position: 'absolute', right: 0, bottom: 0, pointerEvents: 'none' }}>
+                <path d="M20 120C40 70 90 96 120 52c18-26 14-44 14-52h16v120H20Z" fill="#FDB813" opacity=".10" />
+                <path d="M62 120c14-30 44-24 62-52 10-16 12-30 12-38h14v90H62Z" fill="#FDB813" opacity=".10" />
+              </svg>
 
-                <div style={{ marginTop: 8, display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-                  {stats && stats.count > 0 ? (
-                    <>
-                      <button
-                        onClick={hasReviews ? scrollToReviews : undefined}
-                        className={hasReviews ? 'ebb-rating' : undefined}
-                        title={hasReviews ? 'Читать отзывы' : undefined}
-                        style={{
-                          display: 'flex', alignItems: 'center', gap: 8, padding: 0, border: 'none',
-                          background: 'none', font: 'inherit', cursor: hasReviews ? 'pointer' : 'default',
-                        }}>
-                        <span style={{ color: Y, fontWeight: 800, fontSize: 17 }}>★ {stats.avgRating}</span>
-                        <span style={{ color: hasReviews ? Y_DARK : MUTED, fontSize: 14, fontWeight: hasReviews ? 700 : 400 }}>
-                          {stats.count} {stats.count === 1 ? 'отзыв' : stats.count < 5 ? 'отзыва' : 'отзывов'}
+              {/* Верхний ряд: аватар + инфо */}
+              <div className="ebb-master-top" style={{ display: 'flex', gap: 20, alignItems: 'flex-start', position: 'relative', zIndex: 1 }}>
+                <Avatar url={executor.avatar_url} name={executor.users?.full_name} size={96} />
+
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  {/* Плашки (профессия, «всегда вовремя») слева + рейтинг справа */}
+                  <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+                    <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', flex: 1, minWidth: 0 }}>
+                      {prof && (
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '4px 12px', background: '#FBF0D2', color: '#7A5A0A', borderRadius: 12, fontSize: 13, fontWeight: 700, whiteSpace: 'nowrap' }}>
+                          {prof.icon} {prof.name}
                         </span>
-                      </button>
-                      {stats.alwaysOnTime && (
-                        <span style={{ background: '#EAF7EE', color: '#1B7F3B', fontSize: 12, fontWeight: 700, padding: '3px 9px', borderRadius: 10 }}>✓ Всегда вовремя</span>
                       )}
-                    </>
-                  ) : (
-                    <span style={{ color: MUTED, fontSize: 14 }}>Новый исполнитель</span>
-                  )}
-                </div>
-
-                {(executor.subway_station || executor.city) && (
-                  <div style={{ marginTop: 8, fontSize: 14, color: '#666' }}>
-                    {executor.subway_station && <>🚇 {executor.subway_station}</>}
-                    {executor.subway_station && executor.city && ' · '}
-                    {executor.city && <>📍 {executor.city}</>}
+                      {stats && stats.alwaysOnTime && (
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '4px 12px', background: '#EAF7EE', color: '#1B7F3B', borderRadius: 12, fontSize: 13, fontWeight: 700, whiteSpace: 'nowrap' }}>
+                          ✓ Всегда вовремя
+                        </span>
+                      )}
+                    </div>
+                    <span style={{ whiteSpace: 'nowrap', flexShrink: 0, display: 'inline-flex', alignItems: 'baseline', gap: 5 }}>
+                      {stats && stats.count > 0 ? (
+                        <button
+                          onClick={hasReviews ? scrollToReviews : undefined}
+                          className={hasReviews ? 'ebb-rating' : undefined}
+                          title={hasReviews ? 'Читать отзывы' : undefined}
+                          style={{
+                            display: 'inline-flex', alignItems: 'baseline', gap: 5, padding: 0, border: 'none',
+                            background: 'none', font: 'inherit', cursor: hasReviews ? 'pointer' : 'default',
+                          }}>
+                          <span style={{ color: Y, fontSize: 20 }}>★</span>
+                          <span style={{ color: INK, fontWeight: 800, fontSize: 22 }}>{stats.avgRating}</span>
+                          <span style={{ color: hasReviews ? Y_DARK : MUTED, fontSize: 14, fontWeight: hasReviews ? 700 : 400 }}>
+                            ({stats.count})
+                          </span>
+                        </button>
+                      ) : (
+                        <span style={{ color: MUTED, fontSize: 14 }}>Новый</span>
+                      )}
+                    </span>
                   </div>
+
+                  {/* Счётчик заказов — как на витрине, только если count > 0 */}
+                  {ordersCount > 0 && (
+                    <div style={{ fontSize: 13, color: '#666', marginTop: 8 }}>
+                      📦 {ordersCount} {ordersCount === 1 ? 'заказ' : ordersCount < 5 ? 'заказа' : 'заказов'}
+                    </div>
+                  )}
+
+                  {/* Город и метро */}
+                  {executor.city && <div style={{ fontSize: 14, color: '#666', marginTop: 8 }}>📍 {executor.city}</div>}
+                  {executor.subway_station && <div style={{ fontSize: 14, color: '#666', marginTop: 4 }}>🚇 {executor.subway_station}</div>}
+                </div>
+              </div>
+
+              {/* Средний ряд: имя+галочка слева, цена справа */}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginTop: 16, position: 'relative', zIndex: 1 }}>
+                <h2 style={{ margin: 0, fontSize: 22, fontWeight: 800, display: 'flex', alignItems: 'center', gap: 6, flex: 1, minWidth: 0 }}>
+                  <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {executor.users?.full_name || 'Исполнитель'}
+                  </span>
+                  {executor.is_verified && <span title="Проверенный исполнитель" style={{ flex: 'none' }}>✅</span>}
+                </h2>
+                {fromPrice != null && (
+                  <span style={{ whiteSpace: 'nowrap', flexShrink: 0, display: 'inline-flex', alignItems: 'baseline', gap: 4 }}>
+                    <span style={{ fontSize: 14, color: MUTED, fontWeight: 500 }}>от</span>
+                    <span style={{ fontSize: 24, fontWeight: 800, color: INK }}>{rub(fromPrice)}</span>
+                  </span>
                 )}
               </div>
 
-              {fromPrice != null && (
-                <div style={{ flex: 'none', textAlign: 'right' }}>
-                  <div style={{ fontSize: 13, color: MUTED }}>Услуги</div>
-                  <div style={{ fontSize: 22, fontWeight: 800, whiteSpace: 'nowrap' }}>от {rub(fromPrice)}</div>
-                </div>
+              {/* Bio — вместо кнопки «Записаться» */}
+              {bio && (
+                <p style={{ margin: '14px 0 0', fontSize: 14, color: '#5E5E5E', lineHeight: 1.5, position: 'relative', zIndex: 1, whiteSpace: 'pre-wrap' }}>
+                  {bio}
+                </p>
               )}
             </div>
 
