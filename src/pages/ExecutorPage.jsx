@@ -4,6 +4,7 @@ import { getTelegramUser, isWeb } from '../telegram'
 import { getSession, clearSession } from '../session'
 import AddOrderPage from './AddOrderPage'
 import MiniCalendar from '../components/MiniCalendar'
+import useIsMobile from '../hooks/useIsMobile'
 import { loadReviewsByExecutors, calculateStats } from '../reviewsUtils'
 import BalanceBlock from '../components/BalanceBlock'
 // Retry-обёртка для нестабильного соединения (Telegram WebApp)
@@ -591,6 +592,10 @@ function ScheduleView({ executor, orders, blocks, globalClientStats, onReload, o
   const [breakDay, setBreakDay] = useState(null)
   if (!executor) return null
 
+  // Сколько дней показывать: 7 на десктопном вебе, 3 везде остальном (мобилка, мини-апп)
+  const isMobile = useIsMobile()
+  const daysCount = (isWeb() && !isMobile) ? 7 : 3
+
   // Парсим время работы
   const [workStartH, workStartM] = executor.work_start.split(':').map(Number)
   const [workEndH, workEndM] = executor.work_end.split(':').map(Number)
@@ -601,13 +606,13 @@ function ScheduleView({ executor, orders, blocks, globalClientStats, onReload, o
   // Высота 1 минуты в пикселях
   const PX_PER_MIN = 1.2
 
-  // Начало 3-дневного окна
+  // Начало окна (3 дня на мобилке/мини-аппе, 7 на десктопном вебе)
   const today = new Date()
   today.setHours(0, 0, 0, 0)
   const startDate = new Date(today)
-  startDate.setDate(today.getDate() + weekOffset * 3)
+  startDate.setDate(today.getDate() + weekOffset * daysCount)
 
-  const days = [0, 1, 2].map(i => {
+  const days = Array.from({ length: daysCount }, (_, i) => i).map(i => {
     const d = new Date(startDate)
     d.setDate(startDate.getDate() + i)
     return d
@@ -704,7 +709,7 @@ const viewStartMin = expandedBefore ? 0 : earliestMin
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
         <button onClick={() => setWeekOffset(weekOffset - 1)} style={{ padding: '6px 12px', borderRadius: '8px', border: '1px solid #ddd', background: 'white', cursor: 'pointer' }}>← Назад</button>
         <span style={{ fontWeight: 'bold', fontSize: '14px' }}>
-          {formatDay(days[0])} — {formatDay(days[2])}
+          {formatDay(days[0])} — {formatDay(days[days.length - 1])}
         </span>
         <button onClick={() => setWeekOffset(weekOffset + 1)} style={{ padding: '6px 12px', borderRadius: '8px', border: '1px solid #ddd', background: 'white', cursor: 'pointer' }}>Вперёд →</button>
       </div>
@@ -722,7 +727,7 @@ const viewStartMin = expandedBefore ? 0 : earliestMin
             const todayMidnight = new Date()
             todayMidnight.setHours(0, 0, 0, 0)
             const diffDays = Math.round((picked - todayMidnight) / (1000 * 60 * 60 * 24))
-            setWeekOffset(Math.floor(diffDays / 3))
+            setWeekOffset(Math.floor(diffDays / daysCount))
           }}
         />
         {weekOffset !== 0 && (
@@ -1291,7 +1296,7 @@ function ExecutorPage({ executorId }) {
   const web = isWeb()
 
   return (
-    <div style={{ padding: web ? '20px 24px 40px' : '16px', maxWidth: web ? 1240 : 600, margin: '0 auto' }}>
+    <div style={{ padding: web ? '20px 24px 40px' : '16px', maxWidth: web ? '100%' : 600, margin: '0 auto' }}>
 
       {/* Верхняя панель: домик слева, помощь + настройки справа */}
       {web ? (

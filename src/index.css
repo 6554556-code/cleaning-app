@@ -108,6 +108,14 @@ body {
   word-break: break-word;
 }
 
+/* Десктоп: снимаем ограничение шириной 500px, каждая страница сама решает свой максимум */
+@media (min-width: 900px) {
+  #root {
+    max-width: none;
+    text-align: left;
+  }
+}
+
 h1,
 h2 {
   font-family: var(--heading);
