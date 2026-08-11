@@ -707,7 +707,7 @@ function toggleExtra(extra) {
       <div style={{ display: 'flex', gap: '8px', marginBottom: '16px' }}>
         {[
           { id: 'outcall', label: '🚗 Выезд' },
-          { id: 'incall', label: '🏠 Приём у себя' },
+          { id: 'incall', label: '🏠 Приём' },
         ].map(t => {
           const disabled =
             t.id === 'outcall' && selectedService?.location_type === 'incall' ||
