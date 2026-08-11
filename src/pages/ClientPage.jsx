@@ -42,6 +42,12 @@ function ClientPage() {
     return id && params.get('book') === '1' ? Number(id) : null
   })
 
+  // Веб-фильтры и вид "карта/список" — подняты сюда, чтобы не сбрасывались при уходе в бронь и обратно.
+  const [view, setView] = useState('map')            // 'map' | 'list'
+  const [minRating, setMinRating] = useState(0)       // 0 = любой
+  const [visitType, setVisitType] = useState('any')   // 'any' | 'outcall' | 'incall'
+  const [mapFull, setMapFull] = useState(false)       // карта во весь экран
+
   // Ловим ?executor_id=N из URL — это переход с карты по кнопке "Записаться"
   // Или ?executor_id=N&book=1 — это переход из ЛК клиента "Записаться снова"
   useEffect(() => {
@@ -393,6 +399,14 @@ useEffect(() => {
         expandedBios={expandedBios}
         setExpandedBios={setExpandedBios}
         myUserId={myUserId}
+        view={view}
+        setView={setView}
+        minRating={minRating}
+        setMinRating={setMinRating}
+        visitType={visitType}
+        setVisitType={setVisitType}
+        mapFull={mapFull}
+        setMapFull={setMapFull}
         onBook={(executor) => {
           setSelectedExecutor(executor)
           setSelectedSlot(null)

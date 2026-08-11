@@ -378,12 +378,11 @@ export default function ClientPageWeb({
   search, setSearch, loading,
   visibleExecutors, reviewStats, ordersCountByExecutor,
   expandedServices, setExpandedServices, expandedBios, setExpandedBios,
-  onBook, myUserId,
+  onBook, myUserId,view, setView, minRating, setMinRating, visitType, setVisitType,
+  mapFull, setMapFull,
 }) {
-  const [view, setView] = useState('map')            // 'map' | 'list'
   const [selectedId, setSelectedId] = useState(null)
-  const [minRating, setMinRating] = useState(0)       // 0 = любой, 4.5, 4.8
-  const [visitType, setVisitType] = useState('any')   // 'any' | 'outcall' | 'incall'
+  // view, minRating, visitType — приходят из ClientPage через пропсы (чтобы не слетать при уходе в бронь и обратно)
   const trackRef = useRef(null)
   const rafRef = useRef(null)
   const dirRef = useRef(0)
@@ -469,7 +468,7 @@ export default function ClientPageWeb({
   // Скроллить к карточке в списке нельзя: при подгрузке порциями нужного
   // исполнителя в отрисованном списке может просто не оказаться.
   const [sheetId, setSheetId] = useState(null)
-  const [mapFull, setMapFull] = useState(false)  // мобильная карта во весь экран
+  // mapFull — приходит из ClientPage через пропсы (чтобы не слетал при уходе в бронь и обратно)
   const sheetEx = useMemo(() => visibleExecutors.find(e => e.id === sheetId) || null, [visibleExecutors, sheetId])
 
 
