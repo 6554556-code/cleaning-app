@@ -26,8 +26,10 @@ export default defineConfig({
         ]
       },
       workbox: {
-        // Кэшируем статику агрессивно, API-запросы к Supabase не трогаем
-        navigateFallbackDenylist: [/^\/api/],
+        // Кэшируем статику агрессивно, API-запросы к Supabase не трогаем.
+        // /blog и /about — статичные HTML-страницы вне приложения: воркер их НЕ перехватывает,
+        // иначе при повторном заходе он подсовывал бы index.html приложения вместо страницы.
+        navigateFallbackDenylist: [/^\/api/, /^\/blog/, /^\/about/],
         runtimeCaching: [
           {
             urlPattern: /^https:\/\/.*\.supabase\.co\/.*/i,

@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from 'react'
 import { supabase } from '../supabase'
 import { saveSession } from '../session'
 
-const TG_BOT = 'ebookee777_bot' // @ebookee777_bot, домен привязан в BotFather -> app.ebookee.app
+const TG_BOT = 'ebookee777_bot' // @ebookee777_bot, домен привязан в BotFather -> ebookee.app
 
 const CSS = `
 .eblogin-screen{position:fixed;inset:0;z-index:1000;overflow:auto;background:#FBFAF7;
@@ -78,10 +78,10 @@ export default function LoginPage({ onSuccess, onBack, title = 'Вход по т
   useEffect(() => () => clearInterval(timer.current), [])
 
   // Telegram Login Widget: рисуется только на домене, привязанном в BotFather.
-  // Поэтому вне app.ebookee.app скрипт не вставляем — телефон остаётся рабочим.
+  // Поэтому вне ebookee.app скрипт не вставляем — телефон остаётся рабочим.
   useEffect(() => {
     if (typeof window === 'undefined') return
-    if (window.location.hostname !== 'app.ebookee.app') return
+    if (window.location.hostname !== 'ebookee.app') return
     const box = tgBox.current
     if (!box) return
     window.onTelegramAuth = (user) => onTgAuth(user)
@@ -194,9 +194,9 @@ export default function LoginPage({ onSuccess, onBack, title = 'Вход по т
         {step === 'phone' && (
           <div className="eblogin-card">
             <h1 className="eblogin-h1">{title}</h1>
-            {typeof window !== 'undefined' && window.location.hostname === 'app.ebookee.app'
+            {typeof window !== 'undefined' && window.location.hostname === 'ebookee.app'
               ? <div className="eblogin-tg" ref={tgBox} />
-              : <div className="eblogin-tghint">Вход через Telegram доступен на app.ebookee.app</div>}
+              : <div className="eblogin-tghint">Вход через Telegram доступен на ebookee.app</div>}
             {role !== 'executor' && (<>
               <div className="eblogin-or">или по номеру телефона</div>
               <p className="eblogin-lead">Введите номер — пришлём код в SMS. Пароль не нужен.</p>
