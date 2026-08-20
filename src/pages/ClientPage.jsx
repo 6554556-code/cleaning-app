@@ -343,6 +343,7 @@ useEffect(() => {
         reviews={reviewsByExecutor[selectedExecutor.id] || []}
         slot={selectedSlot}
         onBack={() => {
+          console.log('[onBack] URL:', window.location.search, '| mapFull:', mapFull, '| view:', view)
           // Пришли в бронь с карты (from=map) → возвращаемся на карту. Иначе — на главную/список.
           if (new URLSearchParams(window.location.search).get('from') === 'map') {
             window.location.href = '?map=1'

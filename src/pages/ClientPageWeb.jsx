@@ -187,7 +187,7 @@ const RATING_OPTS = [
 const VISIT_OPTS = [
   { v: 'any', label: '🚗🏠 Везде' },
   { v: 'outcall', label: '🚗 Выезд' },
-  { v: 'incall', label: '🏠 Приём у себя' },
+  { v: 'incall', label: '🏠 Приём' },
 ]
 
 // Компактный фильтр рейтинга: одна кнопка-звезда. Тап циклит порог:
@@ -269,7 +269,7 @@ function SheetCard({ ex, prof, stats, onBook, onClose }) {
         )}
         {(caps.inc || caps.out) && (
           <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '4px 10px', background: '#EEF3FF', color: '#3B5BA5', borderRadius: 11, fontSize: 12, fontWeight: 700 }}>
-            {caps.inc && caps.out ? '🚗 выезд · 🏠 приём' : caps.out ? '🚗 выезд' : '🏠 приём у себя'}
+            {caps.inc && caps.out ? '🚗 выезд · 🏠 приём' : caps.out ? '🚗 выезд' : '🏠 приёмs'}
           </span>
         )}
         {rated && stats.alwaysOnTime && (
@@ -469,7 +469,7 @@ export default function ClientPageWeb({
   // исполнителя в отрисованном списке может просто не оказаться.
   const [sheetId, setSheetId] = useState(null)
   // mapFull — приходит из ClientPage через пропсы (чтобы не слетал при уходе в бронь и обратно)
-  const sheetEx = useMemo(() => visibleExecutors.find(e => e.id === sheetId) || null, [visibleExecutors, sheetId])
+    const sheetEx = useMemo(() => visibleExecutors.find(e => e.id === sheetId) || null, [visibleExecutors, sheetId])
 
 
   // ─────────────────────────────────────────────────────────────
@@ -628,7 +628,7 @@ export default function ClientPageWeb({
                 <div style={{ background: '#fff', borderRadius: 18, boxShadow: '0 8px 30px rgba(30,25,10,.3)', padding: '14px 16px' }}>
                   <SheetCard ex={sheetEx} prof={profOf(sheetEx)} stats={reviewStats[sheetEx.id]}
                     onClose={() => setSheetId(null)}
-                    onBook={() => { setMapFull(false); onBook(sheetEx) }} />
+                    onBook={() => onBook(sheetEx)} />
                 </div>
               </div>
             )}

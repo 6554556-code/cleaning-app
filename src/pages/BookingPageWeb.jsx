@@ -176,7 +176,7 @@ export default function BookingPageWeb({
       <div className="ebb-wrap" style={{ maxWidth: 1240, margin: '0 auto', padding: '20px 24px 40px' }}>
         <button onClick={onBack} className="ebb-link"
           style={{ background: 'none', border: 'none', fontSize: 15, fontWeight: 600, color: Y_DARK, cursor: 'pointer', padding: 0, marginBottom: 12 }}>
-          ← Назад к списку
+          ← Назад
         </button>
         <h1 className="ebb-title" style={{ fontSize: 30, fontWeight: 800, margin: '0 0 22px', letterSpacing: '-.02em' }}>Оформление заявки</h1>
 
